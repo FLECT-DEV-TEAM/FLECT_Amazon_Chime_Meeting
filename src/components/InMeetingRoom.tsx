@@ -463,7 +463,7 @@ class InMeetingRoom extends React.Component {
               pixelData[pix_offset + 2] = bgImageData.data[pix_offset + 2]
               pixelData[pix_offset + 3] = bgImageData.data[pix_offset + 3]
             } else {
-              pixelData[pix_offset] = maskedImage.data[pix_offset]
+              pixelData[pix_offset]     = maskedImage.data[pix_offset]
               pixelData[pix_offset + 1] = maskedImage.data[pix_offset + 1]
               pixelData[pix_offset + 2] = maskedImage.data[pix_offset + 2]
               pixelData[pix_offset + 3] = maskedImage.data[pix_offset + 3]

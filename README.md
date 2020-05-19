@@ -12,6 +12,16 @@ Inspired by https://github.com/aws/amazon-chime-sdk-js/tree/master/demos/browser
 - Send Stamp
 - Send Message
 
+
+<p align="center">
+<img src="./doc/virtualBG.gif" width="800" />
+</p>
+
+<p align="center">
+<img src="./doc/stamp.gif" width="800" />
+</p>
+
+
 ## Setup and Configuration
 To setup, you need apropriate aws credential. For example, set it to environmetal variables, create the credential file in ~/.aws/credential, or so. If you want to know more detail, see https://docs.aws.amazon.com/sdk-for-java/v1/developer-guide/setup-credentials.html.
 

@@ -1,0 +1,9 @@
+*~
+*#
+
+node_modules
+server/node_modules/
+.serverless
+build/*
+src/config.ts
+
