@@ -14,11 +14,11 @@ Inspired by https://github.com/aws/amazon-chime-sdk-js/tree/master/demos/browser
 
 
 <p align="center">
-<img src="./doc/virtualBG.gif" width="800" />
+<img src="./doc/virtualBG.gif" width="300" />
 </p>
 
 <p align="center">
-<img src="./doc/stamp.gif" width="800" />
+<img src="./doc/stamp.gif" width="300" />
 </p>
 
 
