@@ -10,6 +10,7 @@ provider:
   environment:
     MEETINGS_TABLE_NAME    : !Ref Meetings
     ATTENDEES_TABLE_NAME   : !Ref Attendees
+    USER_TABLE_NAME        : !Ref Users
     SQS_QUEUE_ARN          : !GetAtt MeetingNotificationsQueue.Arn
     CONNECTIONS_TABLE_NAME : !Ref ConnectionsTable
     MEETING_ROOM_ID_PREFIX : ""
@@ -31,9 +32,13 @@ package:
   include:
     - serverless.yml
     - sls/**
-    
+    - node_modules/uuid/**
+###############
+## Resources ##
+###############
 resources:
   Resources:
+    ### For index.htm and js ###
     HTMLBucket:
       Type: AWS::S3::Bucket
       Properties:
@@ -57,6 +62,31 @@ resources:
                   Resource:
                     Fn::Join: ["", ["arn:aws:s3:::",{"Ref": "HTMLBucket"},"/*"]]
 
+    ### DynamoDB for Meeting ###
+    Users:
+      Type: 'AWS::DynamoDB::Table'
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: "UserId"
+            AttributeType: "S"
+          - AttributeName: "UserName"
+            AttributeType: "S"
+        KeySchema:
+          - AttributeName: "UserId"
+            KeyType: "HASH"
+        ProvisionedThroughput:
+          ReadCapacityUnits: "5"
+          WriteCapacityUnits: "5"
+        GlobalSecondaryIndexes:
+          - IndexName: "reverseGSI"
+            KeySchema:
+              - AttributeName: "UserName"
+                KeyType: "HASH"
+            Projection:
+              ProjectionType: ALL
+            ProvisionedThroughput:
+              ReadCapacityUnits: '5'
+              WriteCapacityUnits: '5'
     Meetings:
       Type: 'AWS::DynamoDB::Table'
       Properties:
@@ -96,6 +126,8 @@ resources:
         ProvisionedThroughput:
           ReadCapacityUnits: "5"
           WriteCapacityUnits: "5"
+
+    ### Role ###
     ChimeMeetingsAccessPolicy: # In-line
       Type: AWS::IAM::Policy
       Properties:
@@ -127,6 +159,7 @@ resources:
                 - 'dynamodb:PutItem'
                 - 'dynamodb:Query'
                 - 'dynamodb:DeleteItem'
+                - 'dynamodb:UpdateItem'
               Resource: '*'
         Roles:
           - Ref: FLECTChimeSdkLambdaRole
@@ -142,9 +175,13 @@ resources:
                   - lambda.amazonaws.com            
               Action:
                 - sts:AssumeRole
+    
+
+    ### SQS (Not used yet) ###
     MeetingNotificationsQueue:
       Type: AWS::SQS::Queue
 
+    ### DynamoDB for WwebSocket ###
     ConnectionsTable:
       Type: AWS::DynamoDB::Table
       Properties:
@@ -167,51 +204,143 @@ resources:
           ReadCapacityUnits: 5
           WriteCapacityUnits: 5
 
+###############
+## Functions ##
+###############
 functions:
-  CreateMeetingLambda:
+  ### for Meeting ###
+  ##### USER #####
+  CreateUser:
+    handler: sls/user_handlers.createUser
+    role: FLECTChimeSdkLambdaRole
+    events:
+      - http:
+          path: users
+          method: post
+          cors: true
+  GetUser:
+    handler: sls/user_handlers.getUsers
+    role: FLECTChimeSdkLambdaRole
+    events:
+      - http:
+          path: users
+          method: get
+          cors: true
+
+  DeleteUser:
+    handler: sls/user_handlers.deleteUser
+    role: FLECTChimeSdkLambdaRole
+    events:
+      - http:
+          path: users/{userId}
+          method: delete
+          cors: true
+  LoginUser:
+    handler: sls/user_handlers.loginUser
+    role: FLECTChimeSdkLambdaRole
+    events:
+      - http:
+          path: users/{userId}/execLogin
+          method: post
+          cors: true
+          request: 
+            parameters: 
+              paths: 
+                userId: true
+  LogoutUser:
+    handler: sls/user_handlers.logoutUser
+    role: FLECTChimeSdkLambdaRole
+    events:
+      - http:
+          path: users/{userId}/execLogout
+          method: post
+          cors: true
+          request: 
+            parameters: 
+              paths: 
+                userId: true
+
+
+
+  ##### MEETING #####
+  CreateMeeting:
     handler: sls/handlers.createMeeting
     role: FLECTChimeSdkLambdaRole
     events:
       - http:
-          path: meeting
-          method: post
-          cors: true
-          
-  JoinLambda:
-    handler: sls/handlers.join
-    role: FLECTChimeSdkLambdaRole
-    events:
-      - http:
-          path: join
+          path: meetings
           method: post
           cors: true
 
-  EndLambda:
+  GetMeeting:
+    handler: sls/handlers.getMeetings
+    role: FLECTChimeSdkLambdaRole
+    events:
+      - http:
+          path: meetings
+          method: post
+          cors: true
+
+  DeleteMeeting:
     handler: sls/handlers.end
     role: FLECTChimeSdkLambdaRole
     events:
       - http:
-          path: end
+          path: meetings/{meetingId}
+          method: delete
+          cors: true
+          request: 
+            parameters: 
+              paths: 
+                meetingId: true
+
+  JoinMeeting:
+    handler: sls/handlers.join
+    role: FLECTChimeSdkLambdaRole
+    events:
+      - http:
+          path: meetings/{meetingId}/attendees
           method: post
           cors: true
-
+          request: 
+            parameters: 
+              paths: 
+                meetingId: true
+                
   AttendeeLambda:
     handler: sls/handlers.attendee
     role: FLECTChimeSdkLambdaRole
     events:
       - http:
-          path: attendee
+          path: meetings/{meetingId}/attendees/{attendeeId}
           method: get
           cors: true
-
-
-  ChimeSQSQueueLambda:
-    handler: sls/notification_handlers.sqs_handler
+          request: 
+            parameters: 
+              paths: 
+                meetingId: true
+                attendeeId: true
+  LeaveMeeting:
+    handler: sls/handlers.leave
     role: FLECTChimeSdkLambdaRole
     events:
-      - sqs:
-        arn: !GetAtt MeetingNotificationsQueue.Arn
-        batchSize: 10
+      - http:
+          path: meetings/{meetingId}/attendees/{attendeeId}
+          method: post
+          cors: true
+          request: 
+            parameters: 
+              paths: 
+                meetingId: true
+                attendeeId: true
+
+  # ChimeSQSQueueLambda:
+  #   handler: sls/notification_handlers.sqs_handler
+  #   role: FLECTChimeSdkLambdaRole
+  #   events:
+  #     - sqs:
+  #       arn: !GetAtt MeetingNotificationsQueue.Arn
+  #       batchSize: 10
 
   connect:
     handler: sls/messaging.onconnect

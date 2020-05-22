@@ -585,7 +585,7 @@ class InMeetingRoom extends React.Component {
           <Grid.Row columns={4}>
             {/****** 1st column. for User ID *****/}
             <Grid.Column textAlign="center" width={2}>
-              {gs.userName}@{gs.roomID}({gs.region})
+              {gs.userName}@{gs.roomTitle}({gs.region})
             </Grid.Column>
 
             {/****** 2nd column. Main buttons *****/}

@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { GlobalState } from '../reducers';
-import { AppStatus, LOGGER_BATCH_SIZE, LOGGER_INTERVAL_MS } from '../const';
+import { AppStatus, LOGGER_BATCH_SIZE, LOGGER_INTERVAL_MS, AppStatus2 } from '../const';
 import * as bodyPix from '@tensorflow-models/body-pix';
 
 import {
@@ -13,7 +13,8 @@ import {
     MeetingSessionPOSTLogger,
     VideoTileState
   } from 'amazon-chime-sdk-js';
-import Entrance from './Entrance';
+  import Entrance from './Entrance';
+  import Robby from './Lobby';
 import SelectDevice from './SelectDevice';
 import InMeetingRoom from './InMeetingRoom';
 import DeviceChangeObserverImpl from './DeviceChangeObserverImpl';
@@ -167,7 +168,7 @@ class App extends React.Component {
             this.state.roster[attendeeId].signalStrength = signalStrength
         }
         if(this.state.roster[attendeeId].name === null || this.state.roster[attendeeId].name === "Unknown"){ // ChimeがUnknownで返すときがある
-            props.getAttendeeInformation(gs.baseURL, gs.roomID, attendeeId)
+            props.getAttendeeInformation(gs.baseURL, gs.roomTitle, attendeeId)
         }
         this.setState({})
     }
@@ -183,87 +184,138 @@ class App extends React.Component {
     }
 
 
+    enterMeetingRoom=()=>{
+
+    }
+
+
     render() {
         const gs = this.props as GlobalState
         const props = this.props as any
-        
+        const bgColor="#eeeeee"
         /**
          * For Login screen
          */
-        if(gs.status === AppStatus.LOGIN){
-            // Just after startup.
-            if(gs.counter <= 1){
-                const base_url: string = [window.location.protocol, '//', window.location.host, window.location.pathname.replace(/\/*$/, '/').replace('/v2', '')].join('');
-                this.state.roster = {}
-                this.state.videoTileStates   = {}
-                props.initialize(base_url)
-                return <div/>            
+        if(gs.status === AppStatus.STARTED){
+            const base_url: string = [window.location.protocol, '//', window.location.host, window.location.pathname.replace(/\/*$/, '/').replace('/v2', '')].join('');
+            this.state.roster = {}
+            this.state.videoTileStates   = {}
+            props.setup(base_url)
+            return <div/>            
+        }
+        /**
+         * For Setupped, in entrance
+         */
+        if(gs.status === AppStatus.IN_ENTRANCE){
+            // show screen
+            if(gs.status2 === AppStatus2.NONE){
+                return(
+                    <div  style={{ backgroundColor:bgColor, width: "100%",  height: "100%", top: 0, left: 0, }}>
+                        <Entrance {...props}/>
+                    </div>                
+                )
+            }else if(gs.status2 === AppStatus2.USER_CREATED){
+                // User Created
+                props.login(gs.userName, gs.code)
+                return <div> executing... </div>
             }
         }
-
 
         /**
-         * For Select Device Screen
+         * For Lobby or inMeeting
          */
-        if(gs.status === AppStatus.SELECT_DEVICE){
-            // Create Meeting Session. To list devices, do this.
-            if(gs.meetingSessionConf === null){
-                const meetingSessionConf = new MeetingSessionConfiguration(gs.joinInfo.Meeting, gs.joinInfo.Attendee)
-                const defaultMeetingSession = initializeMeetingSession(gs, meetingSessionConf)
-    
-                registerHandlers(this, props, defaultMeetingSession)
-                const url = new URL(window.location.href);
-                url.searchParams.set('m', gs.roomID);
-                window.history.replaceState({}, `${gs.roomID}`, url.toString());
-                props.initializedSession(meetingSessionConf, defaultMeetingSession)
-                return <div/>
-            }
+        if(gs.status === AppStatus.IN_LOBBY){
+            return(
+                <Robby  {...props}/>
+                // <div  style={{ backgroundColor:bgColor}}>
+                // </div>                
+            )
+        }
 
-            // List devices and load AI Model
-            if(gs.inputAudioDevices === null){
-                const audioInputDevicesPromise  = gs.meetingSession!.audioVideo.listAudioInputDevices()
-                const videoInputDevicesPromise  = gs.meetingSession!.audioVideo.listVideoInputDevices()
-                const videoInputResolutions     = ["360p", "540p", "720p"]
-                const audioOutputDevicesPromise = gs.meetingSession!.audioVideo.listAudioOutputDevices()
-                    const netPromise = bodyPix.load();
+        // /**
+        //  * For Created Room
+        //  */
+        // if(gs.status === AppStatus.CREATED_MEETING_ROOM){
+        //     const props      = this.props as any
+        //     const gs         = this.props as GlobalState
+        //     const baseURL    = gs.baseURL
+        //     const roomId     = gs.joinInfo.Meeting.MeetingId
+        //     const userName   = gs.userName
+        //     const region     = gs.region
+        //     props.enterSession(baseURL, roomId, userName, region)            
+        //     //this.enterMeetingRoom()
+        //     return <div/>
+        // }
+        // /**
+        //  * For ENTERING_SESSION
+        //  */
+        // if(gs.status === AppStatus.ENTERING_SESSION){
+        //     return <div/>
+        // }
+
+        // /**
+        //  * For Select Device Screen
+        //  */
+        // if(gs.status === AppStatus.SELECT_DEVICE){
+        //     // Create Meeting Session. To list devices, do this.
+        //     if(gs.meetingSessionConf === null){
+        //         const meetingSessionConf = new MeetingSessionConfiguration(gs.joinInfo.Meeting, gs.joinInfo.Attendee)
+        //         const defaultMeetingSession = initializeMeetingSession(gs, meetingSessionConf)
     
-                Promise.all([audioInputDevicesPromise, videoInputDevicesPromise, audioOutputDevicesPromise, netPromise]).then(([audioInputDevices, videoInputDevices, audioOutputDevices, bodyPix]) => {
-                    console.log("Promise:", videoInputDevices)
-                    this.state.bodyPix = bodyPix
-                    props.setDevices(audioInputDevices, videoInputDevices, videoInputResolutions, audioOutputDevices)
-                })
-                return <div/>
-            }
-        }
+        //         registerHandlers(this, props, defaultMeetingSession)
+        //         const url = new URL(window.location.href);
+        //         url.searchParams.set('m', gs.roomTitle);
+        //         window.history.replaceState({}, `${gs.roomTitle}`, url.toString());
+        //         props.initializedSession(meetingSessionConf, defaultMeetingSession)
+        //         return <div/>
+        //     }
+
+        //     // List devices and load AI Model
+        //     if(gs.inputAudioDevices === null){
+        //         const audioInputDevicesPromise  = gs.meetingSession!.audioVideo.listAudioInputDevices()
+        //         const videoInputDevicesPromise  = gs.meetingSession!.audioVideo.listVideoInputDevices()
+        //         const videoInputResolutions     = ["360p", "540p", "720p"]
+        //         const audioOutputDevicesPromise = gs.meetingSession!.audioVideo.listAudioOutputDevices()
+        //             const netPromise = bodyPix.load();
     
-        /**
-         * Apply the information in Global store to the class status.
-         */
-        for(let attendeeId in this.state.roster){
-            if(attendeeId in gs.storeRoster){
-                const attendee = this.state.roster[attendeeId]
-                attendee.name = gs.storeRoster[attendeeId].name
-            }
-        }
+        //         Promise.all([audioInputDevicesPromise, videoInputDevicesPromise, audioOutputDevicesPromise, netPromise]).then(([audioInputDevices, videoInputDevices, audioOutputDevices, bodyPix]) => {
+        //             console.log("Promise:", videoInputDevices)
+        //             this.state.bodyPix = bodyPix
+        //             props.setDevices(audioInputDevices, videoInputDevices, videoInputResolutions, audioOutputDevices)
+        //         })
+        //         return <div/>
+        //     }
+        // }
+    
+        // /**
+        //  * Apply the information in Global store to the class status.
+        //  */
+        // for(let attendeeId in this.state.roster){
+        //     if(attendeeId in gs.storeRoster){
+        //         const attendee = this.state.roster[attendeeId]
+        //         attendee.name = gs.storeRoster[attendeeId].name
+        //     }
+        // }
 
         /**
          * render
          */
         // const bgColor="#324851"
-        const bgColor="#eeeeee"
-        return (
-            <div  style={{ backgroundColor:bgColor, width: "100%",  height: "100%", top: 0, left: 0, }}>
-                {(()=>{
-                    if(gs.status === AppStatus.LOGIN){
-                        return <Entrance {...props}/>
-                    }else if(gs.status === AppStatus.SELECT_DEVICE){
-                        return <SelectDevice {...props}  />
-                    }else if(gs.status === AppStatus.IN_MEETING_ROOM){
-                        return <InMeetingRoom  {...props} videoTileState={this.state.videoTileStates} roster={this.state.roster} bodyPix={this.state.bodyPix}/>
-                    }
-                })()}
-            </div>
-        )
+
+        // return (
+        //     <div  style={{ backgroundColor:bgColor, width: "100%",  height: "100%", top: 0, left: 0, }}>
+        //         {(()=>{
+        //             if(gs.status === AppStatus.LOGIN){
+        //                 return <Entrance {...props}/>
+        //             }else if(gs.status === AppStatus.SELECT_DEVICE){
+        //                 return <SelectDevice {...props}  />
+        //             }else if(gs.status === AppStatus.IN_MEETING_ROOM){
+        //                 return <InMeetingRoom  {...props} videoTileState={this.state.videoTileStates} roster={this.state.roster} bodyPix={this.state.bodyPix}/>
+        //             }
+        //         })()}
+        //     </div>
+        // )
+        return <div />
     }
 }
 

@@ -15,7 +15,14 @@ function mapStateToProps(state:GlobalState) {
 
 function mapDispatchToProps(dispatch: Dispatch) {
   return {
-    initialize:    (base_url:string) => {dispatch(Actions.initialize(base_url))},
+    initialize:    () => {dispatch(Actions.initialize())},
+    setup     :    (base_url:string) => {dispatch(Actions.setup(base_url))},
+    createUser:    (userName:string, code:string) =>{dispatch(Actions.createUser(userName, code))},
+    login     :    (userName:string, code:string) =>{dispatch(Actions.login(userName, code))},
+
+    createMeetingRoom:  (base_url:string, roomID:string, name:string, region:string) =>
+                      {dispatch(Actions.createMeetingRoom(base_url, roomID, name, region))},
+
     enterSession:  (base_url:string, roomID:string, name:string, region:string) =>
                       {dispatch(Actions.enterSession(base_url, roomID, name, region))},
     join:          (base_url:string, roomID:string, name:string, region:string, joinInfo:any) =>

@@ -1,9 +1,9 @@
+const { v4 } = require('uuid');
 var AWS = require('aws-sdk');
-var ddb = new AWS.DynamoDB();
-const chime = new AWS.Chime({ region: 'us-east-1' });
+var ddb        = new AWS.DynamoDB();
+const chime    = new AWS.Chime({ region: 'us-east-1' });
 chime.endpoint = new AWS.Endpoint('https://service.chime.aws.amazon.com/console');
 
-const oneDayFromNow = Math.floor(Date.now() / 1000) + 60 * 60 * 24;
 
 // Read resource names from the environment
 const meetingsTableName   = process.env.MEETINGS_TABLE_NAME;
@@ -14,11 +14,15 @@ const meetingRoomIdPrefix = process.env.MEETING_ROOM_ID_PREFIX;
 //const provideQueueArn = process.env.USE_EVENT_BRIDGE === 'false';
 const provideQueueArn = true;
 
-function uuid() {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-    var r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
-    return v.toString(16);
-  });
+// function uuid() {
+//   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+//     var r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+//     return v.toString(16);
+//   });
+// }
+
+const getExpireDate = () =>{
+  return Math.floor(Date.now() / 1000) + 60 * 60 * 24
 }
 
 const getMeeting = async (meetingTitle) => {
@@ -35,9 +39,11 @@ const getMeeting = async (meetingTitle) => {
   }
   const meetingData = JSON.parse(result.Item.Data.S);
   try {
-    await chime.getMeeting({
-      MeetingId: meetingData.Meeting.MeetingId
-    }).promise();
+    // Check Exist? 
+    await chime.getMeeting(
+      {
+        MeetingId: meetingData.Meeting.MeetingId
+      }).promise();
   } catch (err) {
     return null;
   }
@@ -51,7 +57,7 @@ const putMeeting = async (title, meetingInfo) => {
       'Title': { S: title },
       'Data': { S: JSON.stringify(meetingInfo) },
       'TTL': {
-        N: '' + oneDayFromNow
+        N: '' + getExpireDate()
       }
     }
   }).promise();
@@ -81,7 +87,7 @@ const putAttendee = async (title, attendeeId, name) => {
       },
       'Name': { S: name },
       'TTL': {
-        N: '' + oneDayFromNow
+        N: '' + getExpireDate()
       }
     }
   }).promise();
@@ -116,48 +122,55 @@ exports.createMeeting = async (event, context, callback) => {
   };
   console.log("ENVIRONMENT VARIABLES\n" + JSON.stringify(process.env, null, 2))
   console.info("EVENT\n" + JSON.stringify(event, null, 2))
+  let roomTitle = event.queryStringParameters.roomTitle
+  const userName  = event.queryStringParameters.userName
+  const region    = event.queryStringParameters.region || 'us-east-1'
 
-  if(event.queryStringParameters.title.startsWith(meetingRoomIdPrefix) === false){
+
+  if(roomTitle.startsWith(meetingRoomIdPrefix) === false){
     console.log("----------- not valid room id")
-    console.log(event.queryStringParameters.title, meetingRoomIdPrefix)
+    console.log(roomTitle, meetingRoomIdPrefix)
     response["statusCode"] = 400;
     response["body"] = "Not Valid RoomId";
     callback(null, response);
     return;
   }
 
-  event.queryStringParameters.title = simplifyTitle(event.queryStringParameters.title);
-  if (!event.queryStringParameters.title) {
+  roomTitle = simplifyTitle(roomTitle);
+  if (!roomTitle) {
     response["statusCode"] = 400;
     response["body"] = "Must provide title";
     callback(null, response);
     return;
   }
-  const title = event.queryStringParameters.title;
-  const region = event.queryStringParameters.region || 'us-east-1';
 
-  let meetingInfo = await getMeeting(title);
-  if (!meetingInfo) {
+  let meetingInfo = await getMeeting(roomTitle);
+  let roomExist   = meetingInfo === null ? false : true
+  if (roomExist === false) {
     const request = {
-      ClientRequestToken: uuid(),
+      ClientRequestToken: v4(),
       MediaRegion: region,
       NotificationsConfiguration: getNotificationsConfig(),
     };
     console.info('Creating new meeting: ' + JSON.stringify(request));
     meetingInfo = await chime.createMeeting(request).promise();
-    await putMeeting(title, meetingInfo);
+    await putMeeting(roomTitle, meetingInfo);
   }
 
   const joinInfo = {
     JoinInfo: {
-      Title: title,
-      Meeting: meetingInfo.Meeting,
+      Title   : roomTitle,
+      Meeting : meetingInfo.Meeting,
+      Exist   : roomExist
     },
   };
 
   response.body = JSON.stringify(joinInfo, '', 2);
   callback(null, response);
 };
+
+
+
 
 exports.join = async (event, context, callback) => {
   var response = {
@@ -173,42 +186,29 @@ exports.join = async (event, context, callback) => {
   console.log("ENVIRONMENT VARIABLES\n" + JSON.stringify(process.env, null, 2))
   console.info("EVENT\n" + JSON.stringify(event, null, 2))
 
-  if(event.queryStringParameters.title.startsWith(meetingRoomIdPrefix) === false){
-    console.log("----------- not valid room id")
-    console.log(event.queryStringParameters.title, meetingRoomIdPrefix)
-    response["statusCode"] = 400;
-    response["body"] = "Not Valid RoomId";
-    callback(null, response);
-    return;
-  }
+  const roomId     = event.queryStringParameters.roomId
+  const userName  = event.queryStringParameters.userName
+  const region    = event.queryStringParameters.region || 'us-east-1'
 
-  event.queryStringParameters.title = simplifyTitle(event.queryStringParameters.title);
-  if (!event.queryStringParameters.title || !event.queryStringParameters.name) {
+  if (!roomId || !userName) {
     response["statusCode"] = 400;
     response["body"] = "Must provide title and name";
     callback(null, response);
     return;
   }
-  const title = event.queryStringParameters.title;
 
-  const name = event.queryStringParameters.name;
-  const region = event.queryStringParameters.region || 'us-east-1';
-  let meetingInfo = await getMeeting(title);
-  if (!meetingInfo && event.queryStringParameters.role !== 'student') {
-    const request = {
-      ClientRequestToken: uuid(),
-      MediaRegion: region,
-      NotificationsConfiguration: getNotificationsConfig(),
-    };
-    console.info('Creating new meeting: ' + JSON.stringify(request));
-    meetingInfo = await chime.createMeeting(request).promise();
-    await putMeeting(title, meetingInfo);
+  let meetingInfo = await getMeeting(roomId);
+  if (meetingInfo === null) {
+    response["statusCode"] = 400;
+    response["body"] = "No Room " + roomId;
+    callback(null, response);
+    return;
   }
 
   console.info('Adding new attendee');
   const attendeeInfo = (await chime.createAttendee({
     MeetingId: meetingInfo.Meeting.MeetingId,
-    ExternalUserId: uuid(),
+    ExternalUserId: v4(),
   }).promise());
 
   putAttendee(title, attendeeInfo.Attendee.AttendeeId, name);
