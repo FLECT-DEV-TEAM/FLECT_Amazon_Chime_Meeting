@@ -91,20 +91,20 @@ resources:
       Type: 'AWS::DynamoDB::Table'
       Properties:
         AttributeDefinitions:
-          - AttributeName: "Title"
+          - AttributeName: "MeetingName"
             AttributeType: "S"
-          - AttributeName: "Passcode"
+          - AttributeName: "MeetingId"
             AttributeType: "S"
         KeySchema:
-          - AttributeName: "Title"
+          - AttributeName: "MeetingName"
             KeyType: HASH
         ProvisionedThroughput:
           ReadCapacityUnits: "5"
           WriteCapacityUnits: "5"
         GlobalSecondaryIndexes:
-          - IndexName: "Passcode"
+          - IndexName: "MeetingId"
             KeySchema:
-              - AttributeName: "Passcode"
+              - AttributeName: "MeetingId"
                 KeyType: HASH
             Projection:
               ProjectionType: ALL
@@ -160,6 +160,7 @@ resources:
                 - 'dynamodb:Query'
                 - 'dynamodb:DeleteItem'
                 - 'dynamodb:UpdateItem'
+                - 'dynamodb:Scan'
               Resource: '*'
         Roles:
           - Ref: FLECTChimeSdkLambdaRole
@@ -264,7 +265,7 @@ functions:
 
   ##### MEETING #####
   CreateMeeting:
-    handler: sls/handlers.createMeeting
+    handler: sls/meeting_handlers.createMeeting
     role: FLECTChimeSdkLambdaRole
     events:
       - http:
@@ -273,16 +274,16 @@ functions:
           cors: true
 
   GetMeeting:
-    handler: sls/handlers.getMeetings
+    handler: sls/meeting_handlers.getMeetings
     role: FLECTChimeSdkLambdaRole
     events:
       - http:
           path: meetings
-          method: post
+          method: get
           cors: true
 
   DeleteMeeting:
-    handler: sls/handlers.end
+    handler: sls/meeting_handlers.end
     role: FLECTChimeSdkLambdaRole
     events:
       - http:
@@ -295,7 +296,7 @@ functions:
                 meetingId: true
 
   JoinMeeting:
-    handler: sls/handlers.join
+    handler: sls/meeting_handlers.join
     role: FLECTChimeSdkLambdaRole
     events:
       - http:
@@ -307,8 +308,8 @@ functions:
               paths: 
                 meetingId: true
                 
-  AttendeeLambda:
-    handler: sls/handlers.attendee
+  GetAttendees:
+    handler: sls/meeting_handlers.getAttendee
     role: FLECTChimeSdkLambdaRole
     events:
       - http:
@@ -321,12 +322,12 @@ functions:
                 meetingId: true
                 attendeeId: true
   LeaveMeeting:
-    handler: sls/handlers.leave
+    handler: sls/meeting_handlers.leave
     role: FLECTChimeSdkLambdaRole
     events:
       - http:
           path: meetings/{meetingId}/attendees/{attendeeId}
-          method: post
+          method: delete
           cors: true
           request: 
             parameters: 

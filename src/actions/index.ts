@@ -9,11 +9,25 @@ export const Actions = createActions(
         'LOGIN'                         : (...args) => (args),
         'USER_LOGINED'                  : (...args) => (args),
 
+        'CREATE_MEETING'                : (...args) => (args),
+        'CREATED_MEETING'               : (...args) => (args),
+
+        'REFRESH_ROOM_LIST'             : (args)    => (args),
+        'GOT_ALL_ROOM_LIST'             : (...args) => (args),
+
+        'JOIN_MEETING'                  : (...args) => (args),
+        'JOINED_MEETING'                : (...args) => (args),
+
+
+
+
+
+
+
+
         'CREATE_MEETING_ROOM'           : (...args) => (args),
-        'CREATED_MEETING_ROOM'          : (...args) => (args),
         
         'ENTER_SESSION'                 : (...args) => (args),
-        'JOIN'                          : (...args) => (args),
         'INITIALIZED_SESSION'           : (...args) => (args),
         'SET_DEVICES'                   : (...args) => (args),
         'SELECT_INPUT_AUDIO_DEVICE'     : (args)    => (args),

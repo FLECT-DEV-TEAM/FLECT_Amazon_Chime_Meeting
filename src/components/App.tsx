@@ -12,9 +12,9 @@ import {
     Logger,
     MeetingSessionPOSTLogger,
     VideoTileState
-  } from 'amazon-chime-sdk-js';
-  import Entrance from './Entrance';
-  import Robby from './Lobby';
+} from 'amazon-chime-sdk-js';
+import Entrance from './Entrance';
+import Lobby from './Lobby';
 import SelectDevice from './SelectDevice';
 import InMeetingRoom from './InMeetingRoom';
 import DeviceChangeObserverImpl from './DeviceChangeObserverImpl';
@@ -224,9 +224,9 @@ class App extends React.Component {
         /**
          * For Lobby or inMeeting
          */
-        if(gs.status === AppStatus.IN_LOBBY){
+        if(gs.status === AppStatus.IN_LOBBY || gs.status === AppStatus.IN_MEETING){
             return(
-                <Robby  {...props}/>
+                <Lobby  {...props}/>
                 // <div  style={{ backgroundColor:bgColor}}>
                 // </div>                
             )

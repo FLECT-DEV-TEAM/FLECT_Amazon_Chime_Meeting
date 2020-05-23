@@ -17,12 +17,20 @@ export enum AppStatus{
     STARTED,
     IN_ENTRANCE,
     IN_LOBBY,
+    IN_MEETING,
 }
 export enum AppStatus2{
     NONE,
     USER_CREATED,
     EXEC_LOGIN,
 }
+export enum AppMeetingStatus{
+    NONE,
+    WILL_PREPARE,
+    DONE_PREPARE,
+}
+
+
 
 export interface LobbyMainColumnConfigInf{
     left  : number

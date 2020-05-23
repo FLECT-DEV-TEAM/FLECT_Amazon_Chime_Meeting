@@ -1,13 +1,9 @@
 const { v4 } = require('uuid');
 var AWS = require('aws-sdk');
 var ddb        = new AWS.DynamoDB();
-// const chime    = new AWS.Chime({ region: 'us-east-1' });
-// chime.endpoint = new AWS.Endpoint('https://service.chime.aws.amazon.com/console');
-
-
+const util = require('./util.js')
 // Read resource names from the environment
 const userTableName  = process.env.USER_TABLE_NAME;
-
 /**
  * 
  * @param {*} userName 
@@ -42,7 +38,7 @@ const createUser = async (userName) =>{
  * 
  * @param {*} userName 
  */
-const getUserId = async (userName) => {
+exports.getUserId = async (userName) => {
   const users = await ddb.query({
     ExpressionAttributeValues: {
         ':userName': { S: userName }
@@ -148,23 +144,9 @@ const logoutUser = async (userName) =>{
 }
 
 
-const getDefaultResponse = () =>{
-  body = {result:"success"}
-  return response = {
-    "statusCode": 200,
-    "headers": {
-      'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
-      'Access-Control-Allow-Methods': '*',
-      'Access-Control-Allow-Origin': '*'
-    },
-    "body":  JSON.stringify(body, '', 2),
-    "isBase64Encoded": false
-  };
-}
-
 // ===== Join or create meeting ===================================
 exports.createUser = async (event, context, callback) => {
-  const response = getDefaultResponse()
+  const response = util.getDefaultResponse()
   console.log("ENVIRONMENT VARIABLES\n" + JSON.stringify(process.env, null, 2))
   console.info("EVENT\n" + JSON.stringify(event, null, 2))
   const userName  = event.queryStringParameters.userName
@@ -182,12 +164,12 @@ exports.createUser = async (event, context, callback) => {
 }
 
 exports.getUsers = async (event, context, callback) => {
-  const response = getDefaultResponse()
+  const response = util.getDefaultResponse()
   console.log("ENVIRONMENT VARIABLES\n" + JSON.stringify(process.env, null, 2))
   console.info("EVENT\n" + JSON.stringify(event, null, 2))
   const userName  = event.queryStringParameters.userName
   if(userName !== undefined){
-    const userId = await getUserId(userName)
+    const userId = await module.exports.getUserId(userName)
     console.log("---------------------------------")
     console.log(userId)
     const body = {userId:userId, userName:userName}
@@ -201,7 +183,7 @@ exports.getUsers = async (event, context, callback) => {
 }
 
 exports.deleteUser = async (event, context, callback) => {
-  const response = getDefaultResponse()
+  const response = util.getDefaultResponse()
   console.log("ENVIRONMENT VARIABLES\n" + JSON.stringify(process.env, null, 2))
   console.info("EVENT\n" + JSON.stringify(event, null, 2))
   const userName  = event.queryStringParameters.userName
@@ -210,7 +192,7 @@ exports.deleteUser = async (event, context, callback) => {
 }
 
 exports.loginUser = async (event, context, callback) => {
-  const response = getDefaultResponse()
+  const response = util.getDefaultResponse()
   console.log("ENVIRONMENT VARIABLES\n" + JSON.stringify(process.env, null, 2))
   console.info("EVENT\n" + JSON.stringify(event, null, 2))
   const userId = event.pathParameters.userId
@@ -220,7 +202,7 @@ exports.loginUser = async (event, context, callback) => {
   callback(null, response);
 }
 exports.logoutUser = async (event, context, callback) => {
-  const response = getDefaultResponse()
+  const response = util.getDefaultResponse()
   console.log("ENVIRONMENT VARIABLES\n" + JSON.stringify(process.env, null, 2))
   console.info("EVENT\n" + JSON.stringify(event, null, 2))
   const userName  = event.queryStringParameters.userName

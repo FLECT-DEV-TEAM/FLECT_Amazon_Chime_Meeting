@@ -1,26 +1,64 @@
 import * as React from 'react';
-import { Button, Form, Grid, GridColumn, Modal, Segment, Label, Feed, Header, Item, Menu, Dropdown, Divider, Checkbox, CheckboxProps } from 'semantic-ui-react'
-import { GlobalState } from '../reducers';
+import { Button, Form, Grid, GridColumn, Modal, Segment, Label, Feed, Header, Item, Menu, Dropdown, Divider, Checkbox, CheckboxProps, Icon } from 'semantic-ui-react'
+import { GlobalState, MeetingInfo } from '../reducers';
 import { LobbyMainColumnConfig, LobbyMainColumnConfigInf} from '../const'
 class LobbyRoomList extends React.Component {
     roomNameRef        = React.createRef<HTMLInputElement>()
     roomSecretCheckRef = React.createRef<React.Component<CheckboxProps, any, any>>()
     roomPassCodeRef    = React.createRef<HTMLInputElement>()
 
-    state = { open: false, secretRoomCreateChecked:false}
+    state = { open: false, secretRoomCreateChecked:false, usePasscodeChecked:false}
     show =  () => this.setState({ open: true })
     close = () => this.setState({ open: false })
     createMeeting = () =>{
-        const roomName     = this.roomNameRef.current!.value
-        const roomPassCode = this.roomPassCodeRef.current!.value
-        const check        = this.state.secretRoomCreateChecked
-        console.log(roomName, roomPassCode, check)
+        const props = this.props as any
+        const gs = this.props as GlobalState
+        const roomName      = this.roomNameRef.current!.value
+        const roomPassCode  = this.roomPassCodeRef.current!.value
+        const secretCheck   = this.state.secretRoomCreateChecked
+        const passcodeCheck = this.state.usePasscodeChecked
+
+        const roomRegion    = 'ap-northeast-1' //TBD 可変にする
+        
+        console.log(roomName, roomPassCode, secretCheck, passcodeCheck)
+        props.createMeeting(gs.userName, roomName, roomRegion, passcodeCheck, roomPassCode, secretCheck)
         this.close()
     }
 
     render() {
         const gs = this.props as GlobalState
         const props = this.props as any
+
+        const meetings = gs.meetings.map((meeting:MeetingInfo)=>{
+            return (
+                <Item>
+                    {/* <Item.Image size='mini' src='/' /> */}
+                    <Item.Content>
+                        <Item.Header>
+                            <Grid>
+                                <Grid.Row>
+                                    <Grid.Column width={8}>
+                                        {meeting.meetingName}
+                                    </Grid.Column>
+                                    <Grid.Column width={8}>
+                                        <Label basic color='teal' onClick={()=>{
+                                            console.log("CLICK JOIN", meeting.meetingId)
+                                            props.joinMeeting(meeting.meetingId, gs)
+                                        }}>
+                                            join
+                                        </Label>
+                                    </Grid.Column>                                    
+                                </Grid.Row>
+                            </Grid>
+                        </Item.Header>
+                        <Item.Meta>
+                            <span className='stay'> Owner: {meeting.metaData.OwnerId} </span>
+                        </Item.Meta>
+                    </Item.Content>
+                </Item>
+            )
+        })
+
 
         return (
             <div>
@@ -35,13 +73,16 @@ class LobbyRoomList extends React.Component {
                                 <input placeholder='name' ref={this.roomNameRef}/>
                             </Form.Field>
                             <Form.Field>
-                                <Checkbox label='Secret?' checked={this.state.secretRoomCreateChecked} ref={this.roomSecretCheckRef}
-                                    onClick={()=>{this.setState({ secretRoomCreateChecked: !this.state.secretRoomCreateChecked })}}
+                                <Checkbox label='Use Passcode?(not implement)' checked={this.state.usePasscodeChecked}
+                                    onClick={()=>{this.setState({ usePasscodeChecked: !this.state.usePasscodeChecked })}}
                                 />
+                                <label>Pass Code(not implement)</label>
+                                <input placeholder='pass' ref={this.roomPassCodeRef}/>
                             </Form.Field>
                             <Form.Field>
-                                <label>Pass Code</label>
-                                <input placeholder='pass' ref={this.roomPassCodeRef}/>
+                            <Checkbox label='Secret?(not implement)' checked={this.state.secretRoomCreateChecked}
+                                    onClick={()=>{this.setState({ secretRoomCreateChecked: !this.state.secretRoomCreateChecked })}}
+                                />
                             </Form.Field>
                         </Form>
 
@@ -71,38 +112,18 @@ class LobbyRoomList extends React.Component {
                         <Divider horizontal>
                             <Header as='h3' textAlign={'left'}>
                                 Meetings
+                                <span />
+                                <Label basic color='red' onClick={()=>{props.refreshRoomList()}}>
+                                    <Icon name='refresh' />
+                                    refresh
+                                </Label>
                             </Header>
+                            
                         </Divider>                        
                         <div>
                             <Item.Group>
-                                <Item>
-                                    <Item.Image size='mini' src='/images/wireframe/image.png' />
-                                    <Item.Content>
-                                        <Item.Header>CI2020</Item.Header>
-                                        <Item.Meta>
-                                            <span className='stay'>2020/05/23-</span>
-                                        </Item.Meta>
-                                    </Item.Content>
-                                </Item>
+                                {meetings}
 
-                                <Item>
-                                    <Item.Image size='mini' src='/images/wireframe/image.png' />
-                                    <Item.Content>
-                                        <Item.Header>CI2020</Item.Header>
-                                        <Item.Meta>
-                                            <span className='stay'>2020/05/23-</span>
-                                        </Item.Meta>
-                                    </Item.Content>
-                                </Item>
-                                <Item>
-                                    <Item.Image size='mini' src='/images/wireframe/image.png' />
-                                    <Item.Content>
-                                        <Item.Header>CI2020</Item.Header>
-                                        <Item.Meta>
-                                            <span className='stay'>2020/05/23-</span>
-                                        </Item.Meta>
-                                    </Item.Content>
-                                </Item>
                             </Item.Group>                            
 
                         </div>

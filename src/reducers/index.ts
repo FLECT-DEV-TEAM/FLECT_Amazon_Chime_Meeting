@@ -1,4 +1,4 @@
-import { AppStatus, NO_DEVICE_SELECTED, AppStatus2 } from "../const"
+import { AppStatus, NO_DEVICE_SELECTED, AppStatus2, AppMeetingStatus } from "../const"
 import { MeetingSessionConfiguration, DefaultMeetingSession, DefaultModality } from "amazon-chime-sdk-js"
 
 
@@ -15,6 +15,22 @@ interface WindowConfig{
     tileScreenDisplay : boolean
 }
 
+export interface MeetingMetadata{
+    OwnerId     : string
+    PassCode    : string
+    Region      : string
+    Secret      : boolean
+    UsePassCode : boolean
+}
+
+export interface MeetingInfo{
+    meetingId   : string
+    meetingName : string
+    metaData    : MeetingMetadata
+    meeting     : any |null
+}
+
+
 export interface GlobalState {
     counter                           : number
     baseURL                           : string
@@ -23,13 +39,18 @@ export interface GlobalState {
     code                              : string
 
     windowConfig                      : WindowConfig
+    meetings                          : MeetingInfo[]
+    joinInfo                          : any
+
+
+
+
 
     roomTitle                         : string
     userAttendeeId                    : string
     userBaseAttendeeId                : string
     region                            : string
 
-    joinInfo                          : any
     meetingSessionConf                : MeetingSessionConfiguration | null
     meetingSession                    : DefaultMeetingSession | null
 
@@ -46,6 +67,7 @@ export interface GlobalState {
 
     status                            : AppStatus
     status2                           : AppStatus2
+    meetingStatus                     : AppMeetingStatus
 }
 
 export const initialState = {
@@ -62,7 +84,7 @@ export const initialState = {
             mainScreenDisplay : true,
             tileScreenDisplay : true,
         },
-
+    meetings                            : [],
 
     roomTitle                           : "",
     userAttendeeId                      : "",
@@ -87,6 +109,7 @@ export const initialState = {
 
     status                              : AppStatus.STARTED,
     status2                             : AppStatus2.NONE,
+    meetingStatus                       : AppMeetingStatus.NONE,
 }
 
 
@@ -94,6 +117,7 @@ const reducer = (state: GlobalState = initialState, action: any) => {
     var gs: GlobalState = Object.assign({}, state)
     gs.counter++
     console.log(state, action)
+    let tmp:any
     switch (action.type) {
         case 'INITIALIZE':
             gs = initialState
@@ -119,6 +143,30 @@ const reducer = (state: GlobalState = initialState, action: any) => {
             gs.userName  = action.payload[0]
             gs.userId    = action.payload[1]
             gs.code      = action.payload[2]
+            break
+
+        case 'GOT_ALL_ROOM_LIST':
+            tmp = action.payload[0]
+            console.log(tmp)
+            gs.meetings = tmp.map((meeting:any)=>{
+                console.log("-->", meeting.MeetingId)
+                return {
+                    meetingId   : meeting.MeetingId,
+                    meetingName : meeting.MeetingName,
+                    metaData    : meeting.Metadata,
+                    meeting     : meeting.MeetingInfo.Meeting,
+                }
+            })
+            console.log(gs)
+            break
+
+        case 'JOINED_MEETING':
+            gs.status        = AppStatus.IN_MEETING
+            gs.meetingStatus = AppMeetingStatus.WILL_PREPARE
+            gs.joinInfo      = action.payload[0]
+            break
+
+
 
         
         case 'CREATE_MEETING_ROOM':

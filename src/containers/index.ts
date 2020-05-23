@@ -19,14 +19,22 @@ function mapDispatchToProps(dispatch: Dispatch) {
     setup     :    (base_url:string) => {dispatch(Actions.setup(base_url))},
     createUser:    (userName:string, code:string) =>{dispatch(Actions.createUser(userName, code))},
     login     :    (userName:string, code:string) =>{dispatch(Actions.login(userName, code))},
+ 
+    createMeeting: (userName:string, roomName:string, region:string, usePassCode:boolean, passCode:string, secret:boolean) =>
+                    {dispatch(Actions.createMeeting(userName, roomName, region, usePassCode, passCode, secret))},
+    
+    refreshRoomList: () => {dispatch(Actions.refreshRoomList())},
+
+    joinMeeting:    (meetingId:string, gs:GlobalState) =>
+                      {dispatch(Actions.joinMeeting(meetingId, gs))},
+
+
 
     createMeetingRoom:  (base_url:string, roomID:string, name:string, region:string) =>
                       {dispatch(Actions.createMeetingRoom(base_url, roomID, name, region))},
 
     enterSession:  (base_url:string, roomID:string, name:string, region:string) =>
                       {dispatch(Actions.enterSession(base_url, roomID, name, region))},
-    join:          (base_url:string, roomID:string, name:string, region:string, joinInfo:any) =>
-                      {dispatch(Actions.join(base_url, roomID, name, region, joinInfo))},
 
     initializedSession: (meetingSessionConf:MeetingSessionConfiguration, defaultMeetingSession:DefaultMeetingSession) =>
                       {dispatch(Actions.initializedSession(meetingSessionConf, defaultMeetingSession))},
