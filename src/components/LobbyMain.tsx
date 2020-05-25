@@ -1,14 +1,20 @@
 import * as React from 'react';
 import { Button, Form, Grid, GridColumn } from 'semantic-ui-react'
 import { GlobalState } from '../reducers';
-import { LobbyMainColumnConfig, LobbyMainColumnConfigInf} from '../const'
+import { LobbyMainColumnConfig, LobbyMainColumnConfigInf, AppStatus, AppMeetingStatus, LOGGER_BATCH_SIZE, LOGGER_INTERVAL_MS} from '../const'
 import LobbyRoomList from './LobbyRoomList';
 import LobbyMeetingRoom from './LobbyMeetingRoom';
 import LobbyUserPanel from './LobbyUserPanel';
+import { MeetingSessionConfiguration, DefaultMeetingSession, Logger, LogLevel, ConsoleLogger, DefaultDeviceController, MeetingSessionPOSTLogger } from 'amazon-chime-sdk-js';
+
+
+
 class LobbyMain extends React.Component {
     render() {
         const gs = this.props as GlobalState
         const props = this.props as any
+
+
 
         let lobbyMainColumnConfig: LobbyMainColumnConfigInf | null = null
 
@@ -21,6 +27,8 @@ class LobbyMain extends React.Component {
         }else if(gs.windowConfig.leftBarDisplay === false && gs.windowConfig.rigntBarDisplay === false){
             lobbyMainColumnConfig = LobbyMainColumnConfig.mainOnly
         }
+
+        
 
         // @ts-ignore
         const leftColumn   = lobbyMainColumnConfig!.left   === 0 ? <div/> : <Grid.Column width={lobbyMainColumnConfig!.left}>   <LobbyRoomList  {...props}/>    </Grid.Column>

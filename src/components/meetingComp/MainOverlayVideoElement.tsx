@@ -108,8 +108,10 @@ class MainOverlayVideoElement extends React.Component{
     tmpStatusCanvas = document.createElement("canvas")
     drawStatus = () =>{
         const props = this.props as any
-        const thisAttendeeId = props.thisAttendeeId        
-        const appState = this.props as AppState
+        const thisAttendeeId = props.thisAttendeeId     
+        const appState = props.appState as AppState
+        console.log(appState)
+
         const attendee = appState.roster[thisAttendeeId]
         if(attendee == undefined){
             console.log("UNDEFINED", props)

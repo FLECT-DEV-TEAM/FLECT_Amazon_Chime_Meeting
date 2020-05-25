@@ -22,11 +22,21 @@ function mapDispatchToProps(dispatch: Dispatch) {
  
     createMeeting: (userName:string, roomName:string, region:string, usePassCode:boolean, passCode:string, secret:boolean) =>
                     {dispatch(Actions.createMeeting(userName, roomName, region, usePassCode, passCode, secret))},
-    
+    setDevices: (audioInputDevices:MediaDeviceInfo[], videoInputDevices:MediaDeviceInfo[], audioOutputDevices:MediaDeviceInfo[]) =>
+                    {dispatch(Actions.setDevices(audioInputDevices, videoInputDevices,  audioOutputDevices))},
+  
     refreshRoomList: () => {dispatch(Actions.refreshRoomList())},
 
     joinMeeting:    (meetingId:string, gs:GlobalState) =>
                       {dispatch(Actions.joinMeeting(meetingId, gs))},
+
+    initializedSession: (meetingSessionConf:MeetingSessionConfiguration, defaultMeetingSession:DefaultMeetingSession) =>
+                      {dispatch(Actions.initializedSession(meetingSessionConf, defaultMeetingSession))},
+
+
+
+
+
 
 
 
@@ -36,11 +46,8 @@ function mapDispatchToProps(dispatch: Dispatch) {
     enterSession:  (base_url:string, roomID:string, name:string, region:string) =>
                       {dispatch(Actions.enterSession(base_url, roomID, name, region))},
 
-    initializedSession: (meetingSessionConf:MeetingSessionConfiguration, defaultMeetingSession:DefaultMeetingSession) =>
-                      {dispatch(Actions.initializedSession(meetingSessionConf, defaultMeetingSession))},
 
-    setDevices: (audioInputDevices:MediaDeviceInfo[], videoInputDevices:MediaDeviceInfo[], videoInputResolutions:string[], audioOutputDevices:MediaDeviceInfo[]) =>
-                      {dispatch(Actions.setDevices(audioInputDevices, videoInputDevices, videoInputResolutions, audioOutputDevices))},
+
     selectInputAudioDevice:(val:string)     => {dispatch(Actions.selectInputAudioDevice(val))},
     selectInputVideoDevice:(val:string)     => {dispatch(Actions.selectInputVideoDevice(val))},
     selectInputVideoResolution:(val:string) => {dispatch(Actions.selectInputVideoResolution(val))},
@@ -50,7 +57,9 @@ function mapDispatchToProps(dispatch: Dispatch) {
     // updateActiveScore:(scores: { [attendeeId: string]: number }) => {dispatch(Actions.updateActiveScore(scores))},
     // changeActiveSpeaker: (attendeeId:string) =>{dispatch(Actions.changeActiveSpeaker(attendeeId))},
 
-    getAttendeeInformation: (baseURL:string, roomID:string, attendeeId:string) => {dispatch(Actions.getAttendeeInformation(baseURL, roomID, attendeeId))},
+
+
+    getAttendeeInformation: (meetingID:string, attendeeId:string) => {dispatch(Actions.getAttendeeInformation(meetingID, attendeeId))},
     updateAttendeeInformation: (attendeeId:string, baseAttendeeId:string, name:string) =>{dispatch(Actions.updateAttendeeInformation(attendeeId, baseAttendeeId, name))},
 
   }

@@ -1,4 +1,4 @@
-import { AppStatus, NO_DEVICE_SELECTED, AppStatus2, AppMeetingStatus } from "../const"
+import { AppStatus, NO_DEVICE_SELECTED, AppStatus2, AppMeetingStatus, AppLobbyStatus } from "../const"
 import { MeetingSessionConfiguration, DefaultMeetingSession, DefaultModality } from "amazon-chime-sdk-js"
 
 
@@ -30,6 +30,27 @@ export interface MeetingInfo{
     meeting     : any |null
 }
 
+export interface JoinInfo{
+    MeetingName: string
+    Attendee:{
+        AttendeeId: string
+        ExternalUserId: string
+        JoinToken: string
+    },
+    Meeting:{
+        MeetingId: string
+        MediaRegion: string
+        MediaPlacement:{
+            AudioFallbackUrl: string
+            AudioHostUrl: string
+            ScreenDataUrl: string
+            ScreenSharingUrl: string
+            ScreenViewingUrl: string
+            SignalingUrl: string
+            TurnControlUrl: string
+        }
+    }
+}
 
 export interface GlobalState {
     counter                           : number
@@ -40,7 +61,7 @@ export interface GlobalState {
 
     windowConfig                      : WindowConfig
     meetings                          : MeetingInfo[]
-    joinInfo                          : any
+    joinInfo                          : JoinInfo | null
 
 
 
@@ -68,6 +89,7 @@ export interface GlobalState {
     status                            : AppStatus
     status2                           : AppStatus2
     meetingStatus                     : AppMeetingStatus
+    lobbyStatus                       : AppLobbyStatus
 }
 
 export const initialState = {
@@ -110,6 +132,7 @@ export const initialState = {
     status                              : AppStatus.STARTED,
     status2                             : AppStatus2.NONE,
     meetingStatus                       : AppMeetingStatus.NONE,
+    lobbyStatus                         : AppLobbyStatus.NONE,
 }
 
 
@@ -140,10 +163,22 @@ const reducer = (state: GlobalState = initialState, action: any) => {
         case 'USER_LOGINED':
             gs.status   = AppStatus.IN_LOBBY
             gs.status2  = AppStatus2.NONE
+            gs.lobbyStatus = AppLobbyStatus.WILL_PREPARE
             gs.userName  = action.payload[0]
             gs.userId    = action.payload[1]
             gs.code      = action.payload[2]
             break
+        case 'SET_DEVICES':
+            gs.lobbyStatus = AppLobbyStatus.DONE_PREPARE
+            gs.inputAudioDevices = action.payload[0]
+            gs.inputVideoDevices = action.payload[1]
+            gs.outputAudioDevices = action.payload[2]
+            gs.selectedInputAudioDevice      = gs.inputAudioDevices![0]     ? gs.inputAudioDevices![0]['deviceId']     : NO_DEVICE_SELECTED
+            gs.selectedInputVideoDevice      = gs.inputVideoDevices![0]     ? gs.inputVideoDevices![0]['deviceId']     : NO_DEVICE_SELECTED
+            gs.selectedInputVideoResolution  = gs.inputVideoResolutions![0] ? gs.inputVideoResolutions![0]             : NO_DEVICE_SELECTED
+            gs.selectedOutputAudioDevice     = gs.outputAudioDevices![0]    ? gs.outputAudioDevices![0]['deviceId']    : NO_DEVICE_SELECTED
+            break
+    
 
         case 'GOT_ALL_ROOM_LIST':
             tmp = action.payload[0]
@@ -163,10 +198,14 @@ const reducer = (state: GlobalState = initialState, action: any) => {
         case 'JOINED_MEETING':
             gs.status        = AppStatus.IN_MEETING
             gs.meetingStatus = AppMeetingStatus.WILL_PREPARE
-            gs.joinInfo      = action.payload[0]
+            gs.joinInfo      = action.payload[0] as JoinInfo
             break
 
-
+        case 'INITIALIZED_SESSION':
+            gs.meetingStatus      = AppMeetingStatus.DONE_PREPARE
+            gs.meetingSessionConf = action.payload[0]
+            gs.meetingSession     = action.payload[1]
+            break
 
         
         case 'CREATE_MEETING_ROOM':

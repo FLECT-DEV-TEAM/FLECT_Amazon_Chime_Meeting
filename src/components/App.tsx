@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { GlobalState } from '../reducers';
-import { AppStatus, LOGGER_BATCH_SIZE, LOGGER_INTERVAL_MS, AppStatus2 } from '../const';
+import { AppStatus, LOGGER_BATCH_SIZE, LOGGER_INTERVAL_MS, AppStatus2, AppMeetingStatus, AppLobbyStatus, NO_DEVICE_SELECTED } from '../const';
 import * as bodyPix from '@tensorflow-models/body-pix';
 
 import {
@@ -21,6 +21,9 @@ import DeviceChangeObserverImpl from './DeviceChangeObserverImpl';
 import AudioVideoObserverImpl from './AudioVideoObserverImpl';
 import ContentShareObserverImpl from './ContentShareObserverImpl';
 import { setRealtimeSubscribeToAttendeeIdPresence, setSubscribeToActiveSpeakerDetector } from './subscribers';
+import { getDeviceLists, getVideoDevice } from './utils'
+import { API_BASE_URL } from '../config';
+import MainOverlayVideoElement from './meetingComp/MainOverlayVideoElement';
 
 
 /**
@@ -38,13 +41,14 @@ const initializeMeetingSession = (gs: GlobalState, meetingSessionConf: MeetingSe
             meetingSessionConf,
             LOGGER_BATCH_SIZE,
             LOGGER_INTERVAL_MS,
-            `${gs.baseURL}logs`,
+            `${API_BASE_URL}logs`,
             LogLevel.WARN
         );
     }
     const deviceController = new DefaultDeviceController(logger);
     meetingSessionConf.enableWebAudio = false;
     meetingSessionConf.enableUnifiedPlanForChromiumBasedBrowsers = true
+
     const meetingSession = new DefaultMeetingSession(meetingSessionConf, logger, deviceController);
     return meetingSession
 }
@@ -94,6 +98,16 @@ export interface Attendee{
     signalStrength : number  | null
 }
 
+export interface CurretnSettings {
+    mute: boolean,
+    videoEnable: boolean,
+    speakerEnable: boolean,
+    selectedInputAudioDevice          : string
+    selectedInputVideoDevice          : string
+    selectedInputVideoResolution      : string
+    selectedOutputAudioDevice         : string
+}
+
 /**
  * 
  */
@@ -101,18 +115,58 @@ export interface AppState{
     videoTileStates : {[id:number]:VideoTileState}
     roster          : {[attendeeId:string]:Attendee}
     bodyPix         : bodyPix.BodyPix | null
+
+    localVideoWidth  : number,
+    localVideoHeight : number,
+    inputVideoStream : MediaStream | null,
+    inputVideoElement: HTMLVideoElement | null,
+    inputVideoCanvas : HTMLCanvasElement | null,
+    inputMaskCanvas  : HTMLCanvasElement | null,
+    inputVideoCanvas2: HTMLCanvasElement | null,
+    outputAudioElement: HTMLAudioElement | null,
+
+
+    currentSettings   : CurretnSettings
 }
+
+
+
 
 /**
  * Main Component
  */
 class App extends React.Component {
+    // localVideoRef = React.createRef<HTMLVideoElement>()
+    // audioRef = React.createRef<HTMLAudioElement>()
+    // localVideoCanvasRef = React.createRef<HTMLCanvasElement>()
+    // localVideoRef = React.createRef<HTMLVideoElement>()
+    mainOverlayVideoRef = React.createRef<MainOverlayVideoElement>()
 
     state:AppState = {
         videoTileStates:{},
         roster:{},
-        bodyPix : null
+        bodyPix : null,
+        localVideoWidth: 0,
+        localVideoHeight: 0,  
+        inputVideoStream: null,
+        inputVideoElement: null,
+        inputVideoCanvas: null,
+        inputMaskCanvas: null,
+        inputVideoCanvas2: null,
+        outputAudioElement: null,
+
+        currentSettings:{
+            mute: false,
+            videoEnable: true,
+            speakerEnable: true,
+            selectedInputAudioDevice          : NO_DEVICE_SELECTED,
+            selectedInputVideoDevice          : NO_DEVICE_SELECTED,
+            selectedInputVideoResolution      : NO_DEVICE_SELECTED,
+            selectedOutputAudioDevice         : NO_DEVICE_SELECTED,
+        
+        },
     }
+
 
     /***************************
     *  Callback for tile change
@@ -127,7 +181,7 @@ class App extends React.Component {
         if(needUpdate){
             this.setState({})
         }
-        //console.log("updateVideoTileState",  this.state.videoTileState)
+        console.log("updateVideoTileState",  this.state.videoTileStates)
     }
     removeVideoTileState = (tileId: number) => {
         delete this.state.videoTileStates[tileId]
@@ -168,7 +222,7 @@ class App extends React.Component {
             this.state.roster[attendeeId].signalStrength = signalStrength
         }
         if(this.state.roster[attendeeId].name === null || this.state.roster[attendeeId].name === "Unknown"){ // ChimeがUnknownで返すときがある
-            props.getAttendeeInformation(gs.baseURL, gs.roomTitle, attendeeId)
+            props.getAttendeeInformation(gs.joinInfo?.Meeting.MeetingId, attendeeId)
         }
         this.setState({})
     }
@@ -184,17 +238,160 @@ class App extends React.Component {
     }
 
 
-    enterMeetingRoom=()=>{
+    ////////////////////////////////
+    /// User Action
+    ///////////////////////////////
+    // For Microphone
+    toggleMute = () => {
+        const gs = this.props as GlobalState
 
+        const mute = !this.state.currentSettings.mute
+        const currentSettings = this.state.currentSettings
+        currentSettings.mute = mute
+        if(gs.meetingSession !== null){
+            if (mute) {
+                gs.meetingSession.audioVideo.realtimeMuteLocalAudio();
+            } else {
+                gs.meetingSession.audioVideo.realtimeUnmuteLocalAudio();
+            }
+        }
+        this.setState({currentSettings:currentSettings})
+    }
+
+    selectInputAudioDevice = (deviceId: string) => {
+        const gs = this.props as GlobalState
+        const currentSettings = this.state.currentSettings
+        currentSettings.selectedInputAudioDevice = deviceId
+
+        if(gs.meetingSession !== null){
+            gs.meetingSession.audioVideo.chooseAudioInputDevice(deviceId)
+        }
+        this.setState({currentSettings:currentSettings})
+    }
+
+    // For Camera
+    toggleVideo = () => {
+        const gs = this.props as GlobalState
+        const videoEnable = !this.state.currentSettings.videoEnable
+        const currentSettings = this.state.currentSettings
+        currentSettings.videoEnable = videoEnable
+        this.setState({currentSettings:currentSettings})
+    }
+
+    selectInputVideoDevice = (deviceId: string) => {
+        const gs = this.props as GlobalState
+        const props = this.props as any
+
+
+        getVideoDevice(deviceId).then(stream => {
+            if (stream !== null) {
+                this.state.localVideoWidth = stream.getVideoTracks()[0].getSettings().width ? stream.getVideoTracks()[0].getSettings().width! : 0
+                this.state.localVideoHeight = stream.getVideoTracks()[0].getSettings().height ? stream.getVideoTracks()[0].getSettings().height! : 0
+                // this.localVideoRef.current!.srcObject = stream;
+                this.state.inputVideoStream = stream
+                // return new Promise((resolve, reject) => {
+                //     this.localVideoRef.current!.onloadedmetadata = () => {
+                //         resolve();
+                //     };
+                // });
+            }
+        });
+
+        const currentSettings = this.state.currentSettings
+        currentSettings.selectedInputVideoDevice = deviceId
+        this.setState({currentSettings:currentSettings})
     }
 
 
+    // For Speaker
+    toggleSpeaker = () => {
+        const gs = this.props as GlobalState
+        const props = this.props as any
+
+        const speakerEnable = !this.state.currentSettings.speakerEnable
+        if(gs.meetingSession !== null){
+            if (this.state.currentSettings.speakerEnable) {
+                gs.meetingSession!.audioVideo.bindAudioElement(this.state.outputAudioElement!)
+            } else {
+                gs.meetingSession!.audioVideo.unbindAudioElement();
+            }
+        }
+
+        const currentSettings = this.state.currentSettings
+        currentSettings.speakerEnable = speakerEnable
+        this.setState({currentSettings:currentSettings})
+    }
+
+    selectOutputAudioDevice = (deviceId: string) => {
+        const gs = this.props as GlobalState
+        const props = this.props as any
+        if(gs.meetingSession !==null){
+            gs.meetingSession!.audioVideo.chooseAudioOutputDevice(deviceId)
+        }
+        const currentSettings = this.state.currentSettings
+        currentSettings.selectedOutputAudioDevice = deviceId
+        this.setState({currentSettings:currentSettings})
+    }
+
+
+
+    callbacks:{[key:string]:any} = {
+        toggleMute: this.toggleMute,
+        selectInputAudioDevice: this.selectInputAudioDevice,
+        toggleVideo: this.toggleVideo,
+        selectInputVideoDevice: this.selectInputVideoDevice,
+        toggleSpeaker: this.toggleSpeaker,
+        selectOutputAudioDevice: this.selectOutputAudioDevice,
+    }
+
+
+    componentDidMount() {
+        const localVideoElement = document.createElement("video")
+        localVideoElement.play()
+        const localAudioElement = document.createElement("audio")
+        const localVideoCanvas = document.createElement("canvas")
+
+        this.setState({
+            inputVideoElement:localVideoElement,
+            outputAudioElement: localAudioElement,
+            inputVideoCanvas: localVideoCanvas,
+        })
+        requestAnimationFrame(() => this.drawVideoCanvas())
+    }
+
+
+    drawVideoCanvas = () => {
+        // console.log(this.state.inputVideoStream!.getTracks()[0].getSettings().width)
+        // console.log(this.state.inputVideoStream!.getTracks()[0].getSettings().height)
+        // console.log(this.state.inputVideoStream!.getTracks()[0])
+        // this.state.inputVideoElement!.width = this.state.inputVideoStream!.getTracks()[0].getSettings().width!
+        // this.state.inputVideoElement!.height = this.state.inputVideoStream!.getTracks()[0].getSettings().height!
+
+        // if(this.localVideoCanvasRef.current){
+        //     const ctx = this.localVideoCanvasRef.current!.getContext("2d")!
+        //     ctx.drawImage(this.state.inputVideoElement!, 0, 0, 300,300)
+        //     //ctx.drawImage(this.localVideoRef.current!, 0, 0, 300, 300)
+
+        //     ctx.fillText("aAAAAAA",10,10)
+
+        // }
+        if(this.state.inputVideoCanvas){
+            const ctx = this.state.inputVideoCanvas.getContext("2d")!
+            ctx.drawImage(this.state.inputVideoElement!, 0, 0, 300,300)
+        }
+
+        
+        requestAnimationFrame(() => this.drawVideoCanvas())
+    }
     render() {
         const gs = this.props as GlobalState
         const props = this.props as any
         const bgColor="#eeeeee"
+        for(let key in this.callbacks){
+            props[key] = this.callbacks[key]
+        }
         /**
-         * For Login screen
+         * For initialization
          */
         if(gs.status === AppStatus.STARTED){
             const base_url: string = [window.location.protocol, '//', window.location.host, window.location.pathname.replace(/\/*$/, '/').replace('/v2', '')].join('');
@@ -204,7 +401,7 @@ class App extends React.Component {
             return <div/>            
         }
         /**
-         * For Setupped, in entrance
+         * For Entrance
          */
         if(gs.status === AppStatus.IN_ENTRANCE){
             // show screen
@@ -222,15 +419,109 @@ class App extends React.Component {
         }
 
         /**
-         * For Lobby or inMeeting
+         * For Lobby
          */
-        if(gs.status === AppStatus.IN_LOBBY || gs.status === AppStatus.IN_MEETING){
-            return(
-                <Lobby  {...props}/>
-                // <div  style={{ backgroundColor:bgColor}}>
-                // </div>                
-            )
+        if(gs.status === AppStatus.IN_LOBBY){
+            if(gs.lobbyStatus === AppLobbyStatus.WILL_PREPARE){
+                const deviceListPromise     = getDeviceLists()
+                const netPromise = bodyPix.load();
+
+
+                Promise.all([deviceListPromise, netPromise]).then(([deviceList,bodyPix])=>{
+                    const audioInputDevices     = deviceList['audioinput']
+                    const videoInputDevices     = deviceList['videoinput']
+                    const audioOutputDevices    = deviceList['audiooutput']
+                    const inputVideoResolutions = ["360p", "540p", "720p"]
+                    this.state.bodyPix = bodyPix
+
+                    const currentSettings = this.state.currentSettings
+                    currentSettings.selectedInputAudioDevice      = audioInputDevices![0]     ? audioInputDevices![0]['deviceId']     : NO_DEVICE_SELECTED
+                    currentSettings.selectedInputVideoDevice      = videoInputDevices![0]     ? videoInputDevices![0]['deviceId']     : NO_DEVICE_SELECTED
+                    currentSettings.selectedInputVideoResolution  = inputVideoResolutions![0] ? inputVideoResolutions![0]             : NO_DEVICE_SELECTED
+                    currentSettings.selectedOutputAudioDevice     = audioOutputDevices![0]    ? audioOutputDevices![0]['deviceId']    : NO_DEVICE_SELECTED
+                    props.setDevices(audioInputDevices, videoInputDevices, audioOutputDevices)
+                    props.refreshRoomList()
+
+                    getVideoDevice(currentSettings.selectedInputVideoDevice).then(stream => {
+                        if (stream !== null) {
+                            const localVideoWidth = stream.getVideoTracks()[0].getSettings().width ? stream.getVideoTracks()[0].getSettings().width! : 0
+                            const localVideoHeight = stream.getVideoTracks()[0].getSettings().height ? stream.getVideoTracks()[0].getSettings().height! : 0
+                            this.state.inputVideoElement!.srcObject = stream
+
+                            this.setState({
+                                localVideoWidth: localVideoWidth,
+                                localVideoHeight: localVideoHeight,
+                                inputVideoStream: stream,
+                                currentSettings:currentSettings
+                            })
+                        }
+                    })
+                })
+                return (
+                    <div/>
+                )
+            }else{
+                return(
+                    <div>
+                        <Lobby  {...props} appState={this.state}/>
+                    </div>
+                )
+            }
         }
+
+
+        /**
+         * Meeting Setup
+         */
+        if(gs.status === AppStatus.IN_MEETING){
+            if(gs.meetingStatus === AppMeetingStatus.WILL_PREPARE){
+                const meetingSessionConf = new MeetingSessionConfiguration(gs.joinInfo!.Meeting, gs.joinInfo!.Attendee)
+                const defaultMeetingSession = initializeMeetingSession(gs, meetingSessionConf)
+                registerHandlers(this, props, defaultMeetingSession)
+                // const url = new URL(window.location.href);
+                // url.searchParams.set('m', gs.roomTitle);
+                // window.history.replaceState({}, `${gs.roomTitle}`, url.toString());
+
+                // @ts-ignore
+                const mediaStream = this.state.inputVideoCanvas.captureStream()
+                console.log("MS", mediaStream)
+                const auidoInputPromise = defaultMeetingSession.audioVideo.chooseAudioInputDevice(this.state.currentSettings.selectedInputAudioDevice)
+                const auidooutputPromise = defaultMeetingSession.audioVideo.chooseAudioOutputDevice(this.state.currentSettings.selectedOutputAudioDevice)
+                const videoInputPromise = defaultMeetingSession.audioVideo.chooseVideoInputDevice(mediaStream)
+                
+                Promise.all([auidoInputPromise, auidooutputPromise, videoInputPromise]).then(()=>{
+                    defaultMeetingSession.audioVideo.bindAudioElement(this.state.outputAudioElement!)
+                    defaultMeetingSession.audioVideo.start()
+                        if (this.state.currentSettings.mute) {
+                        defaultMeetingSession.audioVideo.realtimeMuteLocalAudio();
+                    } else {
+                        defaultMeetingSession.audioVideo.realtimeUnmuteLocalAudio();
+                    }
+                    if (this.state.currentSettings.speakerEnable) {
+                        defaultMeetingSession.audioVideo.bindAudioElement(this.state.outputAudioElement!)
+                    } else {
+                        defaultMeetingSession.audioVideo.unbindAudioElement();
+                    }
+                    console.log("start local video1")
+                    defaultMeetingSession.audioVideo.startLocalVideoTile()
+                    console.log("start local video2")
+                    props.initializedSession(meetingSessionConf, defaultMeetingSession)
+    
+                })
+
+                return <div/>
+            }
+
+            return(
+                <div>
+                    <Lobby  {...props}  appState={this.state}/>
+                    
+                    {/* <ReactVideo {...props} inputVideoStream={this.state.inputVideoStream}/> */}
+                    {/* <video ref={this.localVideoRef} width={"300"} height={"300"} autoPlay /> */}
+                </div>
+            )            
+        }
+
 
         // /**
         //  * For Created Room

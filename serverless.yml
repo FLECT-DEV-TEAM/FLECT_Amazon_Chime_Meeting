@@ -334,6 +334,16 @@ functions:
               paths: 
                 meetingId: true
                 attendeeId: true
+  ChimeLog:
+    handler: sls/log_handlers.log
+    role: FLECTChimeSdkLambdaRole
+    events:
+      - http:
+          path: logs
+          method: post
+          cors: true
+
+
 
   # ChimeSQSQueueLambda:
   #   handler: sls/notification_handlers.sqs_handler

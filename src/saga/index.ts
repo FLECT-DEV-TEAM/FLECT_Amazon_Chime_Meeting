@@ -169,7 +169,8 @@ function* handleGetAttendeeInfomation(){
 
         const baseAttendeeId = encodeURIComponent(new DefaultModality(attendeeId).base());
 
-        const url = `${API_BASE_URL}attendee?title=${meetingId}&attendee=${baseAttendeeId}`
+        const url = `${API_BASE_URL}meetings/${meetingId}/attendees/${baseAttendeeId}`
+        console.log(meetingId, attendeeId, url)
         try{
             let data = yield call((url:string) =>{
                 return fetch(url, {
@@ -179,7 +180,7 @@ function* handleGetAttendeeInfomation(){
                 .catch(error => {throw error})
             }, url);
             console.log("UPDATE_ATTENDEE_INFO", data)
-            yield put(Actions.updateAttendeeInformation(attendeeId, baseAttendeeId, decodeURIComponent(data.AttendeeInfo.Name)));
+            yield put(Actions.updateAttendeeInformation(attendeeId, baseAttendeeId, decodeURIComponent(data.AttendeeInfo.UserName)));
         }catch(e){
             console.log('failed:'+e)
         }

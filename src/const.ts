@@ -24,6 +24,12 @@ export enum AppStatus2{
     USER_CREATED,
     EXEC_LOGIN,
 }
+export enum AppLobbyStatus{
+    NONE,
+    WILL_PREPARE,
+    DONE_PREPARE,
+}
+
 export enum AppMeetingStatus{
     NONE,
     WILL_PREPARE,

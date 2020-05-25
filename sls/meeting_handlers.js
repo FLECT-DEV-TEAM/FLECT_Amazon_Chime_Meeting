@@ -189,11 +189,9 @@ joinMeeting = async(meetingId, userName) =>{
   console.log("MEETING_INFO", meetingInfo)
 
   return {
-    JoinInfo: {
-      MeetingName : meetingInfo.MeetingName,
-      Meeting     : meetingInfo.MeetingInfo.Meeting,
-      AttendeeId  : attendeeInfo.Attendee
-    },
+    MeetingName : meetingInfo.MeetingName,
+    Meeting     : meetingInfo.MeetingInfo.Meeting,
+    Attendee    : attendeeInfo.Attendee
   }
 }
 
@@ -210,7 +208,8 @@ const getAttendee = async (meetingId, attendeeId) => {
   if (!result.Item) {
     return 'Unknown';
   }
-  return result.Item.Name.S;
+  console.log(result)
+  return result.Item.UserName.S;
 }
 
 
@@ -296,7 +295,6 @@ exports.join = async (event, context, callback) => {
 
 exports.getAttendee = async (event, context, callback) => {
   const response = util.getDefaultResponse()
-  event.queryStringParameters.title = simplifyTitle(event.queryStringParameters.title);
   const meetingId  = event.pathParameters.meetingId
   const attendeeId = event.pathParameters.attendeeId;
   const attendeeInfo = {
