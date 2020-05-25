@@ -107,6 +107,8 @@ export interface CurrentSettings {
     selectedInputVideoResolution      : string
     selectedOutputAudioDevice         : string
     virtualBackgroundPath             : string
+
+    focuseAttendeeId                  : string
 }
 
 /**
@@ -134,6 +136,7 @@ export interface AppState{
 
 
     currentSettings   : CurrentSettings
+
 }
 
 
@@ -176,6 +179,7 @@ class App extends React.Component {
             selectedInputVideoResolution      : NO_DEVICE_SELECTED,
             selectedOutputAudioDevice         : NO_DEVICE_SELECTED,
             virtualBackgroundPath             : "/resources/vbg/pic0.jpg",
+            focuseAttendeeId                  : ""
         },
     }
 
@@ -415,6 +419,12 @@ class App extends React.Component {
         this.setState({})
       }
 
+    setFocusedAttendee = (attendeeId: string) => {
+        this.state.currentSettings.focuseAttendeeId = attendeeId
+        console.log("focus:", this.state.currentSettings.focuseAttendeeId)
+        this.setState({})
+    }
+    
 
     callbacks:{[key:string]:any} = {
         toggleMute: this.toggleMute,
@@ -429,6 +439,7 @@ class App extends React.Component {
         sharedDisplaySelected: this.sharedDisplaySelected,
         stopSharedDisplay: this.stopSharedDisplay,
         setVirtualBackground: this.setVirtualBackground,
+        setFocusedAttendee: this.setFocusedAttendee,
     }
 
 
@@ -668,10 +679,17 @@ class App extends React.Component {
                     gs.meetingSession.audioVideo.stop()
                     
                     this.state.videoTileStates = {}
+                    this.state.roster = {}
                     props.clearedMeetingSession()
                 }
             }
 
+            for(let attendeeId in this.state.roster){
+                if(attendeeId in gs.storeRoster){
+                    const attendee = this.state.roster[attendeeId]
+                    attendee.name = gs.storeRoster[attendeeId].name
+                }
+            }            
             return(
                 <div>
                     <Lobby  {...props}  appState={this.state}/>

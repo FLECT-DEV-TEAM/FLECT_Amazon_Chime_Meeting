@@ -10,14 +10,15 @@ class OverlayVideoElement extends MainOverlayVideoElement {
 
     render()  {
         const props = this.props as any
+        const appState = props.appState as AppState
+
         const thisAttendeeId = props.thisAttendeeId
-        const focusedAttendeeId = props.focusedAttendeeId
-        const border = thisAttendeeId === focusedAttendeeId ? "2px solid #ff0000" : "2px solid #000000"
+        const border = thisAttendeeId === appState.currentSettings.focuseAttendeeId ? "2px solid #ff0000" : "2px solid #000000"
         return(
             <div ref={this.divRef} 
                 onMouseEnter={()=>{this.state.hoverd = true;this.setState({})}} 
                 onMouseLeave={()=>{this.state.hoverd=false;this.setState({})}} 
-                onClick ={()=>{props.setFocusedAttendee(thisAttendeeId)}}
+                onClick ={()=>{console.log("clicked");props.setFocusedAttendee(thisAttendeeId)}}
                 >
                 <video  ref={this.videoRef}  style={{ position: "absolute", width: "100%"}} />
                 <canvas ref={this.canvasRef} style={{ position: "absolute", width: "100%", border: border}} />

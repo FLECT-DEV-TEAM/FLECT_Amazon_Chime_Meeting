@@ -291,16 +291,16 @@ const reducer = (state: GlobalState = initialState, action: any) => {
         //     gs = initialState
         //     break
 
-        // case 'UPDATE_ATTENDEE_INFORMATION':
-        //     const attendeeId = action.payload[0]
-        //     const baseAttendeeId = action.payload[1]
-        //     const name = action.payload[2]
-        //     gs.storeRoster[attendeeId] = {
-        //         attendeeId : attendeeId,
-        //         baseAttendeeId :baseAttendeeId,
-        //         name:name
-        //     }
-        //     break
+        case 'UPDATE_ATTENDEE_INFORMATION':
+            const attendeeId = action.payload[0]
+            const baseAttendeeId = action.payload[1]
+            const name = action.payload[2]
+            gs.storeRoster[attendeeId] = {
+                attendeeId : attendeeId,
+                baseAttendeeId :baseAttendeeId,
+                name:name
+            }
+            break
 
 
     }

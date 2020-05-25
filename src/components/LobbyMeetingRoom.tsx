@@ -6,10 +6,10 @@ import MainOverlayVideoElement from './meetingComp/MainOverlayVideoElement';
 import { VideoTileState } from 'amazon-chime-sdk-js';
 import { getTileId } from './utils';
 import { AppState } from './App';
+import OverlayVideoElement from './meetingComp/OverlayVideoElement';
 
 class LobbyMeetingRoom extends React.Component {
     mainOverlayVideoRef = React.createRef<MainOverlayVideoElement>()
-    mainOverlayVideoRef2 = React.createRef<MainOverlayVideoElement>()
 
     ovrefs: React.RefObject<MainOverlayVideoElement>[]= []
 
@@ -28,7 +28,7 @@ class LobbyMeetingRoom extends React.Component {
             this.id2ref[tileId!] = tmpRef
             const cell = (
                 <Grid.Column width={4}>
-                    <MainOverlayVideoElement {...props} ref={tmpRef} />
+                    <OverlayVideoElement {...props} ref={tmpRef} thisAttendeeId={attendeeId}/>
                     {appState.videoTileStates[key].boundAttendeeId}
                     local: {appState.videoTileStates[key].localTile}
                 </Grid.Column>
@@ -37,13 +37,9 @@ class LobbyMeetingRoom extends React.Component {
         }
 
 
-
         return (
             <div>
-                LobbyMeetingRoom
-                {/* <MainOverlayVideoElement {...props} ref={this.mainOverlayVideoRef} />
-                <MainOverlayVideoElement {...props} ref={this.mainOverlayVideoRef2} />
- */}
+                <MainOverlayVideoElement {...props} ref={this.mainOverlayVideoRef} thisAttendeeId={appState.currentSettings.focuseAttendeeId}/>
                 <Grid>
                     <Grid.Row>
                         {this.cells}
@@ -64,6 +60,10 @@ class LobbyMeetingRoom extends React.Component {
         const videoTileState = props.videoTileState as { [id: number]: VideoTileState }
 
         console.log(gs)
+        const focusedTileId = getTileId(appState.currentSettings.focuseAttendeeId, appState.videoTileStates)
+        if(focusedTileId > 0){
+            gs.meetingSession?.audioVideo.bindVideoElement(focusedTileId, this.mainOverlayVideoRef.current!.getVideoRef().current!)
+        }
         // if(gs.status === AppStatus.IN_MEETING){
         //     const focusedTileId = getTileId(gs.joinInfo!.Attendee.AttendeeId, appState.videoTileStates)
         //     console.log("FOCUS!1: ",focusedTileId)

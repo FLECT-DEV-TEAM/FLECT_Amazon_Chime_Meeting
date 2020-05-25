@@ -35,8 +35,6 @@ class LobbyRoomList extends React.Component {
             if(gs.joinInfo===null){
                 currentMeetingId = null
             }else{
-                console.log("JOININFO!1!", gs)
-                console.log("JOININFO!2!", gs.joinInfo)
                 currentMeetingId = gs.joinInfo.Meeting.MeetingId ? gs.joinInfo.Meeting.MeetingId : null
             }
             if(currentMeetingId === meeting.meetingId){
