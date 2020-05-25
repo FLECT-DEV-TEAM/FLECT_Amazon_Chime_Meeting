@@ -276,6 +276,11 @@ class App extends React.Component {
         const currentSettings = this.state.currentSettings
         currentSettings.videoEnable = videoEnable
         this.setState({currentSettings:currentSettings})
+        if(videoEnable){
+            this.selectInputVideoDevice(currentSettings.selectedInputVideoResolution)
+        }else{
+            this.state.inputVideoStream?.getVideoTracks()[0].stop()
+        }
     }
 
     selectInputVideoDevice = (deviceId: string) => {
@@ -283,18 +288,22 @@ class App extends React.Component {
         const props = this.props as any
 
 
+        console.log("SELECT INPUTDEVICE", deviceId)
         getVideoDevice(deviceId).then(stream => {
             if (stream !== null) {
                 this.state.localVideoWidth = stream.getVideoTracks()[0].getSettings().width ? stream.getVideoTracks()[0].getSettings().width! : 0
                 this.state.localVideoHeight = stream.getVideoTracks()[0].getSettings().height ? stream.getVideoTracks()[0].getSettings().height! : 0
-                // this.localVideoRef.current!.srcObject = stream;
+                this.state.inputVideoElement!.srcObject = stream;
                 this.state.inputVideoStream = stream
-                // return new Promise((resolve, reject) => {
-                //     this.localVideoRef.current!.onloadedmetadata = () => {
-                //         resolve();
-                //     };
-                // });
+                this.state.inputVideoElement!.play()
+                return new Promise((resolve, reject) => {
+                    this.state.inputVideoElement!.onloadedmetadata = () => {
+                        resolve();
+                    };
+                });
             }
+        }).catch((e)=>{
+            console.log("DEVICE:error:", e)
         });
 
         const currentSettings = this.state.currentSettings
@@ -434,10 +443,16 @@ class App extends React.Component {
                     getVideoDevice(currentSettings.selectedInputVideoDevice).then(stream => {
                         if (stream !== null) {
                             this.state.inputVideoElement!.srcObject = stream
+                            this.state.inputVideoElement!.play()
                             this.setState({
                                 inputVideoStream: stream,
                                 currentSettings:currentSettings
                             })
+                            return new Promise((resolve, reject) => {
+                                this.state.inputVideoElement!.onloadedmetadata = () => {
+                                    resolve();
+                                };
+                            });                            
                         }
                     })
                 })

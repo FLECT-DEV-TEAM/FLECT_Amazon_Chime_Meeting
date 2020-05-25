@@ -103,7 +103,7 @@ function* handleCreateMeeting() {
                 .catch(error => {throw error})
             }, url);
             console.log(data)
-            yield put(Actions.createdMeeting());
+            yield put(Actions.refreshRoomList());
         }catch(e){
             console.log('failed:'+e)
         }
