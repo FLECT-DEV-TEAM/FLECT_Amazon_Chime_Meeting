@@ -17,6 +17,7 @@ class LobbyMeetingRoom extends React.Component {
     cells:JSX.Element[] = []
     render() {
         this.cells = []
+        this.id2ref = {}
         const gs = this.props as GlobalState
         const props = this.props as any
         const appState = props.appState as AppState
@@ -74,7 +75,7 @@ class LobbyMeetingRoom extends React.Component {
         //     }
         for(let i in this.id2ref){
             const tmpRef = this.id2ref[i]
-            gs.meetingSession!.audioVideo.bindVideoElement(Number(i), tmpRef.current!.getVideoRef().current!)
+            gs.meetingSession?.audioVideo.bindVideoElement(Number(i), tmpRef.current!.getVideoRef().current!)
         }
     }
 }

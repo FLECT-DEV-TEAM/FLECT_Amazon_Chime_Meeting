@@ -461,39 +461,51 @@ class App extends React.Component {
          */
         if(gs.status === AppStatus.IN_MEETING){
             if(gs.meetingStatus === AppMeetingStatus.WILL_PREPARE){
-                const meetingSessionConf = new MeetingSessionConfiguration(gs.joinInfo!.Meeting, gs.joinInfo!.Attendee)
-                const defaultMeetingSession = initializeMeetingSession(gs, meetingSessionConf)
-                registerHandlers(this, props, defaultMeetingSession)
-                // const url = new URL(window.location.href);
-                // url.searchParams.set('m', gs.roomTitle);
-                // window.history.replaceState({}, `${gs.roomTitle}`, url.toString());
+                if(gs.meetingSession!==null){
+                    gs.meetingSession.audioVideo.stopLocalVideoTile()
+                    gs.meetingSession.audioVideo.unbindAudioElement()
+                    for(let key in this.state.videoTileStates){
+                        gs.meetingSession.audioVideo.unbindVideoElement(Number(key))
+                    }
+                    gs.meetingSession.audioVideo.stop()
+                    
+                    this.state.videoTileStates = {}
+                    props.initializedSession(null, null)
+                }else{
+                    const meetingSessionConf = new MeetingSessionConfiguration(gs.joinInfo!.Meeting, gs.joinInfo!.Attendee)
+                    const defaultMeetingSession = initializeMeetingSession(gs, meetingSessionConf)
+                    registerHandlers(this, props, defaultMeetingSession)
+                    // const url = new URL(window.location.href);
+                    // url.searchParams.set('m', gs.roomTitle);
+                    // window.history.replaceState({}, `${gs.roomTitle}`, url.toString());
 
-                // @ts-ignore
-                const mediaStream = this.state.inputVideoCanvas.captureStream()
-                console.log("MS", mediaStream)
-                const auidoInputPromise = defaultMeetingSession.audioVideo.chooseAudioInputDevice(this.state.currentSettings.selectedInputAudioDevice)
-                const auidooutputPromise = defaultMeetingSession.audioVideo.chooseAudioOutputDevice(this.state.currentSettings.selectedOutputAudioDevice)
-                const videoInputPromise = defaultMeetingSession.audioVideo.chooseVideoInputDevice(mediaStream)
-                
-                Promise.all([auidoInputPromise, auidooutputPromise, videoInputPromise]).then(()=>{
-                    defaultMeetingSession.audioVideo.bindAudioElement(this.state.outputAudioElement!)
-                    defaultMeetingSession.audioVideo.start()
-                        if (this.state.currentSettings.mute) {
-                        defaultMeetingSession.audioVideo.realtimeMuteLocalAudio();
-                    } else {
-                        defaultMeetingSession.audioVideo.realtimeUnmuteLocalAudio();
-                    }
-                    if (this.state.currentSettings.speakerEnable) {
+                    // @ts-ignore
+                    const mediaStream = this.state.inputVideoCanvas.captureStream()
+                    console.log("MS", mediaStream)
+                    const auidoInputPromise = defaultMeetingSession.audioVideo.chooseAudioInputDevice(this.state.currentSettings.selectedInputAudioDevice)
+                    const auidooutputPromise = defaultMeetingSession.audioVideo.chooseAudioOutputDevice(this.state.currentSettings.selectedOutputAudioDevice)
+                    const videoInputPromise = defaultMeetingSession.audioVideo.chooseVideoInputDevice(mediaStream)
+                    
+                    Promise.all([auidoInputPromise, auidooutputPromise, videoInputPromise]).then(()=>{
                         defaultMeetingSession.audioVideo.bindAudioElement(this.state.outputAudioElement!)
-                    } else {
-                        defaultMeetingSession.audioVideo.unbindAudioElement();
-                    }
-                    console.log("start local video1")
-                    defaultMeetingSession.audioVideo.startLocalVideoTile()
-                    console.log("start local video2")
-                    props.initializedSession(meetingSessionConf, defaultMeetingSession)
-    
-                })
+                        defaultMeetingSession.audioVideo.start()
+                            if (this.state.currentSettings.mute) {
+                            defaultMeetingSession.audioVideo.realtimeMuteLocalAudio();
+                        } else {
+                            defaultMeetingSession.audioVideo.realtimeUnmuteLocalAudio();
+                        }
+                        if (this.state.currentSettings.speakerEnable) {
+                            defaultMeetingSession.audioVideo.bindAudioElement(this.state.outputAudioElement!)
+                        } else {
+                            defaultMeetingSession.audioVideo.unbindAudioElement();
+                        }
+                        console.log("start local video1")
+                        defaultMeetingSession.audioVideo.startLocalVideoTile()
+                        console.log("start local video2")
+                        props.initializedSession(meetingSessionConf, defaultMeetingSession)
+        
+                    })
+                }
 
                 return <div/>
             }
