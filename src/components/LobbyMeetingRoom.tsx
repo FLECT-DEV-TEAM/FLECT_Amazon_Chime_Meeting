@@ -28,6 +28,8 @@ class LobbyMeetingRoom extends React.Component {
             const cell = (
                 <Grid.Column width={4}>
                     <MainOverlayVideoElement {...props} ref={tmpRef} />
+                    {appState.videoTileStates[key].boundAttendeeId}
+                    local: {appState.videoTileStates[key].localTile}
                 </Grid.Column>
             )
             this.cells.push(cell)

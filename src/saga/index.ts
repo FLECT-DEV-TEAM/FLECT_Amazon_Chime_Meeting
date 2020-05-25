@@ -149,8 +149,16 @@ function* handleJoinMeeting() {
                 return fetch(url, {
                     method: 'POST',
                 })
-                .then(res => res.json())
-                .catch(error => {throw error})
+                .then(res => {
+                    if(res.ok){
+                        return res.json()
+                    }else{
+                        throw new Error('Join failed: '+res);
+                    }
+                })
+                .catch(error => {
+                    throw error
+                })
             }, url);
             console.log(data)
             yield put(Actions.joinedMeeting(data));

@@ -361,28 +361,18 @@ class App extends React.Component {
 
 
     drawVideoCanvas = () => {
-        // console.log(this.state.inputVideoStream!.getTracks()[0].getSettings().width)
-        // console.log(this.state.inputVideoStream!.getTracks()[0].getSettings().height)
-        // console.log(this.state.inputVideoStream!.getTracks()[0])
-        // this.state.inputVideoElement!.width = this.state.inputVideoStream!.getTracks()[0].getSettings().width!
-        // this.state.inputVideoElement!.height = this.state.inputVideoStream!.getTracks()[0].getSettings().height!
-
-        // if(this.localVideoCanvasRef.current){
-        //     const ctx = this.localVideoCanvasRef.current!.getContext("2d")!
-        //     ctx.drawImage(this.state.inputVideoElement!, 0, 0, 300,300)
-        //     //ctx.drawImage(this.localVideoRef.current!, 0, 0, 300, 300)
-
-        //     ctx.fillText("aAAAAAA",10,10)
-
-        // }
-        if(this.state.inputVideoCanvas){
-            const ctx = this.state.inputVideoCanvas.getContext("2d")!
-            ctx.drawImage(this.state.inputVideoElement!, 0, 0, 300,300)
+        if(this.state.inputVideoStream!==null){
+            const videoStream = this.state.inputVideoStream
+            const width  = videoStream.getVideoTracks()[0].getSettings().width 
+            const height = videoStream.getVideoTracks()[0].getSettings().height
+            this.state.inputVideoCanvas!.width = width!
+            this.state.inputVideoCanvas!.height = height!
+            const ctx = this.state.inputVideoCanvas!.getContext("2d")!
+            ctx.drawImage(this.state.inputVideoElement!, 0, 0)
         }
-
-        
         requestAnimationFrame(() => this.drawVideoCanvas())
     }
+
     render() {
         const gs = this.props as GlobalState
         const props = this.props as any
@@ -426,7 +416,6 @@ class App extends React.Component {
                 const deviceListPromise     = getDeviceLists()
                 const netPromise = bodyPix.load();
 
-
                 Promise.all([deviceListPromise, netPromise]).then(([deviceList,bodyPix])=>{
                     const audioInputDevices     = deviceList['audioinput']
                     const videoInputDevices     = deviceList['videoinput']
@@ -443,14 +432,11 @@ class App extends React.Component {
                     props.refreshRoomList()
 
                     getVideoDevice(currentSettings.selectedInputVideoDevice).then(stream => {
+
                         if (stream !== null) {
-                            const localVideoWidth = stream.getVideoTracks()[0].getSettings().width ? stream.getVideoTracks()[0].getSettings().width! : 0
-                            const localVideoHeight = stream.getVideoTracks()[0].getSettings().height ? stream.getVideoTracks()[0].getSettings().height! : 0
                             this.state.inputVideoElement!.srcObject = stream
 
                             this.setState({
-                                localVideoWidth: localVideoWidth,
-                                localVideoHeight: localVideoHeight,
                                 inputVideoStream: stream,
                                 currentSettings:currentSettings
                             })
@@ -515,9 +501,7 @@ class App extends React.Component {
             return(
                 <div>
                     <Lobby  {...props}  appState={this.state}/>
-                    
-                    {/* <ReactVideo {...props} inputVideoStream={this.state.inputVideoStream}/> */}
-                    {/* <video ref={this.localVideoRef} width={"300"} height={"300"} autoPlay /> */}
+
                 </div>
             )            
         }

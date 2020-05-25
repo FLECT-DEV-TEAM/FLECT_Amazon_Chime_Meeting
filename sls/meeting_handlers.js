@@ -48,6 +48,7 @@ const getMeetingInfo = async(meetingName) => {
       }).promise();
   } catch (err) {
     //TBD DeleteMeetin from DB
+    await deleteMeeting(meetingName)
     return null;
   }
 
@@ -86,6 +87,7 @@ const getMeetingInfoById = async(meetingId) => {
       }).promise();
   } catch (err) {
     //TBD DeleteMeetin from DB
+    await deleteMeeting(meetingInfo.MeetingName.S)
     return null;
   }
   return {
@@ -155,14 +157,23 @@ const createMeeting = async (userName, meetingName, usePassCode, passCode, secre
   return newMeetingInfo.Meeting.MeetingId
 }
 
+const deleteMeeting = async (meetingName) =>{
+  await ddb.deleteItem({
+      TableName : meetingsTableName,
+      Key       : {
+        MeetingName  : { S: meetingName  },
+      }
+  })
+  .promise();
+}
+
+
+
 
 joinMeeting = async(meetingId, userName) =>{
   let meetingInfo = await getMeetingInfoById(meetingId);
   if (meetingInfo === null) {
-    response["statusCode"] = 400;
-    response["body"] = "No meeting " + meetingId;
-    callback(null, response);
-    return;
+    return null
   }
 
   console.info('Adding new attendee');
@@ -287,7 +298,12 @@ exports.join = async (event, context, callback) => {
   const userName  = event.queryStringParameters.userName
   const joinInfo = await joinMeeting(meetingId, userName)
   console.log("GET JOIN INFO",joinInfo)
-
+  if(joinInfo === null){
+    response["statusCode"] = 400;
+    body = {result:"error", detail:"no such a meeting: " + meetingId}
+    response.body = JSON.stringify(body, '', 2)    
+    callback(null, response);
+  }
   response.body = JSON.stringify(joinInfo, '', 2);
   callback(null, response);
 };
