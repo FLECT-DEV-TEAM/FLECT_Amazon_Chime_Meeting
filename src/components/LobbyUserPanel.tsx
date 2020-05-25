@@ -7,6 +7,7 @@ import MicControl from './meetingComp/MicControl';
 import SpeakerControl from './meetingComp/SpeakerControl';
 import VideoShareControl from './meetingComp/VideoShareControl';
 import DisplayShareControl from './meetingComp/DisplayShareControl';
+import SettingControl from './meetingComp/SettingControl';
 class LobbyUserPanel extends React.Component {
     render() {
         const gs = this.props as GlobalState
@@ -20,6 +21,8 @@ class LobbyUserPanel extends React.Component {
                 <SpeakerControl {...props} />
                 <VideoShareControl {...props} />
                 <DisplayShareControl {...props} />
+                <SettingControl {...props}/>
+
             </div>
         )
     }

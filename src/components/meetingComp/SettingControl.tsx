@@ -2,6 +2,8 @@ import * as React from 'react';
 import { Icon, Button, Modal, Grid } from 'semantic-ui-react';
 import { BUTTON_COLOR } from '../../const';
 import { RS_VBG } from '../resources';
+import { AppState } from '../App';
+import { GlobalState } from '../../reducers';
 
 
 interface SettingControlState {
@@ -41,6 +43,9 @@ class SettingControl extends React.Component {
     
     generateVGSettingPanal = () => {
         const props = this.props as any
+        const gs = this.props as GlobalState
+        const appState = props.appState as AppState
+
         const images = []
         RS_VBG.sort()
         for (const i in RS_VBG) {
@@ -49,7 +54,7 @@ class SettingControl extends React.Component {
             <Grid.Column width={4}>
                 <div onClick={() => { props.setVirtualBackground(imgPath) }} style={
                 (() => {
-                    return props.virtualBackground === imgPath ?
+                    return appState.currentSettings.virtualBackgroundPath === imgPath ?
                     { color: "red", border: "2px solid #ff0000", width: "100%", height: "100%" } :
                     { width: "100%", height: "100%" }
                 })()

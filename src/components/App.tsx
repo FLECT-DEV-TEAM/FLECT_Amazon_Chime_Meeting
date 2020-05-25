@@ -106,6 +106,7 @@ export interface CurrentSettings {
     selectedInputVideoDevice          : string
     selectedInputVideoResolution      : string
     selectedOutputAudioDevice         : string
+    virtualBackgroundPath             : string
 }
 
 /**
@@ -124,8 +125,10 @@ export interface AppState{
     inputVideoStream : MediaStream | null,
     inputVideoElement: HTMLVideoElement,
     inputVideoCanvas : HTMLCanvasElement,
-    inputMaskCanvas  : HTMLCanvasElement | null,
-    inputVideoCanvas2: HTMLCanvasElement | null,
+    inputMaskCanvas  : HTMLCanvasElement,
+    virtualBGImage   : HTMLImageElement,
+    virtualBGCanvas   : HTMLCanvasElement,
+    inputVideoCanvas2: HTMLCanvasElement,
     
     shareVideoElement: HTMLVideoElement,
 
@@ -155,8 +158,10 @@ class App extends React.Component {
         inputVideoStream: null,
         inputVideoElement: document.createElement("video"),
         inputVideoCanvas: document.createElement("canvas"),
-        inputMaskCanvas: null,
-        inputVideoCanvas2: null,
+        inputMaskCanvas: document.createElement("canvas"),
+        virtualBGImage: document.createElement("img"),
+        virtualBGCanvas: document.createElement("canvas"),
+        inputVideoCanvas2: document.createElement("canvas"),
         outputAudioElement: document.createElement("audio"),
 
         shareVideoElement: document.createElement("video"),
@@ -170,7 +175,7 @@ class App extends React.Component {
             selectedInputVideoDevice          : NO_DEVICE_SELECTED,
             selectedInputVideoResolution      : NO_DEVICE_SELECTED,
             selectedOutputAudioDevice         : NO_DEVICE_SELECTED,
-        
+            virtualBackgroundPath             : "/resources/vbg/pic0.jpg",
         },
     }
 
@@ -284,9 +289,11 @@ class App extends React.Component {
         currentSettings.videoEnable = videoEnable
         this.setState({currentSettings:currentSettings})
         if(videoEnable){
+            //gs.meetingSession!.audioVideo.startLocalVideoTile()
             this.selectInputVideoDevice(currentSettings.selectedInputVideoResolution)
         }else{
             this.state.inputVideoStream?.getVideoTracks()[0].stop()
+            //gs.meetingSession!.audioVideo.stopLocalVideoTile()
         }
     }
 
@@ -401,7 +408,12 @@ class App extends React.Component {
         gs.meetingSession!.audioVideo.stopContentShare()
     }
 
-
+    // For Config
+    setVirtualBackground = (imgPath: string) => {
+        this.state.currentSettings.virtualBackgroundPath = imgPath
+        console.log("SetVirtual", imgPath)
+        this.setState({})
+      }
 
 
     callbacks:{[key:string]:any} = {
@@ -416,7 +428,7 @@ class App extends React.Component {
         pauseSharedVideo: this.pauseSharedVideo,
         sharedDisplaySelected: this.sharedDisplaySelected,
         stopSharedDisplay: this.stopSharedDisplay,
-
+        setVirtualBackground: this.setVirtualBackground,
     }
 
 
@@ -437,16 +449,84 @@ class App extends React.Component {
 
 
     drawVideoCanvas = () => {
-        if(this.state.inputVideoStream!==null){
-            const videoStream = this.state.inputVideoStream
-            const width  = videoStream.getVideoTracks()[0].getSettings().width 
-            const height = videoStream.getVideoTracks()[0].getSettings().height
-            this.state.inputVideoCanvas!.width = width!
-            this.state.inputVideoCanvas!.height = height!
-            const ctx = this.state.inputVideoCanvas!.getContext("2d")!
-            ctx.drawImage(this.state.inputVideoElement!, 0, 0)
+        const bodyPixNet: bodyPix.BodyPix = this.state.bodyPix!
+
+        const updateInterval = 100
+        if(this.state.currentSettings.videoEnable === false){
+            const ctx = this.state.inputVideoCanvas2.getContext("2d")!
+            this.state.inputVideoCanvas2.width = 6
+            this.state.inputVideoCanvas2.height = 4
+            ctx.fillStyle = "grey"
+            ctx.fillRect(0, 0, this.state.inputVideoCanvas2.width, this.state.inputVideoCanvas2.height)
+            setTimeout(this.drawVideoCanvas, updateInterval);
+        }else if(this.state.currentSettings.virtualBackgroundPath === "/resources/vbg/pic0.jpg"){
+            const ctx = this.state.inputVideoCanvas2.getContext("2d")!
+            this.state.inputVideoCanvas2.width  = this.state.inputVideoStream?.getTracks()[0].getSettings().width!
+            this.state.inputVideoCanvas2.height = this.state.inputVideoStream?.getTracks()[0].getSettings().height!
+            ctx.drawImage(this.state.inputVideoElement, 0, 0, this.state.inputVideoCanvas2.width, this.state.inputVideoCanvas2.height)
+            requestAnimationFrame(() => this.drawVideoCanvas())
+        }else{
+
+            //// (1) Generate input image for segmentation.
+            // To avoid to be slow performace, resolution is limited when using virtual background
+            this.state.inputVideoCanvas.width = 640
+            this.state.inputVideoCanvas.height = (this.state.inputVideoCanvas.width / 16) * 9
+            const ctx = this.state.inputVideoCanvas.getContext("2d")!
+            ctx.drawImage(this.state.inputVideoElement, 0, 0, this.state.inputVideoCanvas.width, this.state.inputVideoCanvas.height)
+
+            //// (2) Segmentation & Mask
+            //// (2-1) Segmentation.
+            bodyPixNet.segmentPerson(this.state.inputVideoCanvas).then((segmentation) => {
+                //// (2-2) Generate mask
+                const foregroundColor = { r: 0, g: 0, b: 0, a: 0 };
+                const backgroundColor = { r: 255, g: 255, b: 255, a: 255 };
+                const backgroundMask = bodyPix.toMask(segmentation, foregroundColor, backgroundColor);
+                const opacity = 1.0;
+                const maskBlurAmount = 2;
+                const flipHorizontal = false;
+                bodyPix.drawMask(this.state.inputMaskCanvas, this.state.inputVideoCanvas, backgroundMask, opacity, maskBlurAmount, flipHorizontal);
+                const maskedImage = this.state.inputMaskCanvas.getContext("2d")!.getImageData(0, 0, this.state.inputMaskCanvas.width, this.state.inputMaskCanvas.height)
+
+                //// (2-3) Generate background
+                this.state.virtualBGImage.src = this.state.currentSettings.virtualBackgroundPath
+                this.state.virtualBGCanvas.width = maskedImage.width
+                this.state.virtualBGCanvas.height = maskedImage.height
+                const ctx = this.state.virtualBGCanvas.getContext("2d")!
+                ctx.drawImage(this.state.virtualBGImage, 0, 0, this.state.virtualBGCanvas.width, this.state.virtualBGCanvas.height)
+                const bgImageData = ctx.getImageData(0, 0, this.state.virtualBGCanvas.width, this.state.virtualBGCanvas.height)
+
+                //// (2-4) merge background and mask
+                const pixelData = new Uint8ClampedArray(maskedImage.width * maskedImage.height * 4)
+                for (let rowIndex = 0; rowIndex < maskedImage.height; rowIndex++) {
+                    for (let colIndex = 0; colIndex < maskedImage.width; colIndex++) {
+                        const pix_offset = ((rowIndex * maskedImage.width) + colIndex) * 4
+                        if (maskedImage.data[pix_offset] === 255 &&
+                        maskedImage.data[pix_offset + 1] === 255 &&
+                        maskedImage.data[pix_offset + 2] === 255 &&
+                        maskedImage.data[pix_offset + 3] === 255
+                        ) {
+                        pixelData[pix_offset] = bgImageData.data[pix_offset]
+                        pixelData[pix_offset + 1] = bgImageData.data[pix_offset + 1]
+                        pixelData[pix_offset + 2] = bgImageData.data[pix_offset + 2]
+                        pixelData[pix_offset + 3] = bgImageData.data[pix_offset + 3]
+                        } else {
+                        pixelData[pix_offset]     = maskedImage.data[pix_offset]
+                        pixelData[pix_offset + 1] = maskedImage.data[pix_offset + 1]
+                        pixelData[pix_offset + 2] = maskedImage.data[pix_offset + 2]
+                        pixelData[pix_offset + 3] = maskedImage.data[pix_offset + 3]
+                        }
+                    }
+                }
+                const imageData = new ImageData(pixelData, maskedImage.width, maskedImage.height);
+
+                //// (2-5) output
+                this.state.inputVideoCanvas2.width = imageData.width
+                this.state.inputVideoCanvas2.height = imageData.height
+                this.state.inputVideoCanvas2.getContext("2d")!.putImageData(imageData, 0, 0)
+        
+            })
+            requestAnimationFrame(() => this.drawVideoCanvas())
         }
-        requestAnimationFrame(() => this.drawVideoCanvas())
     }
 
     render() {
@@ -551,7 +631,7 @@ class App extends React.Component {
                 // window.history.replaceState({}, `${gs.roomTitle}`, url.toString());
 
                 // @ts-ignore
-                const mediaStream = this.state.inputVideoCanvas.captureStream()
+                const mediaStream = this.state.inputVideoCanvas2.captureStream()
                 console.log("MS", mediaStream)
                 const auidoInputPromise = defaultMeetingSession.audioVideo.chooseAudioInputDevice(this.state.currentSettings.selectedInputAudioDevice)
                 const auidooutputPromise = defaultMeetingSession.audioVideo.chooseAudioOutputDevice(this.state.currentSettings.selectedOutputAudioDevice)
