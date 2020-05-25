@@ -5,6 +5,8 @@ import { LobbyMainColumnConfig, LobbyMainColumnConfigInf} from '../const'
 import VideoControl from './meetingComp/VideoControl';
 import MicControl from './meetingComp/MicControl';
 import SpeakerControl from './meetingComp/SpeakerControl';
+import VideoShareControl from './meetingComp/VideoShareControl';
+import DisplayShareControl from './meetingComp/DisplayShareControl';
 class LobbyUserPanel extends React.Component {
     render() {
         const gs = this.props as GlobalState
@@ -16,6 +18,8 @@ class LobbyUserPanel extends React.Component {
                 <MicControl {...props} />
                 <VideoControl {...props} />
                 <SpeakerControl {...props} />
+                <VideoShareControl {...props} />
+                <DisplayShareControl {...props} />
             </div>
         )
     }

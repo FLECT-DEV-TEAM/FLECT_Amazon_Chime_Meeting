@@ -118,12 +118,16 @@ export interface AppState{
 
     localVideoWidth  : number,
     localVideoHeight : number,
+
+    outputAudioElement: HTMLAudioElement | null,
+
     inputVideoStream : MediaStream | null,
-    inputVideoElement: HTMLVideoElement | null,
-    inputVideoCanvas : HTMLCanvasElement | null,
+    inputVideoElement: HTMLVideoElement,
+    inputVideoCanvas : HTMLCanvasElement,
     inputMaskCanvas  : HTMLCanvasElement | null,
     inputVideoCanvas2: HTMLCanvasElement | null,
-    outputAudioElement: HTMLAudioElement | null,
+    
+    shareVideoElement: HTMLVideoElement,
 
 
     currentSettings   : CurrentSettings
@@ -149,11 +153,14 @@ class App extends React.Component {
         localVideoWidth: 0,
         localVideoHeight: 0,  
         inputVideoStream: null,
-        inputVideoElement: null,
-        inputVideoCanvas: null,
+        inputVideoElement: document.createElement("video"),
+        inputVideoCanvas: document.createElement("canvas"),
         inputMaskCanvas: null,
         inputVideoCanvas2: null,
-        outputAudioElement: null,
+        outputAudioElement: document.createElement("audio"),
+
+        shareVideoElement: document.createElement("video"),
+
 
         currentSettings:{
             mute: false,
@@ -342,6 +349,59 @@ class App extends React.Component {
         this.setState({currentSettings:currentSettings})
     }
 
+    // For SharedVideo
+    sharedVideoSelected = (e: any) => {
+        const gs = this.props as GlobalState
+        const path = URL.createObjectURL(e.target.files[0]);
+
+        try {
+        gs.meetingSession!.audioVideo.stopContentShare()
+        this.state.shareVideoElement.pause()
+
+        } catch (e) {
+        }
+        this.state.shareVideoElement.src = path
+        this.state.shareVideoElement.play()
+
+        setTimeout(
+        async () => {
+            // @ts-ignore
+            const mediaStream: MediaStream = await this.state.shareVideoElement.captureStream()
+            await gs.meetingSession!.audioVideo.startContentShare(mediaStream)
+            this.state.shareVideoElement.currentTime = 0
+            this.state.shareVideoElement.pause()
+            this.setState({})
+        }
+        , 5000); // I don't know but we need some seconds to restart video share....
+    }
+
+    playSharedVideo = () => {
+        this.state.shareVideoElement.play()
+    }
+    pauseSharedVideo = () => {
+        this.state.shareVideoElement.pause()
+    }
+
+    // For SharedDisplay
+    sharedDisplaySelected = () =>{
+        const gs = this.props as GlobalState
+        //gs.meetingSession!.audioVideo.startContentShareFromScreenCapture()
+        const streamConstraints = {
+        frameRate: {
+            max: 15,
+        },
+        }
+        // @ts-ignore https://github.com/microsoft/TypeScript/issues/31821
+        navigator.mediaDevices.getDisplayMedia(streamConstraints).then(media => {
+        gs.meetingSession!.audioVideo.startContentShare(media)
+        })
+    }
+    stopSharedDisplay = () => {
+        const gs = this.props as GlobalState
+        gs.meetingSession!.audioVideo.stopContentShare()
+    }
+
+
 
 
     callbacks:{[key:string]:any} = {
@@ -351,20 +411,27 @@ class App extends React.Component {
         selectInputVideoDevice: this.selectInputVideoDevice,
         toggleSpeaker: this.toggleSpeaker,
         selectOutputAudioDevice: this.selectOutputAudioDevice,
+        sharedVideoSelected: this.sharedVideoSelected,
+        playSharedVideo: this.playSharedVideo,
+        pauseSharedVideo: this.pauseSharedVideo,
+        sharedDisplaySelected: this.sharedDisplaySelected,
+        stopSharedDisplay: this.stopSharedDisplay,
+
     }
 
 
     componentDidMount() {
-        const localVideoElement = document.createElement("video")
-        localVideoElement.play()
-        const localAudioElement = document.createElement("audio")
-        const localVideoCanvas = document.createElement("canvas")
+        // const localVideoElement = document.createElement("video")
+        // localVideoElement.play()
+        // const localAudioElement = document.createElement("audio")
+        // const localVideoCanvas = document.createElement("canvas")
 
-        this.setState({
-            inputVideoElement:localVideoElement,
-            outputAudioElement: localAudioElement,
-            inputVideoCanvas: localVideoCanvas,
-        })
+        // this.setState({
+        //     inputVideoElement:localVideoElement,
+        //     outputAudioElement: localAudioElement,
+        //     inputVideoCanvas: localVideoCanvas,
+        // })
+        this.state.inputVideoElement.play()
         requestAnimationFrame(() => this.drawVideoCanvas())
     }
 
