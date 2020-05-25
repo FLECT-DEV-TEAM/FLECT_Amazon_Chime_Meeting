@@ -30,6 +30,40 @@ class LobbyRoomList extends React.Component {
         const props = this.props as any
 
         const meetings = gs.meetings.map((meeting:MeetingInfo)=>{
+            let joinLabel
+            let currentMeetingId
+            if(gs.joinInfo===null){
+                currentMeetingId = null
+            }else{
+                console.log("JOININFO!1!", gs)
+                console.log("JOININFO!2!", gs.joinInfo)
+                currentMeetingId = gs.joinInfo.Meeting.MeetingId ? gs.joinInfo.Meeting.MeetingId : null
+            }
+            if(currentMeetingId === meeting.meetingId){
+                joinLabel = (
+                    <Label basic color='red' onClick={()=>{
+                        console.log("CLICK LEAVE", meeting.meetingId)
+                        props.leaveMeeting(meeting.meetingId, gs.joinInfo?.Attendee.AttendeeId)
+                    }}>
+                        leave
+                    </Label>
+                )
+            }else if(currentMeetingId === null){
+                joinLabel = (
+                    <Label basic color='teal' onClick={()=>{
+                        console.log("CLICK JOIN", meeting.meetingId)
+                        props.joinMeeting(meeting.meetingId, gs)
+                    }}>
+                        join
+                    </Label>
+                )
+            }else{
+                joinLabel = (
+                    <Label basic color='grey' >
+                        join
+                    </Label>
+                )
+            }
             return (
                 <Item>
                     {/* <Item.Image size='mini' src='/' /> */}
@@ -41,12 +75,7 @@ class LobbyRoomList extends React.Component {
                                         {meeting.meetingName}
                                     </Grid.Column>
                                     <Grid.Column width={8}>
-                                        <Label basic color='teal' onClick={()=>{
-                                            console.log("CLICK JOIN", meeting.meetingId)
-                                            props.joinMeeting(meeting.meetingId, gs)
-                                        }}>
-                                            join
-                                        </Label>
+                                        {joinLabel}
                                     </Grid.Column>                                    
                                 </Grid.Row>
                             </Grid>

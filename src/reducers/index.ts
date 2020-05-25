@@ -201,12 +201,28 @@ const reducer = (state: GlobalState = initialState, action: any) => {
             gs.joinInfo      = action.payload[0] as JoinInfo
             break
 
+        case 'LEFT_MEETING':
+            gs.status        = AppStatus.IN_MEETING
+            gs.meetingStatus = AppMeetingStatus.WILL_CLEAR
+            // gs.joinInfo      = 
+            break
+    
+
+
         case 'INITIALIZED_SESSION':
+            gs.status        = AppStatus.IN_MEETING
             gs.meetingStatus      = AppMeetingStatus.DONE_PREPARE
             gs.meetingSessionConf = action.payload[0]
             gs.meetingSession     = action.payload[1]
             break
 
+        case 'CLEARED_MEETING_SESSION':
+            gs.status        = AppStatus.IN_LOBBY
+            gs.meetingStatus = AppMeetingStatus.NONE
+            gs.meetingSessionConf = null
+            gs.meetingSession     = null
+            gs.joinInfo = null
+            break
         
         case 'CREATE_MEETING_ROOM':
             //SAGA

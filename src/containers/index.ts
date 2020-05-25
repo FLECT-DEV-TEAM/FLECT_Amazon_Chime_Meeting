@@ -29,10 +29,12 @@ function mapDispatchToProps(dispatch: Dispatch) {
 
     joinMeeting:    (meetingId:string, gs:GlobalState) =>
                       {dispatch(Actions.joinMeeting(meetingId, gs))},
+    leaveMeeting:    (meetingId:string, gs:GlobalState) =>
+                      {dispatch(Actions.leaveMeeting(meetingId, gs))},
 
     initializedSession: (meetingSessionConf:MeetingSessionConfiguration, defaultMeetingSession:DefaultMeetingSession) =>
                       {dispatch(Actions.initializedSession(meetingSessionConf, defaultMeetingSession))},
-
+    clearedMeetingSession: () =>{dispatch(Actions.clearedMeetingSession())},
 
 
 
@@ -53,7 +55,6 @@ function mapDispatchToProps(dispatch: Dispatch) {
     selectInputVideoResolution:(val:string) => {dispatch(Actions.selectInputVideoResolution(val))},
     selectOutputAudioDevice:(val:string)    => {dispatch(Actions.selectOutputAudioDevice(val))},
     startMeeting:() =>{dispatch(Actions.startMeeting())},
-    leaveMeeting:() =>{dispatch(Actions.leaveMeeting())},
     // updateActiveScore:(scores: { [attendeeId: string]: number }) => {dispatch(Actions.updateActiveScore(scores))},
     // changeActiveSpeaker: (attendeeId:string) =>{dispatch(Actions.changeActiveSpeaker(attendeeId))},
 

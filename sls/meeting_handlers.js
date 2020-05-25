@@ -224,6 +224,23 @@ const getAttendee = async (meetingId, attendeeId) => {
 }
 
 
+leaveMeeting = async(meetingId, attendeeId) =>{
+
+  await ddb.deleteItem({
+    TableName : attendeesTableName,
+    Key       : {
+      AttendeeId  : { S: `${meetingId}/${attendeeId}`  },
+    }
+  })
+  .promise();
+
+  const res = (await chime.deleteAttendee({
+    AttendeeId: attendeeId,
+    MeetingId: meetingId 
+  }).promise())
+  console.log("leaveMeeting::: ", res)
+}
+
 
 ////////////////////////////
 /// REST API
@@ -323,20 +340,22 @@ exports.getAttendee = async (event, context, callback) => {
   callback(null, response);
 };
 
-exports.end = async (event, context, callback) => {
+exports.leave = async (event, context, callback) => {
   const response = util.getDefaultResponse() 
   console.log("ENVIRONMENT VARIABLES\n" + JSON.stringify(process.env, null, 2))
   console.info("EVENT\n" + JSON.stringify(event, null, 2))
 
-  event.queryStringParameters.title = simplifyTitle(event.queryStringParameters.title);
-  const title = event.queryStringParameters.title;
-  let meetingInfo = await getMeeting(title);
-  try {
-    await chime.deleteMeeting({
-      MeetingId: meetingInfo.Meeting.MeetingId,
-    }).promise();
-  } catch (e) {
-    console.log(e)
-  }
+  const meetingId  = event.pathParameters.meetingId
+  const attendeeId = event.pathParameters.attendeeId;
+  leaveMeeting(meetingId, attendeeId)
+
+  // let meetingInfo = await getMeeting(title);
+  // try {
+  //   await chime.deleteMeeting({
+  //     MeetingId: meetingInfo.Meeting.MeetingId,
+  //   }).promise();
+  // } catch (e) {
+  //   console.log(e)
+  // }
   callback(null, response);
 };

@@ -168,6 +168,31 @@ function* handleJoinMeeting() {
     }
 }
 
+function* handleLeaveMeeting() {
+    while (true) {
+        const action = yield take('LEAVE_MEETING');
+        console.log(action)
+        const meetingId = action.payload[0]
+        const attendeeId = action.payload[1]
+        
+
+        const url = `${API_BASE_URL}meetings/${meetingId}/attendees/${attendeeId}`
+        console.log(url)
+        try{
+            let data = yield call((url:string) =>{
+                return fetch(url, {
+                    method: 'DELETE',
+                })
+                .then(res => res.json())
+                .catch(error => {throw error})
+            }, url);
+            console.log(data)
+            yield put(Actions.leftMeeting(data));
+        }catch(e){
+            console.log('failed:'+e)
+        }
+    }
+}
 
 function* handleGetAttendeeInfomation(){
     while(true){
@@ -239,6 +264,9 @@ export default function* rootSaga() {
     yield fork(handleCreateMeeting)
     yield fork(handleRefreshRoomList)
     yield fork(handleJoinMeeting)
+    yield fork(handleLeaveMeeting)
+    
+
     yield fork(handleGetAttendeeInfomation)
     
     

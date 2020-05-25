@@ -34,6 +34,7 @@ export enum AppMeetingStatus{
     NONE,
     WILL_PREPARE,
     DONE_PREPARE,
+    WILL_CLEAR,
 }
 
 
