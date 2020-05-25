@@ -3,7 +3,7 @@ import { createActions } from 'redux-actions';
 export const Actions = createActions(
     {
         'INITIALIZE'                    : (args)    => (args),
-        'SETUP'                         : (args)    => (args),
+        'GO_ENTRANCE'                   : (args)    => (args),
         'CREATE_USER'                   : (...args) => (args),
         'USER_CREATED'                  : (...args) => (args),
         'LOGIN'                         : (...args) => (args),
@@ -28,8 +28,8 @@ export const Actions = createActions(
         'CREATE_MEETING_ROOM'           : (...args) => (args),
         
         'ENTER_SESSION'                 : (...args) => (args),
-        'INITIALIZED_SESSION'           : (...args) => (args),
-        'SET_DEVICES'                   : (...args) => (args),
+        'MEETING_PREPARED'           : (...args) => (args),
+        'LOBBY_PREPARED'                : (...args) => (args),
         'SELECT_INPUT_AUDIO_DEVICE'     : (args)    => (args),
         'SELECT_INPUT_VIDEO_DEVICE'     : (args)    => (args),
         'SELECT_INPUT_VIDEO_RESOLUTION' : (args)    => (args),

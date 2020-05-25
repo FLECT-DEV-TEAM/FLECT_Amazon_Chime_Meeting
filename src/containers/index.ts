@@ -16,14 +16,14 @@ function mapStateToProps(state:GlobalState) {
 function mapDispatchToProps(dispatch: Dispatch) {
   return {
     initialize:    () => {dispatch(Actions.initialize())},
-    setup     :    (base_url:string) => {dispatch(Actions.setup(base_url))},
+    goEntrance:    (base_url:string) => {dispatch(Actions.goEntrance(base_url))},
     createUser:    (userName:string, code:string) =>{dispatch(Actions.createUser(userName, code))},
     login     :    (userName:string, code:string) =>{dispatch(Actions.login(userName, code))},
  
+    lobbyPrepared: (audioInputDevices:MediaDeviceInfo[], videoInputDevices:MediaDeviceInfo[], audioOutputDevices:MediaDeviceInfo[]) =>
+                    {dispatch(Actions.lobbyPrepared(audioInputDevices, videoInputDevices,  audioOutputDevices))},
     createMeeting: (userName:string, roomName:string, region:string, usePassCode:boolean, passCode:string, secret:boolean) =>
                     {dispatch(Actions.createMeeting(userName, roomName, region, usePassCode, passCode, secret))},
-    setDevices: (audioInputDevices:MediaDeviceInfo[], videoInputDevices:MediaDeviceInfo[], audioOutputDevices:MediaDeviceInfo[]) =>
-                    {dispatch(Actions.setDevices(audioInputDevices, videoInputDevices,  audioOutputDevices))},
   
     refreshRoomList: () => {dispatch(Actions.refreshRoomList())},
 
@@ -32,8 +32,8 @@ function mapDispatchToProps(dispatch: Dispatch) {
     leaveMeeting:    (meetingId:string, gs:GlobalState) =>
                       {dispatch(Actions.leaveMeeting(meetingId, gs))},
 
-    initializedSession: (meetingSessionConf:MeetingSessionConfiguration, defaultMeetingSession:DefaultMeetingSession) =>
-                      {dispatch(Actions.initializedSession(meetingSessionConf, defaultMeetingSession))},
+    meetingPrepared: (meetingSessionConf:MeetingSessionConfiguration, defaultMeetingSession:DefaultMeetingSession) =>
+                      {dispatch(Actions.meetingPrepared(meetingSessionConf, defaultMeetingSession))},
     clearedMeetingSession: () =>{dispatch(Actions.clearedMeetingSession())},
 
 

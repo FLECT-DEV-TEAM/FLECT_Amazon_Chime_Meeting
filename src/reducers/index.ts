@@ -1,4 +1,4 @@
-import { AppStatus, NO_DEVICE_SELECTED, AppStatus2, AppMeetingStatus, AppLobbyStatus } from "../const"
+import { AppStatus, NO_DEVICE_SELECTED, AppEntranceStatus, AppMeetingStatus, AppLobbyStatus } from "../const"
 import { MeetingSessionConfiguration, DefaultMeetingSession, DefaultModality } from "amazon-chime-sdk-js"
 
 
@@ -87,7 +87,7 @@ export interface GlobalState {
     storeRoster                       : {[attendeeId:string]:StoreRoster}
 
     status                            : AppStatus
-    status2                           : AppStatus2
+    entranceStatus                    : AppEntranceStatus
     meetingStatus                     : AppMeetingStatus
     lobbyStatus                       : AppLobbyStatus
 }
@@ -130,7 +130,7 @@ export const initialState = {
     storeRoster                         : {},
 
     status                              : AppStatus.STARTED,
-    status2                             : AppStatus2.NONE,
+    entranceStatus                             : AppEntranceStatus.NONE,
     meetingStatus                       : AppMeetingStatus.NONE,
     lobbyStatus                         : AppLobbyStatus.NONE,
 }
@@ -145,30 +145,31 @@ const reducer = (state: GlobalState = initialState, action: any) => {
         case 'INITIALIZE':
             gs = initialState
             break
-        case 'SETUP':
+        case 'GO_ENTRANCE':
             gs.status = AppStatus.IN_ENTRANCE
+            gs.entranceStatus = AppEntranceStatus.NONE
             gs.baseURL = action.payload
             break
         case 'USER_CREATED':
-            gs.status2   = AppStatus2.USER_CREATED
+            gs.entranceStatus  = AppEntranceStatus.USER_CREATED
             gs.userName  = action.payload[0]
             gs.userId    = action.payload[1]
             gs.code      = action.payload[2]
             break
 
         case 'LOGIN':
-            gs.status2  = AppStatus2.EXEC_LOGIN
+            gs.entranceStatus  = AppEntranceStatus.EXEC_LOGIN // avoid looping
             break
 
         case 'USER_LOGINED':
             gs.status   = AppStatus.IN_LOBBY
-            gs.status2  = AppStatus2.NONE
+            gs.entranceStatus  = AppEntranceStatus.NONE
             gs.lobbyStatus = AppLobbyStatus.WILL_PREPARE
             gs.userName  = action.payload[0]
             gs.userId    = action.payload[1]
             gs.code      = action.payload[2]
             break
-        case 'SET_DEVICES':
+        case 'LOBBY_PREPARED':
             gs.lobbyStatus = AppLobbyStatus.DONE_PREPARE
             gs.inputAudioDevices = action.payload[0]
             gs.inputVideoDevices = action.payload[1]
@@ -209,7 +210,7 @@ const reducer = (state: GlobalState = initialState, action: any) => {
     
 
 
-        case 'INITIALIZED_SESSION':
+        case 'MEETING_PREPARED':
             gs.status        = AppStatus.IN_MEETING
             gs.meetingStatus      = AppMeetingStatus.DONE_PREPARE
             gs.meetingSessionConf = action.payload[0]

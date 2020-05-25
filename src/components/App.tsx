@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { GlobalState } from '../reducers';
-import { AppStatus, LOGGER_BATCH_SIZE, LOGGER_INTERVAL_MS, AppStatus2, AppMeetingStatus, AppLobbyStatus, NO_DEVICE_SELECTED } from '../const';
+import { AppStatus, LOGGER_BATCH_SIZE, LOGGER_INTERVAL_MS, AppEntranceStatus, AppMeetingStatus, AppLobbyStatus, NO_DEVICE_SELECTED } from '../const';
 import * as bodyPix from '@tensorflow-models/body-pix';
 
 import {
@@ -98,7 +98,7 @@ export interface Attendee{
     signalStrength : number  | null
 }
 
-export interface CurretnSettings {
+export interface CurrentSettings {
     mute: boolean,
     videoEnable: boolean,
     speakerEnable: boolean,
@@ -126,7 +126,7 @@ export interface AppState{
     outputAudioElement: HTMLAudioElement | null,
 
 
-    currentSettings   : CurretnSettings
+    currentSettings   : CurrentSettings
 }
 
 
@@ -381,13 +381,13 @@ class App extends React.Component {
             props[key] = this.callbacks[key]
         }
         /**
-         * For initialization
+         * For Started
          */
         if(gs.status === AppStatus.STARTED){
             const base_url: string = [window.location.protocol, '//', window.location.host, window.location.pathname.replace(/\/*$/, '/').replace('/v2', '')].join('');
             this.state.roster = {}
             this.state.videoTileStates   = {}
-            props.setup(base_url)
+            props.goEntrance(base_url)
             return <div/>            
         }
         /**
@@ -395,13 +395,13 @@ class App extends React.Component {
          */
         if(gs.status === AppStatus.IN_ENTRANCE){
             // show screen
-            if(gs.status2 === AppStatus2.NONE){
+            if(gs.entranceStatus === AppEntranceStatus.NONE){
                 return(
                     <div  style={{ backgroundColor:bgColor, width: "100%",  height: "100%", top: 0, left: 0, }}>
                         <Entrance {...props}/>
                     </div>                
                 )
-            }else if(gs.status2 === AppStatus2.USER_CREATED){
+            }else if(gs.entranceStatus === AppEntranceStatus.USER_CREATED){
                 // User Created
                 props.login(gs.userName, gs.code)
                 return <div> executing... </div>
@@ -428,14 +428,12 @@ class App extends React.Component {
                     currentSettings.selectedInputVideoDevice      = videoInputDevices![0]     ? videoInputDevices![0]['deviceId']     : NO_DEVICE_SELECTED
                     currentSettings.selectedInputVideoResolution  = inputVideoResolutions![0] ? inputVideoResolutions![0]             : NO_DEVICE_SELECTED
                     currentSettings.selectedOutputAudioDevice     = audioOutputDevices![0]    ? audioOutputDevices![0]['deviceId']    : NO_DEVICE_SELECTED
-                    props.setDevices(audioInputDevices, videoInputDevices, audioOutputDevices)
+                    props.lobbyPrepared(audioInputDevices, videoInputDevices, audioOutputDevices)
                     props.refreshRoomList()
 
                     getVideoDevice(currentSettings.selectedInputVideoDevice).then(stream => {
-
                         if (stream !== null) {
                             this.state.inputVideoElement!.srcObject = stream
-
                             this.setState({
                                 inputVideoStream: stream,
                                 currentSettings:currentSettings
@@ -493,7 +491,7 @@ class App extends React.Component {
                     console.log("start local video1")
                     defaultMeetingSession.audioVideo.startLocalVideoTile()
                     console.log("start local video2")
-                    props.initializedSession(meetingSessionConf, defaultMeetingSession)
+                    props.meetingPrepared(meetingSessionConf, defaultMeetingSession)
     
                 })
                 return <div/>

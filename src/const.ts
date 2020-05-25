@@ -19,7 +19,7 @@ export enum AppStatus{
     IN_LOBBY,
     IN_MEETING,
 }
-export enum AppStatus2{
+export enum AppEntranceStatus{
     NONE,
     USER_CREATED,
     EXEC_LOGIN,
