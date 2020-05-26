@@ -133,12 +133,16 @@ const createMeeting = async (userName, meetingName, usePassCode, passCode, secre
   };
   console.info('Creating new meeting: ' + JSON.stringify(request));
   const newMeetingInfo = await chime.createMeeting(request).promise();
+  const date = new Date() ;
+  const now = date.getTime() 
   const metadata = {
-    OwnerId     : userId ,
+    OwnerId     : userId,
+    UserName    : userName,
     UsePassCode : usePassCode === "true",
     PassCode    : passCode,
     Secret      : secret === "true",
-    Region      : region,  
+    Region      : region,
+    StartTime   : now
   }
   const item = {
     'MeetingName' : { S: meetingName },

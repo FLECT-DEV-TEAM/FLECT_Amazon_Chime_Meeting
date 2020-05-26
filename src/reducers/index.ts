@@ -21,6 +21,8 @@ export interface MeetingMetadata{
     Region      : string
     Secret      : boolean
     UsePassCode : boolean
+    UserName    : string
+    StartTime   : number
 }
 
 export interface MeetingInfo{

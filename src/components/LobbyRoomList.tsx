@@ -74,19 +74,21 @@ class LobbyRoomList extends React.Component {
                 <Item>
                     {/* <Item.Image size='mini' src='/' /> */}
                     <Item.Content>
+
                         <Item.Header>
-                            <Grid>
-                                <Grid.Row>
-                                    <Grid.Column width={8}>
-                                        {meeting.meetingName}
-                                    </Grid.Column>
-                                    <Grid.Column width={8}>
-                                    </Grid.Column>                                    
-                                </Grid.Row>
-                            </Grid>
+                            <Icon name="lock open" />
+                            {meeting.meetingName}
                         </Item.Header>
                         <Item.Meta>
-                            <span className='stay'> Owner: {meeting.metaData.OwnerId} </span>
+                            <div>
+                                <b>Owner: </b> 
+                                {meeting.metaData.UserName} 
+                            </div>
+                            <div>
+                                <b>Open Date: </b> 
+                                <span>{new Date(Number(meeting.metaData.StartTime)).toLocaleDateString()}</span>
+                                <span>{new Date(Number(meeting.metaData.StartTime)).toLocaleTimeString()}</span>
+                            </div>
                         </Item.Meta>
                         <Item.Extra>
                             {joinButton}
