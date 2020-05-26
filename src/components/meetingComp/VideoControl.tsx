@@ -4,6 +4,13 @@ import { BUTTON_COLOR, BUTTON_COLOR_DISABLE } from '../../const';
 import { AppState } from '../App';
 import { GlobalState } from '../../reducers';
 
+const trigger = (
+    <span>
+      <Icon name="video camera" />video camera
+    </span>
+  )
+
+
 class VideoControl extends React.Component {
 
     render() {
@@ -12,17 +19,12 @@ class VideoControl extends React.Component {
         const appState = props.appState as AppState
         const inputVideoDevicesOpts=gs.inputVideoDevices!.map(info => { return { key: info.label, text: info.label, value: info.deviceId } })
         return (
-            // @ts-ignore
-            <Button.Group color={appState.currentSettings.videoEnable ? BUTTON_COLOR : BUTTON_COLOR_DISABLE}>
-                <Button size='mini' onClick={() => { props.toggleVideo() }}><Icon name="video camera" /></Button>
-                <Dropdown
-                className='button icon'
-                floating
+            <Dropdown
+                pointing='top left'
                 options={inputVideoDevicesOpts}
-                trigger={<React.Fragment />}
+                trigger={trigger}
                 onChange={(e, { value }) => props.selectInputVideoDevice(value as string)}
-                />
-            </Button.Group>
+            />
         )
     }
 }

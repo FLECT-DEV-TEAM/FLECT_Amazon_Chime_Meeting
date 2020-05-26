@@ -1,10 +1,18 @@
 import * as React from 'react';
-import { Icon, Button, Modal, Grid } from 'semantic-ui-react';
+import { Icon, Button, Modal, Grid, Dropdown, List } from 'semantic-ui-react';
 import { BUTTON_COLOR } from '../../const';
 import { RS_VBG } from '../resources';
 import { AppState } from '../App';
 import { GlobalState } from '../../reducers';
 
+// const trigger = (
+//     // <div as="a">
+//     //   <Icon name="setting" />other setting
+//     // </div>
+//     <List link>
+//         <List.Item as='a' active onClick={() => { this.settingOpen() }}><Icon name="setting"  active />Virtual Background</List.Item>
+//     </List>
+//   )
 
 interface SettingControlState {
     open: boolean,
@@ -68,13 +76,27 @@ class SettingControl extends React.Component {
             images
         )
     }
+
+    select = (value:string) =>{
+        if(value==="virtual background"){
+            this.settingOpen()
+        }
+        console.log(value)
+    }
+
     render() {
+        const otherSettingOpts=[{ key: "virtual background", text: "virtual background", value: "virtual background" } ]
+
+
         return (
           // @ts-ignore
-          <Button.Group color={BUTTON_COLOR}>
-            <Button size='mini' onClick={() => { this.settingOpen() }}><Icon name="setting" /></Button>
+          <div>
+            <List link>
+                <List.Item as='a' active onClick={() => { this.settingOpen() }}><Icon name="setting"  active />Virtual Background</List.Item>
+            </List>
+
             {this.generateSettingModal()}
-          </Button.Group>
+          </div>
         )
     }
 }

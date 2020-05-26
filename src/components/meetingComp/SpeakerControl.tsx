@@ -4,6 +4,13 @@ import { BUTTON_COLOR, BUTTON_COLOR_DISABLE } from '../../const';
 import { AppState } from '../App';
 import { GlobalState } from '../../reducers';
 
+const trigger = (
+    <span>
+      <Icon name="sound" />speaker
+    </span>
+  )
+
+
 class SpeakerControl extends React.Component {
 
     render() {
@@ -12,17 +19,12 @@ class SpeakerControl extends React.Component {
         const appState = props.appState as AppState
         const outputAudioDevicesOpts=gs.outputAudioDevices!.map(info => { return { key: info.label, text: info.label, value: info.deviceId } })
         return (
-            // @ts-ignore
-            <Button.Group color={appState.currentSettings.speakerEnable ? BUTTON_COLOR : BUTTON_COLOR_DISABLE}>
-                <Button size='mini' onClick={() => props.toggleSpeaker() }><Icon name="sound" /></Button>
-                <Dropdown
-                className='button icon'
-                floating
+            <Dropdown
+                pointing='top left'
                 options={outputAudioDevicesOpts}
-                trigger={<React.Fragment />}
+                trigger={trigger}
                 onChange={(e, { value }) => props.selectOutputAudioDevice(value as string)}
-                />
-            </Button.Group>
+            />
         )
     }
 }
