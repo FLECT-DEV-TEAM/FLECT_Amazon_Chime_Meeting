@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Button, Form, Grid, GridColumn, Segment, Header, Card, Icon, Image } from 'semantic-ui-react'
+import { Button, Form, Grid, GridColumn, Segment, Header, Card, Icon, Image, Divider } from 'semantic-ui-react'
 import { GlobalState } from '../reducers';
 import { LobbyMainColumnConfig, LobbyMainColumnConfigInf} from '../const'
 import VideoControl from './meetingComp/VideoControl';
@@ -13,12 +13,19 @@ import SendTextAccordion from './meetingComp/SendTextAccordion';
 import { AppState } from './App';
 
 
+interface PreviewPanelState{
+    open             : boolean
+}
 
-
-
-
-class LobbyUserPanel extends React.Component {
+class PreviewPanel extends React.Component {
     previewCanvasRef = React.createRef<HTMLCanvasElement>()
+
+    state: PreviewPanelState = {
+        open             : true,
+    }
+    handleClick() {
+        this.setState({open: !this.state.open})
+    }
 
     componentDidMount = () =>{
         requestAnimationFrame(() => this.drawPreviewCanvas())
@@ -29,7 +36,7 @@ class LobbyUserPanel extends React.Component {
         const gs = this.props as GlobalState
         const appState = props.appState as AppState
 
-        if(appState.inputVideoCanvas2 !== undefined){
+        if(appState.inputVideoCanvas2 !== undefined && this.previewCanvasRef.current !== null){
             if(this.previewCanvasRef.current!.width   !== 0 && this.previewCanvasRef.current!.height !== 0 &&
                 appState.inputVideoCanvas2.width !== 0 && appState.inputVideoCanvas2.height !== 0
                 ){
@@ -45,6 +52,99 @@ class LobbyUserPanel extends React.Component {
         }
         requestAnimationFrame(() => this.drawPreviewCanvas())
     }
+    render(){
+        const gs = this.props as GlobalState
+        return(
+            <div>
+                {this.state.open ?
+                    (
+                        <div>
+
+                        <Card>
+                        <Button basic icon="angle up" size="tiny" compact onClick={()=>{this.handleClick()}} />
+                        <canvas ref={this.previewCanvasRef} style={{ display: "block" }} width="100%" height="100%" />
+                        <Card.Content>
+                            <Card.Header>{gs.userName} </Card.Header>
+                            <Card.Meta>xxx@xxx.xcom</Card.Meta>
+                            <Card.Description>
+                                xxxxx
+                            </Card.Description>
+                        </Card.Content>
+                        <Card.Content extra>
+                            xxxxxx
+                        </Card.Content>
+                        </Card>
+                        </div>
+                    )
+                    :
+                    (
+                        <div>
+
+                        <Card>
+                        <Button basic icon="angle down" size="tiny"  compact onClick={()=>{this.handleClick()}} />
+                        </Card>
+                        </div>
+
+                    )
+
+                }
+            </div>
+        )
+    }
+
+}
+
+
+
+interface ConfigurationPanelState{
+    open             : boolean
+}
+
+class ConfigurationPanel extends React.Component {
+    previewCanvasRef = React.createRef<HTMLCanvasElement>()
+
+    state: ConfigurationPanelState = {
+        open             : true,
+    }
+    handleClick() {
+        this.setState({open: !this.state.open})
+    }
+
+    render (){
+        const gs = this.props as GlobalState
+        const props = this.props as any
+        return(
+            <div>
+                <Segment padded>
+
+                    <Header as='h3' textAlign={'left'}> Configurations </Header>
+                    <p>
+                        <MicControl {...props} />
+                    </p>
+                    <p>
+                        <VideoControl {...props} />
+                    </p>
+                    <p>
+                        <SpeakerControl {...props} />
+                    </p>
+                    <p>
+                        <SettingControl {...props}/>
+                    </p>
+
+                    <Header as='h3' textAlign={'left'}> Actions </Header>
+                    <VideoShareControl {...props} />
+                    <DisplayShareControl {...props} />
+                    <StampAccordion {...props} />
+                    <SendTextAccordion {...props}/>
+                </Segment>
+            </div>
+        )
+    }
+}
+
+
+class LobbyUserPanel extends React.Component {
+
 
     render() {
         const gs = this.props as GlobalState
@@ -54,22 +154,13 @@ class LobbyUserPanel extends React.Component {
         return (
             <div>
 
-                <Card>
-                    <canvas ref={this.previewCanvasRef} style={{ display: "block" }} width="100%" height="100%" />
-                    <Card.Content>
-                        <Card.Header>{gs.userName} </Card.Header>
-                        <Card.Meta>xxx@xxx.xcom</Card.Meta>
-                        <Card.Description>
-                            xxxxx
-                        </Card.Description>
-                    </Card.Content>
-                    <Card.Content extra>
-                        xxxxxx
-                    </Card.Content>
-                </Card>
+                <PreviewPanel  {...props}/>
 
+                <Divider hidden />
 
-                <Segment padded>
+                <ConfigurationPanel {...props} />
+
+                {/* <Segment padded>
                     <Header as='h3' textAlign={'left'}> Configurations </Header>
                     <p>
                     <MicControl {...props} />
@@ -90,7 +181,7 @@ class LobbyUserPanel extends React.Component {
                     <StampAccordion {...props} />
                     <SendTextAccordion {...props}/>
 
-                </Segment>
+                </Segment> */}
 
 
             </div>
