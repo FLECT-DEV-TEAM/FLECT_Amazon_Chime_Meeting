@@ -90,6 +90,9 @@ export interface GlobalState {
     entranceStatus                    : AppEntranceStatus
     meetingStatus                     : AppMeetingStatus
     lobbyStatus                       : AppLobbyStatus
+
+    showError                         : boolean
+    errorMessage                      : string
 }
 
 export const initialState = {
@@ -133,6 +136,8 @@ export const initialState = {
     entranceStatus                             : AppEntranceStatus.NONE,
     meetingStatus                       : AppMeetingStatus.NONE,
     lobbyStatus                         : AppLobbyStatus.NONE,
+    showError                           : false,
+    errorMessage                        : "",
 }
 
 
@@ -224,6 +229,18 @@ const reducer = (state: GlobalState = initialState, action: any) => {
             gs.meetingSession     = null
             gs.joinInfo = null
             break
+
+
+        case 'SHOW_ERROR':
+            gs.showError    = true
+            gs.errorMessage = action.payload[0]
+            break
+        case 'CLOSE_ERROR':
+            gs.showError    = false
+            gs.errorMessage = ""
+            break
+
+
         
         case 'CREATE_MEETING_ROOM':
             //SAGA

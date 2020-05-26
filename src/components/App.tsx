@@ -29,6 +29,7 @@ import { getDeviceLists, getVideoDevice } from './utils'
 import { API_BASE_URL, MESSAGING_URL } from '../config';
 import MainOverlayVideoElement from './meetingComp/MainOverlayVideoElement';
 import { RS_STAMPS } from './resources';
+import ErrorPortal from './meetingComp/ErrorPortal';
 
 
 /**
@@ -622,6 +623,11 @@ class App extends React.Component {
         for (let key in this.callbacks) {
             props[key] = this.callbacks[key]
         }
+
+        if(gs.showError === true){
+            return <ErrorPortal {...props}/>
+        }
+
         /**
          * For Started
          */

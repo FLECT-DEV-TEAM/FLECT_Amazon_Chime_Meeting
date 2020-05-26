@@ -157,12 +157,15 @@ function* handleJoinMeeting() {
                     }
                 })
                 .catch(error => {
+                    console.log("AAAAAAAAAAAAAAAAAAAAAa")
                     throw error
                 })
             }, url);
             console.log(data)
             yield put(Actions.joinedMeeting(data));
         }catch(e){
+            yield put(Actions.showError(`Sorry, there is no meeting room! [${meetingId}]`))
+            yield put(Actions.refreshRoomList())
             console.log('failed:'+e)
         }
     }
