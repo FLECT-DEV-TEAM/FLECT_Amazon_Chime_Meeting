@@ -11,6 +11,7 @@ import SettingControl from './meetingComp/SettingControl';
 import StampAccordion from './meetingComp/StampAccordion';
 import SendTextAccordion from './meetingComp/SendTextAccordion';
 import { AppState } from './App';
+import { Div } from '@tensorflow/tfjs-core';
 
 
 interface PreviewPanelState{
@@ -59,8 +60,15 @@ class PreviewPanel extends React.Component {
                 {this.state.open ?
                     (
                         <div>
+                        {/* <Segment>
+                            <div >
+                                <Button basic icon="angle up" size="tiny" width="100%" compact onClick={()=>{this.handleClick()}} />
+                            </div>
 
-                        <Card>
+                            <canvas ref={this.previewCanvasRef} style={{ display: "block" }} width="100%" height="100%" />
+                        </Segment> */}
+
+                        <Card width="100%">
                         <Button basic icon="angle up" size="tiny" compact onClick={()=>{this.handleClick()}} />
                         <canvas ref={this.previewCanvasRef} style={{ display: "block" }} width="100%" height="100%" />
                         <Card.Content>
@@ -79,8 +87,11 @@ class PreviewPanel extends React.Component {
                     :
                     (
                         <div>
+                            {/* <Segment padded>
+                            <Button basic icon="angle down" size="tiny"  compact onClick={()=>{this.handleClick()}} />
+                            </Segment> */}
 
-                        <Card>
+                        <Card  >
                         <Button basic icon="angle down" size="tiny"  compact onClick={()=>{this.handleClick()}} />
                         </Card>
                         </div>
@@ -152,36 +163,12 @@ class LobbyUserPanel extends React.Component {
         const appState = props.appState as AppState
 
         return (
-            <div>
-
+            <div  style={{padding:"10px"}}>
                 <PreviewPanel  {...props}/>
 
                 <Divider hidden />
 
                 <ConfigurationPanel {...props} />
-
-                {/* <Segment padded>
-                    <Header as='h3' textAlign={'left'}> Configurations </Header>
-                    <p>
-                    <MicControl {...props} />
-                    </p>
-                    <p>
-                    <VideoControl {...props} />
-                    </p>
-                    <p>
-                    <SpeakerControl {...props} />
-                    </p>
-                    <p>
-                        <SettingControl {...props}/>
-                    </p>
-
-                    <Header as='h3' textAlign={'left'}> Actions </Header>
-                    <VideoShareControl {...props} />
-                    <DisplayShareControl {...props} />
-                    <StampAccordion {...props} />
-                    <SendTextAccordion {...props}/>
-
-                </Segment> */}
 
 
             </div>

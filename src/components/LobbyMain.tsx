@@ -92,7 +92,7 @@ class LobbyMain extends React.Component {
                     this.handleAnimationChange('scale down');
                     console.log("CLICK")
                 }}> aaaaaa </Label> */}
-            <Grid>
+            <Grid padded="horizontally">
                 <Grid.Row>
                         {leftColumn}
                         {centerColumn}

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Button, Form, Grid, GridColumn, Modal, Segment, Label, Feed, Header, Item, Menu, Dropdown, Divider, Checkbox, CheckboxProps, Icon } from 'semantic-ui-react'
+import { Button, Form, Grid, GridColumn, Modal, Segment, Label, Feed, Header, Item, Menu, Dropdown, Divider, Checkbox, CheckboxProps, Icon, List } from 'semantic-ui-react'
 import { GlobalState, MeetingInfo } from '../reducers';
 import { LobbyMainColumnConfig, LobbyMainColumnConfigInf} from '../const'
 class LobbyRoomList extends React.Component {
@@ -30,36 +30,44 @@ class LobbyRoomList extends React.Component {
         const props = this.props as any
 
         const meetings = gs.meetings.map((meeting:MeetingInfo)=>{
-            let joinLabel
+            let joinButton
             let currentMeetingId
-            if(gs.joinInfo===null){
-                currentMeetingId = null
-            }else{
-                currentMeetingId = gs.joinInfo.Meeting.MeetingId ? gs.joinInfo.Meeting.MeetingId : null
-            }
+
+            currentMeetingId = gs.joinInfo?.Meeting.MeetingId ? gs.joinInfo.Meeting.MeetingId : null
+
+
             if(currentMeetingId === meeting.meetingId){
-                joinLabel = (
-                    <Label basic color='red' onClick={()=>{
-                        console.log("CLICK LEAVE", meeting.meetingId)
-                        props.leaveMeeting(meeting.meetingId, gs.joinInfo?.Attendee.AttendeeId)
-                    }}>
+                joinButton = (
+                    <Button basic color="red" floated='right'
+                        onClick={()=>{
+                                console.log("CLICK LEAVE", meeting.meetingId)
+                                props.leaveMeeting(meeting.meetingId, gs.joinInfo?.Attendee.AttendeeId)
+                            }}                    
+                    >
                         leave
-                    </Label>
+                        <Icon name='chevron left' />
+                    </Button>
                 )
             }else if(currentMeetingId === null){
-                joinLabel = (
-                    <Label basic color='teal' onClick={()=>{
-                        console.log("CLICK JOIN", meeting.meetingId)
-                        props.joinMeeting(meeting.meetingId, gs)
-                    }}>
+                joinButton = (
+                    <Button basic color="teal" floated='right'
+                        onClick={()=>{
+                                console.log("CLICK JOIN", meeting.meetingId)
+                                props.joinMeeting(meeting.meetingId, gs)
+                            }}>                    
                         join
-                    </Label>
+                        <Icon name='chevron right' />
+                    </Button>
+
                 )
             }else{
-                joinLabel = (
-                    <Label basic color='grey' >
+                // in other meetings, so join is disabled
+                joinButton = (
+                    <Button basic color="grey" floated='right' disabled>
                         join
-                    </Label>
+                        <Icon name='chevron right' />
+                    </Button>
+
                 )
             }
             return (
@@ -73,7 +81,6 @@ class LobbyRoomList extends React.Component {
                                         {meeting.meetingName}
                                     </Grid.Column>
                                     <Grid.Column width={8}>
-                                        {joinLabel}
                                     </Grid.Column>                                    
                                 </Grid.Row>
                             </Grid>
@@ -81,6 +88,9 @@ class LobbyRoomList extends React.Component {
                         <Item.Meta>
                             <span className='stay'> Owner: {meeting.metaData.OwnerId} </span>
                         </Item.Meta>
+                        <Item.Extra>
+                            {joinButton}
+                        </Item.Extra>
                     </Item.Content>
                 </Item>
             )
@@ -123,32 +133,36 @@ class LobbyRoomList extends React.Component {
                 <div>
                     <Segment padded>
                         <Divider horizontal>
-                            <Header as='h3' textAlign={'left'}>
-                                Actions
+                            <Header as='h2' textAlign="left">
+                                Lobby
                             </Header>
-                        </Divider>                        
-                        <Menu vertical >
-                            <Dropdown item text='Action' >
-                                <Dropdown.Menu>
-                                    <Dropdown.Item onClick={(e, d)=>{this.show()}} >New Meeting</Dropdown.Item>
-                                </Dropdown.Menu>
-                            </Dropdown>
-                        </Menu>
+                        </Divider>
+                        <Header as='h3' textAlign="left">
+                            Actions
+                        </Header>
+                        <List link>
+                            <List.Item as='a' active onClick={(e, d)=>{this.show()}}>
+                                <Header as='h5' textAlign={'left'}>
+                                    <Icon name="chat"  active />New Meeting!
+                                </Header>
+                            </List.Item>
+                            <List.Item as='a' active onClick={()=>{props.refreshRoomList()}}>
+                                <Header as='h5' textAlign={'left'}>
+                                    <Icon name="refresh"  active />Refresh Meeting List
+                                </Header>
+                            </List.Item>
+
+                        </List>
+
+                        <Divider hidden />
 
 
-                        <Divider horizontal>
-                            <Header as='h3' textAlign={'left'}>
-                                Meetings
-                                <span />
-                                <Label basic color='red' onClick={()=>{props.refreshRoomList()}}>
-                                    <Icon name='refresh' />
-                                    refresh
-                                </Label>
-                            </Header>
-                            
-                        </Divider>                        
+                        <Header as='h3' textAlign="left">
+                            Meetings
+                        </Header>
+  
                         <div>
-                            <Item.Group>
+                            <Item.Group divided>
                                 {meetings}
 
                             </Item.Group>                            
