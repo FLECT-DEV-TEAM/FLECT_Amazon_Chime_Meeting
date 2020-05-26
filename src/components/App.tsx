@@ -363,7 +363,7 @@ class App extends React.Component {
 
         const speakerEnable = !this.state.currentSettings.speakerEnable
         if (gs.meetingSession !== null) {
-            if (this.state.currentSettings.speakerEnable) {
+            if (speakerEnable) {
                 gs.meetingSession!.audioVideo.bindAudioElement(this.state.outputAudioElement!)
             } else {
                 gs.meetingSession!.audioVideo.unbindAudioElement();
