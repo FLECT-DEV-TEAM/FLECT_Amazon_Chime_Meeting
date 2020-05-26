@@ -7,6 +7,7 @@ import { VideoTileState } from 'amazon-chime-sdk-js';
 import { getTileId } from './utils';
 import { AppState } from './App';
 import OverlayVideoElement from './meetingComp/OverlayVideoElement';
+import { MESSAGING_URL } from '../config';
 
 class LobbyMeetingRoom extends React.Component {
     mainOverlayVideoRef = React.createRef<MainOverlayVideoElement>()
@@ -15,6 +16,11 @@ class LobbyMeetingRoom extends React.Component {
 
     id2ref:{[key:number]:React.RefObject<MainOverlayVideoElement>} = {}
     cells:JSX.Element[] = []
+
+    message = () => {
+        console.log("message cunsume!")
+    }
+
     render() {
         this.cells = []
         this.id2ref = {}
@@ -56,23 +62,13 @@ class LobbyMeetingRoom extends React.Component {
     componentDidUpdate = () => {
         const props = this.props as any
         const gs = this.props as GlobalState
-        const appState = props.appState as AppState
-        const videoTileState = props.videoTileState as { [id: number]: VideoTileState }
+        const appState = props.appState as AppState    
 
         console.log(gs)
         const focusedTileId = getTileId(appState.currentSettings.focuseAttendeeId, appState.videoTileStates)
         if(focusedTileId > 0){
             gs.meetingSession?.audioVideo.bindVideoElement(focusedTileId, this.mainOverlayVideoRef.current!.getVideoRef().current!)
         }
-        // if(gs.status === AppStatus.IN_MEETING){
-        //     const focusedTileId = getTileId(gs.joinInfo!.Attendee.AttendeeId, appState.videoTileStates)
-        //     console.log("FOCUS!1: ",focusedTileId)
-
-        //     if(focusedTileId >= 0){
-        //         console.log("FOCUS!2: ",focusedTileId)
-        //         gs.meetingSession!.audioVideo.bindVideoElement(1, this.mainOverlayVideoRef.current!.getVideoRef().current!)
-        //         gs.meetingSession!.audioVideo.bindVideoElement(2, this.mainOverlayVideoRef2.current!.getVideoRef().current!)
-        //     }
         for(let i in this.id2ref){
             const tmpRef = this.id2ref[i]
             gs.meetingSession?.audioVideo.bindVideoElement(Number(i), tmpRef.current!.getVideoRef().current!)

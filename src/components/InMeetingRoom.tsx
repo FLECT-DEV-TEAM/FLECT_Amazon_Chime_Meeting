@@ -553,8 +553,6 @@ class InMeetingRoom extends React.Component {
     const props = this.props as any
     return (
       <div>
-        <StampAccordion {...props} sendStamp={this.sendStamp} focusAttendeeId={this.state.focuseAttendeeId}/>
-        <SendTextAccordion {...props} sendText={this.sendText} focusAttendeeId={this.state.focuseAttendeeId}/>
       </div>
     )
   }

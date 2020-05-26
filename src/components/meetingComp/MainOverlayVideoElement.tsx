@@ -1,5 +1,5 @@
 import * as React from 'react';
-import {AppState} from '../App';
+import {AppState, MessageType} from '../App';
 
 interface MainOverlayVideoElementState{
     hoverd: boolean
@@ -91,7 +91,37 @@ class MainOverlayVideoElement extends React.Component{
         noMute.onload = () => {
             this.statusImages['noMute'] = noMute
         }
+
+        requestAnimationFrame(() => this.drawOverlayCanvas())
     }
+
+    drawOverlayCanvas = () => {
+        const props = this.props as any
+        const appState = props.appState as AppState
+
+
+        const now = Date.now()
+        this.clearCanvas()
+
+        for (const i in appState.currentSettings.globalMessages) {
+            const message = appState.currentSettings.globalMessages[i]
+            if (now - message.startTime < 3000) {
+                if (message.type === MessageType.Stamp) {
+                    const elapsed = now - message.startTime
+                    const image = appState.stamps[message.imgSrc]
+                    const targetAttendeeId = message.targetId
+                    this.putStamp(targetAttendeeId, image, message.startTime, elapsed)
+                } else if (message.type === MessageType.Message) {
+                    const elapsed = now - message.startTime
+                    const targetAttendeeId = message.targetId
+                    this.putMessage(targetAttendeeId, message.message, message.startTime, elapsed)
+                }
+            }
+        }
+        requestAnimationFrame(() => this.drawOverlayCanvas())
+    }
+
+
 
     render()  {
 

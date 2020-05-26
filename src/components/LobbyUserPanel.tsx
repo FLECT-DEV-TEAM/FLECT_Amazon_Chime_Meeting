@@ -8,6 +8,8 @@ import SpeakerControl from './meetingComp/SpeakerControl';
 import VideoShareControl from './meetingComp/VideoShareControl';
 import DisplayShareControl from './meetingComp/DisplayShareControl';
 import SettingControl from './meetingComp/SettingControl';
+import StampAccordion from './meetingComp/StampAccordion';
+import SendTextAccordion from './meetingComp/SendTextAccordion';
 class LobbyUserPanel extends React.Component {
     render() {
         const gs = this.props as GlobalState
@@ -22,6 +24,10 @@ class LobbyUserPanel extends React.Component {
                 <VideoShareControl {...props} />
                 <DisplayShareControl {...props} />
                 <SettingControl {...props}/>
+
+                <StampAccordion {...props} />
+                <SendTextAccordion {...props}/>
+
 
             </div>
         )
