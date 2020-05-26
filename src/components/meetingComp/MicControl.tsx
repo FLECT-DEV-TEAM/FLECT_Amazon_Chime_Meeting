@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Icon, Button, Dropdown } from 'semantic-ui-react';
+import { Icon, Button, Dropdown, Grid } from 'semantic-ui-react';
 import { BUTTON_COLOR, BUTTON_COLOR_DISABLE } from '../../const';
 import { GlobalState } from '../../reducers';
 import { AppState } from '../App';
@@ -18,12 +18,28 @@ class MicControl extends React.Component {
         console.log("MIC", props)
         const inputAudioDevicesOpts=gs.inputAudioDevices!.map(info => { return { key: info.label, text: info.label, value: info.deviceId } })
         return (
-            <Dropdown
-                pointing='top left'
-                options={inputAudioDevicesOpts}
-                trigger={trigger}
-                onChange={(e, { value }) => props.selectInputAudioDevice(value as string)}
-            />
+            <Grid>
+                <Grid.Row>
+                    <Grid.Column width={10}>
+                    <Dropdown
+                        pointing='top left'
+                        options={inputAudioDevicesOpts}
+                        trigger={trigger}
+                        onChange={(e, { value }) => props.selectInputAudioDevice(value as string)}
+                    />
+
+                    </Grid.Column>
+                    <Grid.Column width={6}>
+                        <Button basic compact size="tiny" 
+                        color={appState.currentSettings.mute ? "red" : "grey"}
+                        onClick={() => { props.toggleMute() }}>
+                            disable
+                        </Button>
+                    </Grid.Column>
+                </Grid.Row>
+            </Grid>            
+
+
         )
     }
 }
