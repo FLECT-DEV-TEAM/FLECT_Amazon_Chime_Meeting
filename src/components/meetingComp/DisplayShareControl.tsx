@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Icon, Button, Accordion} from 'semantic-ui-react';
+import { Icon, Button, Accordion, Menu} from 'semantic-ui-react';
 import { BUTTON_COLOR} from '../../const';
 import { AppState } from '../App';
 interface DisplayShareControlState{
@@ -31,15 +31,24 @@ class DisplayShareControl extends React.Component {
                     Display Share
                 </Accordion.Title>
                 <Accordion.Content active={this.state.open}>
-                    <Button.Group color={BUTTON_COLOR}>
-                        <Button
-                        content="share screen"
-                        labelPosition="left"
-                        icon="desktop"
-                        onClick={() => { props.sharedDisplaySelected()}}
-                        />
-                        <Button size='mini' onClick={() => { props.stopSharedDisplay() }}><Icon name="stop" /></Button>
-                    </Button.Group>
+                    <div>
+                        <Menu compact size="tiny">
+                            <Menu.Item
+                            icon="play"
+                            key="play"
+                            name="play"
+                            color="grey"
+                            onClick={() => { props.sharedDisplaySelected()}}
+                            />
+                            <Menu.Item
+                            icon="stop"
+                            key="stop"
+                            name="stop"
+                            color="grey"
+                            onClick={() => { props.stopSharedDisplay() }}
+                            />
+                        </Menu>
+                    </div>
 
                 </Accordion.Content>
             </Accordion>

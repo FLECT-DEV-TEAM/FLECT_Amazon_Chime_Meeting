@@ -12,6 +12,11 @@ import StampAccordion from './meetingComp/StampAccordion';
 import SendTextAccordion from './meetingComp/SendTextAccordion';
 import { AppState } from './App';
 
+
+
+
+
+
 class LobbyUserPanel extends React.Component {
     previewCanvasRef = React.createRef<HTMLCanvasElement>()
 

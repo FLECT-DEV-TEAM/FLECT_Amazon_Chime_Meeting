@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Button, Form, Grid, GridColumn } from 'semantic-ui-react'
+import { Button, Form, Grid, GridColumn, Menu } from 'semantic-ui-react'
 import LobbyMain from './LobbyMain';
 
 class Lobby extends React.Component {
@@ -10,7 +10,7 @@ class Lobby extends React.Component {
             <Grid>
                 <Grid.Row>
                     <Grid.Column width={16}>
-                        header!
+                        
                     </Grid.Column>
                 </Grid.Row>
                 <Grid.Row>
@@ -21,7 +21,7 @@ class Lobby extends React.Component {
                 </Grid.Row>
                 <Grid.Row>
                     <Grid.Column width={16}>
-                        footer
+                        
                     </Grid.Column>
                 </Grid.Row>
 
