@@ -164,7 +164,7 @@ class LobbyRoomList extends React.Component {
                         </Header>
   
                         <div>
-                            <Item.Group divided>
+                            <Item.Group >
                                 {meetings}
 
                             </Item.Group>                            

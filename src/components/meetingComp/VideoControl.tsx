@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Icon, Button, Dropdown, Grid, GridRow, GridColumn } from 'semantic-ui-react';
+import { Icon, Button, Dropdown, Grid, GridRow, GridColumn, List } from 'semantic-ui-react';
 import { BUTTON_COLOR, BUTTON_COLOR_DISABLE } from '../../const';
 import { AppState } from '../App';
 import { GlobalState } from '../../reducers';
@@ -22,20 +22,16 @@ class VideoControl extends React.Component {
         return (
             <Grid>
                 <Grid.Row>
-                    <Grid.Column width={10}>
+                    <Grid.Column>
                     <Dropdown
                         pointing='top left'
                         options={inputVideoDevicesOpts}
                         trigger={trigger}
                         onChange={(e, { value }) => props.selectInputVideoDevice(value as string)}
                     />
-                    </Grid.Column>
-                    <Grid.Column width={6}>
-                        <Button basic compact size="tiny" 
-                        color={appState.currentSettings.videoEnable ? "grey" : "red"}
-                        onClick={() => { props.toggleVideo() }}>
-                            disable
-                        </Button>
+                        <List style={{paddingLeft:"15px",paddingTop:"0px",paddingBottom:"0px"}} link>
+                            <List.Item as='a' active onClick={() => { props.toggleVideo() }}><Icon name="ban" color={appState.currentSettings.videoEnable ? "grey" : "red"}/>Disable Camera</List.Item>
+                        </List> 
                     </Grid.Column>
                 </Grid.Row>
 

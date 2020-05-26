@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Icon, Button, Dropdown, Grid } from 'semantic-ui-react';
+import { Icon, Button, Dropdown, Grid, List } from 'semantic-ui-react';
 import { BUTTON_COLOR, BUTTON_COLOR_DISABLE } from '../../const';
 import { GlobalState } from '../../reducers';
 import { AppState } from '../App';
@@ -20,7 +20,7 @@ class MicControl extends React.Component {
         return (
             <Grid>
                 <Grid.Row>
-                    <Grid.Column width={10}>
+                    <Grid.Column >
                     <Dropdown
                         pointing='top left'
                         options={inputAudioDevicesOpts}
@@ -28,13 +28,12 @@ class MicControl extends React.Component {
                         onChange={(e, { value }) => props.selectInputAudioDevice(value as string)}
                     />
 
-                    </Grid.Column>
-                    <Grid.Column width={6}>
-                        <Button basic compact size="tiny" 
-                        color={appState.currentSettings.mute ? "red" : "grey"}
-                        onClick={() => { props.toggleMute() }}>
-                            disable
-                        </Button>
+                        <List style={{paddingLeft:"15px",paddingTop:"0px",paddingBottom:"0px"}} link>
+                            <List.Item as='a' active onClick={() => { props.toggleMute() }}><Icon name="ban" color={appState.currentSettings.mute ? "red" : "grey"} />Mute</List.Item>
+                        </List> 
+
+
+
                     </Grid.Column>
                 </Grid.Row>
             </Grid>            
