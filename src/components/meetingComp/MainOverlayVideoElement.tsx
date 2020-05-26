@@ -70,6 +70,9 @@ class MainOverlayVideoElement extends React.Component{
         return this.videoRef
     }
     fitSize = () =>{
+        if(this.videoRef.current === null){
+            return
+        }
         const sheight = this.videoRef.current!.scrollHeight
         // const swidth = this.videoRef.current!.scrollWidth
         this.divRef.current!.style.height = `${sheight}px`
@@ -124,7 +127,7 @@ class MainOverlayVideoElement extends React.Component{
 
 
     render()  {
-
+        this.fitSize()
         return(
             <div ref={this.divRef} >
                 <video  ref={this.videoRef}  style={{position: "absolute", width: "100%"}} />

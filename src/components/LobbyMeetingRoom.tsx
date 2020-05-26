@@ -5,7 +5,7 @@ import { LobbyMainColumnConfig, LobbyMainColumnConfigInf, AppStatus} from '../co
 import MainOverlayVideoElement from './meetingComp/MainOverlayVideoElement';
 import { VideoTileState } from 'amazon-chime-sdk-js';
 import { getTileId } from './utils';
-import { AppState } from './App';
+import App, { AppState } from './App';
 import OverlayVideoElement from './meetingComp/OverlayVideoElement';
 import { MESSAGING_URL } from '../config';
 
@@ -27,6 +27,10 @@ class LobbyMeetingRoom extends React.Component {
         const gs = this.props as GlobalState
         const props = this.props as any
         const appState = props.appState as AppState
+        if(gs.status !== AppStatus.IN_MEETING){
+            return(<div />)
+        }
+
         for(let key in appState.videoTileStates){
             const attendeeId = appState.videoTileStates[key].boundAttendeeId
             const tileId = appState.videoTileStates[key].tileId
@@ -45,8 +49,12 @@ class LobbyMeetingRoom extends React.Component {
 
         return (
             <div>
-                <MainOverlayVideoElement {...props} ref={this.mainOverlayVideoRef} thisAttendeeId={appState.currentSettings.focuseAttendeeId}/>
                 <Grid>
+                    <Grid.Row>
+                        <Grid.Column>
+                            <MainOverlayVideoElement {...props} ref={this.mainOverlayVideoRef} thisAttendeeId={appState.currentSettings.focuseAttendeeId}/>
+                        </Grid.Column>
+                    </Grid.Row>
                     <Grid.Row>
                         {this.cells}
                     </Grid.Row>

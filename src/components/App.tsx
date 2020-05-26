@@ -525,12 +525,15 @@ class App extends React.Component {
             // To avoid to be slow performace, resolution is limited when using virtual background
             this.state.inputVideoCanvas.width = 640
             this.state.inputVideoCanvas.height = (this.state.inputVideoCanvas.width / 16) * 9
-            const ctx = this.state.inputVideoCanvas.getContext("2d")!
-            ctx.drawImage(this.state.inputVideoElement, 0, 0, this.state.inputVideoCanvas.width, this.state.inputVideoCanvas.height)
+            const canvas = document.createElement("canvas")
+            canvas.width  = 640
+            canvas.height =  (this.state.inputVideoCanvas.width / 16) * 9
+            const ctx = canvas.getContext("2d")!
+            ctx.drawImage(this.state.inputVideoElement, 0, 0, canvas.width, canvas.height)
 
             //// (2) Segmentation & Mask
             //// (2-1) Segmentation.
-            bodyPixNet.segmentPerson(this.state.inputVideoCanvas).then((segmentation) => {
+            bodyPixNet.segmentPerson(canvas).then((segmentation) => {
                 //// (2-2) Generate mask
                 const foregroundColor = { r: 0, g: 0, b: 0, a: 0 };
                 const backgroundColor = { r: 255, g: 255, b: 255, a: 255 };
@@ -538,7 +541,7 @@ class App extends React.Component {
                 const opacity = 1.0;
                 const maskBlurAmount = 2;
                 const flipHorizontal = false;
-                bodyPix.drawMask(this.state.inputMaskCanvas, this.state.inputVideoCanvas, backgroundMask, opacity, maskBlurAmount, flipHorizontal);
+                bodyPix.drawMask(this.state.inputMaskCanvas, canvas, backgroundMask, opacity, maskBlurAmount, flipHorizontal);
                 const maskedImage = this.state.inputMaskCanvas.getContext("2d")!.getImageData(0, 0, this.state.inputMaskCanvas.width, this.state.inputMaskCanvas.height)
 
                 //// (2-3) Generate background

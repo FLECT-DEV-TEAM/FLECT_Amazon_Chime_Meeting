@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Button, Form, Grid, GridColumn } from 'semantic-ui-react'
+import { Button, Form, Grid, GridColumn, Segment } from 'semantic-ui-react'
 import { GlobalState } from '../reducers';
 import { LobbyMainColumnConfig, LobbyMainColumnConfigInf} from '../const'
 import VideoControl from './meetingComp/VideoControl';
@@ -18,15 +18,28 @@ class LobbyUserPanel extends React.Component {
 
         return (
             <div>
-                <MicControl {...props} />
-                <VideoControl {...props} />
-                <SpeakerControl {...props} />
-                <VideoShareControl {...props} />
-                <DisplayShareControl {...props} />
-                <SettingControl {...props}/>
+                <Segment padded>
+                    <p>
 
-                <StampAccordion {...props} />
-                <SendTextAccordion {...props}/>
+                    <MicControl {...props} />
+                    </p>
+
+                    <p>
+                    <VideoControl {...props} />
+                    </p>
+                    <p>
+                    <SpeakerControl {...props} />
+                    </p>
+                    <p>
+                        <SettingControl {...props}/>
+                    </p>
+
+                    <VideoShareControl {...props} />
+                    <DisplayShareControl {...props} />
+                    <StampAccordion {...props} />
+                    <SendTextAccordion {...props}/>
+
+                </Segment>
 
 
             </div>

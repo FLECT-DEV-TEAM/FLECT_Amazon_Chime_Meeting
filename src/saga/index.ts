@@ -157,7 +157,6 @@ function* handleJoinMeeting() {
                     }
                 })
                 .catch(error => {
-                    console.log("AAAAAAAAAAAAAAAAAAAAAa")
                     throw error
                 })
             }, url);
