@@ -728,7 +728,7 @@ class App extends React.Component {
                 // window.history.replaceState({}, `${gs.roomTitle}`, url.toString());
 
                 // Messaging Websocket
-                const messagingURLWithQuery = `${MESSAGING_URL}?joinToken=${gs.meetingSession?.configuration.credentials?.joinToken}&meetingId=${gs.meetingSession?.configuration.meetingId}&attendeeId=${gs.meetingSession?.configuration.credentials?.attendeeId}`
+                const messagingURLWithQuery = `${MESSAGING_URL}?joinToken=${defaultMeetingSession.configuration.credentials!.joinToken}&meetingId=${defaultMeetingSession.configuration.meetingId}&attendeeId=${defaultMeetingSession.configuration.credentials!.attendeeId}`
                 console.log("MESSAGEING_URL", messagingURLWithQuery)
                 this.state.messagingSocket = new ReconnectingPromisedWebSocket(
                     messagingURLWithQuery,
