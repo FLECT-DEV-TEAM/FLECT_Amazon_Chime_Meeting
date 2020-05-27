@@ -1,20 +1,16 @@
 import * as React from 'react';
 import { Button, Form } from 'semantic-ui-react'
-import { GlobalState } from '../reducers';
 
 class Entrance extends React.Component {
-    roomIDRef   = React.createRef<HTMLInputElement>()
     userNameRef = React.createRef<HTMLInputElement>()
-    regionRef   = React.createRef<HTMLInputElement>()
-    enter=()=>{
-        console.log(this.roomIDRef.current!.value)
+    codeRef   = React.createRef<HTMLInputElement>()
+    login=()=>{
         const props      = this.props as any
-        const gs         = this.props as GlobalState
-        const roomID     = this.roomIDRef.current!.value
         const userName   = this.userNameRef.current!.value
-        const region     = this.regionRef.current!.value
+        const code       = this.codeRef.current!.value
 
-        props.enterSession(gs.baseURL, roomID, userName, region)
+        props.createUser(userName, code)
+        
     }
 
     render() {
@@ -22,19 +18,15 @@ class Entrance extends React.Component {
           <div style={{ width: "60%", height: "100%",  margin: "auto"}}>
             <Form>
               <Form.Field>
-                <label>Room ID</label>
-                <input placeholder='room ID' ref={this.roomIDRef} />
-              </Form.Field>
-              <Form.Field>
                 <label>User Name</label>
                 <input placeholder='name' ref={this.userNameRef}/>
               </Form.Field>
               <Form.Field>
-                <label>Region</label>
-                <input placeholder='region' disabled value='us-east-1' ref={this.regionRef}/>
+                <label>Code</label>
+                <input placeholder='code' ref={this.codeRef}/>
               </Form.Field>
-              <Button type='submit' onClick={()=>this.enter()}>Submit</Button>
-          </Form>
+              <Button type='submit' onClick={()=>this.login()}>Submit</Button>
+            </Form>
           </div>
         )
     }

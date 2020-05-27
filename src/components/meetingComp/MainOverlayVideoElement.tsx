@@ -1,5 +1,5 @@
 import * as React from 'react';
-import {AppState} from '../App';
+import {AppState, MessageType} from '../App';
 
 interface MainOverlayVideoElementState{
     hoverd: boolean
@@ -21,8 +21,10 @@ class MainOverlayVideoElement extends React.Component{
         this.canvasRef.current!.getContext("2d")!.fillText(text, x, y)
     }
     clearCanvas = () =>{
-        const ctx = this.canvasRef.current!.getContext("2d")!
-        ctx.clearRect(0, 0, this.canvasRef.current!.width, this.canvasRef.current!.height)
+        if(this.canvasRef.current !==null){
+            const ctx = this.canvasRef.current!.getContext("2d")!
+            ctx.clearRect(0, 0, this.canvasRef.current!.width, this.canvasRef.current!.height)
+        }
     }
     putStamp = (dstAttendeeId:string, image:HTMLImageElement, startTime:number, elapsed:number) =>{
         const props = this.props as any
@@ -70,6 +72,9 @@ class MainOverlayVideoElement extends React.Component{
         return this.videoRef
     }
     fitSize = () =>{
+        if(this.videoRef.current === null){
+            return
+        }
         const sheight = this.videoRef.current!.scrollHeight
         // const swidth = this.videoRef.current!.scrollWidth
         this.divRef.current!.style.height = `${sheight}px`
@@ -81,20 +86,49 @@ class MainOverlayVideoElement extends React.Component{
     }
 
     componentDidMount() {
-        const mute = new Image()
-        mute.src = "/resources/system/microphone_rokuon_kinshi_mark.png"
-        mute.onload = () => {
-            this.statusImages['mute'] = mute
-        }
-        const noMute = new Image()
-        noMute.src = "/resources/system/demo-image.png .png"
-        noMute.onload = () => {
-            this.statusImages['noMute'] = noMute
-        }
+        // const mute = new Image()
+        // mute.src = "/resources/system/microphone_rokuon_kinshi_mark.png"
+        // mute.onload = () => {
+        //     this.statusImages['mute'] = mute
+        // }
+        // const noMute = new Image()
+        // noMute.src = "/resources/system/demo-image.png .png"
+        // noMute.onload = () => {
+        //     this.statusImages['noMute'] = noMute
+        // }
+
+        requestAnimationFrame(() => this.drawOverlayCanvas())
     }
 
-    render()  {
+    drawOverlayCanvas = () => {
+        const props = this.props as any
+        const appState = props.appState as AppState
+        this.fitSize()
+        const now = Date.now()
+        this.clearCanvas()
 
+        for (const i in appState.currentSettings.globalMessages) {
+            const message = appState.currentSettings.globalMessages[i]
+            if (now - message.startTime < 3000) {
+                if (message.type === MessageType.Stamp) {
+                    const elapsed = now - message.startTime
+                    const image = appState.stamps[message.imgSrc]
+                    const targetAttendeeId = message.targetId
+                    this.putStamp(targetAttendeeId, image, message.startTime, elapsed)
+                } else if (message.type === MessageType.Message) {
+                    const elapsed = now - message.startTime
+                    const targetAttendeeId = message.targetId
+                    this.putMessage(targetAttendeeId, message.message, message.startTime, elapsed)
+                }
+            }
+        }
+        requestAnimationFrame(() => this.drawOverlayCanvas())
+    }
+
+
+
+    render()  {
+        this.fitSize()
         return(
             <div ref={this.divRef} >
                 <video  ref={this.videoRef}  style={{position: "absolute", width: "100%"}} />
@@ -105,51 +139,52 @@ class MainOverlayVideoElement extends React.Component{
         )
     }
 
-    tmpStatusCanvas = document.createElement("canvas")
-    drawStatus = () =>{
-        const props = this.props as any
-        const thisAttendeeId = props.thisAttendeeId        
-        const appState = this.props as AppState
-        const attendee = appState.roster[thisAttendeeId]
-        if(attendee == undefined){
-            console.log("UNDEFINED", props)
-            return
-        }
-        if(this.statusImages['mute'] === undefined || this.statusImages['noMute'] === undefined){
-            console.log("Loading", props)
-            return
-        }
-        const name = (attendee.name !== undefined && attendee.name !== null)? attendee.name!.substring(0,20) : "unknown"
+//    tmpStatusCanvas = document.createElement("canvas")
+    // drawStatus = () =>{
+    //     const props = this.props as any
+    //     const thisAttendeeId = props.thisAttendeeId     
+    //     const appState = props.appState as AppState
+    //     console.log(appState)
 
-        const mute = attendee.muted
+    //     const attendee = appState.roster[thisAttendeeId]
+    //     if(attendee == undefined){
+    //         console.log("UNDEFINED", props)
+    //         return
+    //     }
+    //     if(this.statusImages['mute'] === undefined || this.statusImages['noMute'] === undefined){
+    //         console.log("Loading", props)
+    //         return
+    //     }
+    //     const name = (attendee.name !== undefined && attendee.name !== null)? attendee.name!.substring(0,20) : "unknown"
 
-        const canvasWidth  = this.statusCanvasRef.current!.width
-        const canvasHeight = this.statusCanvasRef.current!.height
-        const fontSize     = Math.ceil(canvasHeight / 12)
+    //     const mute = attendee.muted
 
-        const ctx = this.statusCanvasRef.current!.getContext("2d")!
-        ctx.font = `${fontSize}px メイリオ`;
-        ctx.textBaseline = 'top';
+    //     const canvasWidth  = this.statusCanvasRef.current!.width
+    //     const canvasHeight = this.statusCanvasRef.current!.height
+    //     const fontSize     = Math.ceil(canvasHeight / 12)
 
-        const imageWidth  = fontSize
-        const imageHeight = fontSize
-        const textWidth   = ctx.measureText(name).width;
-        const textHeight  = fontSize
-        const micImageKey = mute ? 'mute' : 'noMute'
-        const offsetX = 10
-        const offsetY = 10
-        ctx.fillStyle = '#ddcccc';
-        ctx.fillRect(offsetX, offsetY, imageWidth+textWidth, textHeight)
-        ctx.drawImage(this.statusImages[micImageKey], offsetX, offsetY, imageWidth, imageHeight)
-        ctx.fillStyle = '#000000';
-        ctx.fillText(name, offsetX + imageWidth, offsetY);
+    //     const ctx = this.statusCanvasRef.current!.getContext("2d")!
+    //     ctx.font = `${fontSize}px メイリオ`;
+    //     ctx.textBaseline = 'top';
 
-    }
+    //     const imageWidth  = fontSize
+    //     const imageHeight = fontSize
+    //     const textWidth   = ctx.measureText(name).width;
+    //     const textHeight  = fontSize
+    //     const micImageKey = mute ? 'mute' : 'noMute'
+    //     const offsetX = 10
+    //     const offsetY = 10
+    //     ctx.fillStyle = '#ddcccc';
+    //     ctx.fillRect(offsetX, offsetY, imageWidth+textWidth, textHeight)
+    //     ctx.drawImage(this.statusImages[micImageKey], offsetX, offsetY, imageWidth, imageHeight)
+    //     ctx.fillStyle = '#000000';
+    //     ctx.fillText(name, offsetX + imageWidth, offsetY);
+    // }
 
     componentDidUpdate = () => {
         console.log("componentDidUpdate Overlay")
         this.fitSize()
-        this.drawStatus()
+        //this.drawStatus()
     }
 }
 

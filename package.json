@@ -14,6 +14,7 @@
     "@types/react": "^16.9.34",
     "@types/react-dom": "^16.9.6",
     "@types/redux-actions": "^2.6.1",
+    "@types/uuid": "^8.0.0",
     "amazon-chime-sdk-js": "^1.4.0",
     "aws-sdk": "^2.677.0",
     "react": "^16.13.1",
@@ -34,7 +35,8 @@
     "build": "python3 script/list_resource.py;react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "build_all": "npm run build;sls deploy -v"
+    "build_all": "npm run build;sls deploy -v",
+    "build_sync": "npm run build;aws s3 sync build/ s3://flect-chime-sdk-web/"
   },
   "eslintConfig": {
     "extends": "react-app"

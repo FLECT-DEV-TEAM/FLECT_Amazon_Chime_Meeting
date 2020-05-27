@@ -553,8 +553,6 @@ class InMeetingRoom extends React.Component {
     const props = this.props as any
     return (
       <div>
-        <StampAccordion {...props} sendStamp={this.sendStamp} focusAttendeeId={this.state.focuseAttendeeId}/>
-        <SendTextAccordion {...props} sendText={this.sendText} focusAttendeeId={this.state.focuseAttendeeId}/>
       </div>
     )
   }
@@ -585,7 +583,7 @@ class InMeetingRoom extends React.Component {
           <Grid.Row columns={4}>
             {/****** 1st column. for User ID *****/}
             <Grid.Column textAlign="center" width={2}>
-              {gs.userName}@{gs.roomID}({gs.region})
+              {gs.userName}@{gs.roomTitle}({gs.region})
             </Grid.Column>
 
             {/****** 2nd column. Main buttons *****/}

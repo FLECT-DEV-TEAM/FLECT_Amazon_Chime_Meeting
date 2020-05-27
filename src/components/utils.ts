@@ -1,41 +1,48 @@
 import { NO_DEVICE_SELECTED } from "../const"
 import { VideoTileState } from "amazon-chime-sdk-js"
 
+
+
 /**
- * Not used.
  * @param kind 
  */
-export const getDeviceList = async (kind:string) =>{
+export const getDeviceLists = async () =>{
     const list = await navigator.mediaDevices.enumerateDevices()
-    const res = list.filter((x:InputDeviceInfo | MediaDeviceInfo)=>{
-        if(x.kind === kind){
-            return true
-        }else{
-            return false
-        }
+    console.log("GET_DEVICE_LIST", list)
+
+    const audioInputDevices = list.filter((x:InputDeviceInfo | MediaDeviceInfo)=>{
+        return x.kind === "audioinput"
     })
-    console.log(kind, res)
+    const videoInputDevices = list.filter((x:InputDeviceInfo | MediaDeviceInfo)=>{
+        return x.kind === "videoinput"
+    })
+    const audioOutputDevices = list.filter((x:InputDeviceInfo | MediaDeviceInfo)=>{
+        return x.kind === "audiooutput"
+    })
+    const videoInputResolutions = [
+        {deviceId: "360p", groupId: "360p", kind: "videoinputres", label: "360p"},
+        {deviceId: "540p", groupId: "540p", kind: "videoinputres", label: "540p"},
+        {deviceId: "720p", groupId: "720p", kind: "videoinputres", label: "720p"},
+    ]
+    return{
+        audioinput    : audioInputDevices,
+        videoinput    : videoInputDevices,
+        audiooutput   : audioOutputDevices,
+        videoinputres : videoInputResolutions,
+    }
 }
 
 export const getVideoDevice = async (deviceId:string): Promise<MediaStream|null>=>{
-    // const list = await navigator.mediaDevices.enumerateDevices()
-    // const target = list.find((x:InputDeviceInfo | MediaDeviceInfo)=>{
-    //     return (x.label === label)
-    // })
 
-    // console.log("getVideoDevice", list, label)
-    // console.log("getVideoDevice", target)
-    // if(target === undefined){
-    //     return null
-    // }
     if(deviceId === NO_DEVICE_SELECTED){
         return null
     }
+
     const webCamPromise = navigator.mediaDevices.getUserMedia({
         audio: false,
         video: { deviceId: deviceId,
             // video: { deviceId: target?.deviceId,
-                width: { ideal: 1280 },
+            width: { ideal: 1280 },
             height: { ideal: 720 }
         }
     })
@@ -44,9 +51,11 @@ export const getVideoDevice = async (deviceId:string): Promise<MediaStream|null>
 
 
 export const getTileId = (attendeeId: string, videoTileState: { [id: number]: VideoTileState }): number => {
+    // console.log("GETTIELE", videoTileState)
     for (let tileId in videoTileState) {
         const key = Number(tileId)
         const tile = videoTileState[key]
+        // console.log("GETTIELE", key, tile.boundAttendeeId,  attendeeId)
         if (tile === undefined) { continue }
         if (tile.boundAttendeeId === attendeeId) {
             return key

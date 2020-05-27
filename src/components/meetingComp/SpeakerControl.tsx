@@ -1,23 +1,43 @@
 import * as React from 'react';
-import { Icon, Button, Dropdown } from 'semantic-ui-react';
+import { Icon, Button, Dropdown, Grid, List } from 'semantic-ui-react';
 import { BUTTON_COLOR, BUTTON_COLOR_DISABLE } from '../../const';
+import { AppState } from '../App';
+import { GlobalState } from '../../reducers';
+
+const trigger = (
+    <span>
+      <Icon name="sound" />speaker
+    </span>
+  )
+
 
 class SpeakerControl extends React.Component {
 
     render() {
         const props = this.props as any
+        const gs = this.props as GlobalState
+        const appState = props.appState as AppState
+        const outputAudioDevicesOpts=gs.outputAudioDevices!.map(info => { return { key: info.label, text: info.label, value: info.deviceId } })
         return (
-            // @ts-ignore
-            <Button.Group color={props.enable ? BUTTON_COLOR : BUTTON_COLOR_DISABLE}>
-                <Button size='mini' onClick={() => props.toggleSpeaker() }><Icon name="sound" /></Button>
-                <Dropdown
-                className='button icon'
-                floating
-                options={props.outputAudioDevicesOpts}
-                trigger={<React.Fragment />}
-                onChange={(e, { value }) => props.selectOutputAudioDevice(value as string)}
-                />
-            </Button.Group>
+
+            <Grid>
+                <Grid.Row>
+                    <Grid.Column >
+                    <Dropdown
+                        pointing='top left'
+                        options={outputAudioDevicesOpts}
+                        trigger={trigger}
+                        onChange={(e, { value }) => props.selectOutputAudioDevice(value as string)}
+                    />
+                        <List style={{paddingLeft:"15px",paddingTop:"0px",paddingBottom:"0px"}} link>
+                            <List.Item as='a' active onClick={() => { props.toggleSpeaker() }}><Icon name="ban" color={appState.currentSettings.speakerEnable ? "grey" : "red"}/>Disable Speaker</List.Item>
+                        </List> 
+
+
+                    </Grid.Column>
+                </Grid.Row>
+            </Grid>
+
         )
     }
 }

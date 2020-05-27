@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Accordion, Icon, Grid } from 'semantic-ui-react';
 import { RS_STAMPS } from '../resources';
+import { AppState } from '../App';
 
 interface StampAccordionState{
     open             : boolean
@@ -47,12 +48,13 @@ class StampAccordion extends React.Component {
   generateStampTiles = () => {
 
     const props = this.props as any
+    const appState = props.appState as AppState
     const stamps = []
     for (const i in RS_STAMPS) {
       const imgPath = RS_STAMPS[i]
 
       stamps.push(
-            <img src={imgPath} width="10%" alt="" onClick={(e) => { props.sendStamp(props.focusAttendeeId, imgPath) }} />
+            <img src={imgPath} width="10%" alt="" onClick={(e) => { props.sendStamp(appState.currentSettings.focuseAttendeeId, imgPath) }} />
       )
     }
     return (

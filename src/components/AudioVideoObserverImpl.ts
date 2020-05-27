@@ -19,7 +19,7 @@ class AudioVideoObserverImpl implements AudioVideoObserver{
         if (sessionStatus.statusCode() === MeetingSessionStatusCode.AudioCallEnded) {
             console.log(`meeting ended`);
             // @ts-ignore
-            window.location = window.location.pathname;
+            //window.location = window.location.pathname;
         }
     }
 

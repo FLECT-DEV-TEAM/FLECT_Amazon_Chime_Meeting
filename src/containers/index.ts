@@ -15,27 +15,53 @@ function mapStateToProps(state:GlobalState) {
 
 function mapDispatchToProps(dispatch: Dispatch) {
   return {
-    initialize:    (base_url:string) => {dispatch(Actions.initialize(base_url))},
+    initialize:    () => {dispatch(Actions.initialize())},
+    goEntrance:    (base_url:string) => {dispatch(Actions.goEntrance(base_url))},
+    createUser:    (userName:string, code:string) =>{dispatch(Actions.createUser(userName, code))},
+    login     :    (userName:string, code:string) =>{dispatch(Actions.login(userName, code))},
+ 
+    lobbyPrepared: (audioInputDevices:MediaDeviceInfo[], videoInputDevices:MediaDeviceInfo[], audioOutputDevices:MediaDeviceInfo[]) =>
+                    {dispatch(Actions.lobbyPrepared(audioInputDevices, videoInputDevices,  audioOutputDevices))},
+    createMeeting: (userName:string, roomName:string, region:string, usePassCode:boolean, passCode:string, secret:boolean) =>
+                    {dispatch(Actions.createMeeting(userName, roomName, region, usePassCode, passCode, secret))},
+  
+    refreshRoomList: () => {dispatch(Actions.refreshRoomList())},
+
+    joinMeeting:    (meetingId:string, gs:GlobalState) =>
+                      {dispatch(Actions.joinMeeting(meetingId, gs))},
+    leaveMeeting:    (meetingId:string, gs:GlobalState) =>
+                      {dispatch(Actions.leaveMeeting(meetingId, gs))},
+
+    meetingPrepared: (meetingSessionConf:MeetingSessionConfiguration, defaultMeetingSession:DefaultMeetingSession) =>
+                      {dispatch(Actions.meetingPrepared(meetingSessionConf, defaultMeetingSession))},
+    clearedMeetingSession: () =>{dispatch(Actions.clearedMeetingSession())},
+
+
+    closeError: () => {dispatch(Actions.closeError())},
+
+    toggleLeftBar: ()=>{dispatch(Actions.toggleLeftBar())},
+    toggleRightBar: ()=>{dispatch(Actions.toggleRightBar())},
+
+
+    createMeetingRoom:  (base_url:string, roomID:string, name:string, region:string) =>
+                      {dispatch(Actions.createMeetingRoom(base_url, roomID, name, region))},
+
     enterSession:  (base_url:string, roomID:string, name:string, region:string) =>
                       {dispatch(Actions.enterSession(base_url, roomID, name, region))},
-    join:          (base_url:string, roomID:string, name:string, region:string, joinInfo:any) =>
-                      {dispatch(Actions.join(base_url, roomID, name, region, joinInfo))},
 
-    initializedSession: (meetingSessionConf:MeetingSessionConfiguration, defaultMeetingSession:DefaultMeetingSession) =>
-                      {dispatch(Actions.initializedSession(meetingSessionConf, defaultMeetingSession))},
 
-    setDevices: (audioInputDevices:MediaDeviceInfo[], videoInputDevices:MediaDeviceInfo[], videoInputResolutions:string[], audioOutputDevices:MediaDeviceInfo[]) =>
-                      {dispatch(Actions.setDevices(audioInputDevices, videoInputDevices, videoInputResolutions, audioOutputDevices))},
+
     selectInputAudioDevice:(val:string)     => {dispatch(Actions.selectInputAudioDevice(val))},
     selectInputVideoDevice:(val:string)     => {dispatch(Actions.selectInputVideoDevice(val))},
     selectInputVideoResolution:(val:string) => {dispatch(Actions.selectInputVideoResolution(val))},
     selectOutputAudioDevice:(val:string)    => {dispatch(Actions.selectOutputAudioDevice(val))},
     startMeeting:() =>{dispatch(Actions.startMeeting())},
-    leaveMeeting:() =>{dispatch(Actions.leaveMeeting())},
     // updateActiveScore:(scores: { [attendeeId: string]: number }) => {dispatch(Actions.updateActiveScore(scores))},
     // changeActiveSpeaker: (attendeeId:string) =>{dispatch(Actions.changeActiveSpeaker(attendeeId))},
 
-    getAttendeeInformation: (baseURL:string, roomID:string, attendeeId:string) => {dispatch(Actions.getAttendeeInformation(baseURL, roomID, attendeeId))},
+
+
+    getAttendeeInformation: (meetingID:string, attendeeId:string) => {dispatch(Actions.getAttendeeInformation(meetingID, attendeeId))},
     updateAttendeeInformation: (attendeeId:string, baseAttendeeId:string, name:string) =>{dispatch(Actions.updateAttendeeInformation(attendeeId, baseAttendeeId, name))},
 
   }
