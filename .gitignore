@@ -6,4 +6,6 @@ server/node_modules/
 .serverless
 build/*
 src/config.ts
+serverless.yml
+
 

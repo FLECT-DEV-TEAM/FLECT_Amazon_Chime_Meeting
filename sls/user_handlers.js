@@ -4,6 +4,7 @@ var ddb        = new AWS.DynamoDB();
 const util = require('./util.js')
 // Read resource names from the environment
 const userTableName  = process.env.USER_TABLE_NAME;
+const env_code       = process.env.CODE;
 /**
  * 
  * @param {*} userName 
@@ -197,6 +198,15 @@ exports.loginUser = async (event, context, callback) => {
   console.info("EVENT\n" + JSON.stringify(event, null, 2))
   const userId = event.pathParameters.userId
   const code  = event.queryStringParameters.code
+  if(code !== env_code){
+    console.log(e)
+    response["statusCode"] = 400;
+    body = {result:"error", detail:"invalid code"}
+    response.body = JSON.stringify(body, '', 2)    
+    callback(null, response);
+    return;
+  }
+
   const userInfo = await loginUser(userId, code)
   response.body = JSON.stringify(userInfo, '', 2);
   callback(null, response);

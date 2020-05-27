@@ -14,6 +14,7 @@ provider:
     SQS_QUEUE_ARN          : !GetAtt MeetingNotificationsQueue.Arn
     CONNECTIONS_TABLE_NAME : !Ref ConnectionsTable
     MEETING_ROOM_ID_PREFIX : ""
+    CODE                   : ""
   websocketsApiName: ${self:service.name}
   websocketsApiRouteSelectionExpression: $request.body.action  
 
