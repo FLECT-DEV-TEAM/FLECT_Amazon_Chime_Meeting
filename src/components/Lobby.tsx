@@ -18,11 +18,11 @@ class LobbyHeader extends React.Component {
         const gs = this.props as GlobalState
         return (
             <Menu stackable pointing secondary>
-                <Menu.Item>
+                {/* <Menu.Item>
                     <img src='/logo.png' />
-                </Menu.Item>
+                </Menu.Item> */}
 
-                <Menu.Item
+                <Menu.Item as="h4"
                     name='FLECT Meetings with Amazon Chime SDK '
                 >
                 </Menu.Item>

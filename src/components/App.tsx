@@ -442,13 +442,17 @@ class App extends React.Component {
     setVirtualBackground = (imgPath: string) => {
         this.state.currentSettings.virtualBackgroundPath = imgPath
         console.log("SetVirtual", imgPath)
-        this.setState({})
+        const currentSettings = this.state.currentSettings
+        currentSettings.virtualBackgroundPath = imgPath
+        this.setState({ currentSettings: currentSettings })        
     }
 
     setFocusedAttendee = (attendeeId: string) => {
         this.state.currentSettings.focuseAttendeeId = attendeeId
         console.log("focus:", this.state.currentSettings.focuseAttendeeId)
-        this.setState({})
+        const currentSettings = this.state.currentSettings
+        currentSettings.focuseAttendeeId = attendeeId
+        this.setState({ currentSettings: currentSettings })
     }
     // For Messaging
 

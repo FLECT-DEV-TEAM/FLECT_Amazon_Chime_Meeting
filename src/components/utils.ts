@@ -51,11 +51,11 @@ export const getVideoDevice = async (deviceId:string): Promise<MediaStream|null>
 
 
 export const getTileId = (attendeeId: string, videoTileState: { [id: number]: VideoTileState }): number => {
-    console.log("GETTIELE", videoTileState)
+    // console.log("GETTIELE", videoTileState)
     for (let tileId in videoTileState) {
         const key = Number(tileId)
         const tile = videoTileState[key]
-        console.log("GETTIELE", key, tile.boundAttendeeId,  attendeeId)
+        // console.log("GETTIELE", key, tile.boundAttendeeId,  attendeeId)
         if (tile === undefined) { continue }
         if (tile.boundAttendeeId === attendeeId) {
             return key
