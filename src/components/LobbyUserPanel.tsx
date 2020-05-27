@@ -11,7 +11,7 @@ import SettingControl from './meetingComp/SettingControl';
 import StampAccordion from './meetingComp/StampAccordion';
 import SendTextAccordion from './meetingComp/SendTextAccordion';
 import { AppState } from './App';
-import { Div } from '@tensorflow/tfjs-core';
+import SecondaryCameraAccordion from './meetingComp/SecondaryCameraAccordion';
 
 
 interface PreviewPanelState{
@@ -147,6 +147,8 @@ class ConfigurationPanel extends React.Component {
                     <DisplayShareControl {...props} />
                     <StampAccordion {...props} />
                     <SendTextAccordion {...props}/>
+
+                    <SecondaryCameraAccordion {...props} />
                 </Segment>
             </div>
         )

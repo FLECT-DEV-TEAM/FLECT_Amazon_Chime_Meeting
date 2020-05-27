@@ -131,7 +131,10 @@ export interface CurrentSettings {
     selectedOutputAudioDevice: string
     virtualBackgroundPath: string
     focuseAttendeeId: string
-    globalMessages: Message[],
+    globalMessages: Message[]
+
+    selectedInputVideoDevice2: string
+
 }
 
 /**
@@ -206,6 +209,9 @@ class App extends React.Component {
             virtualBackgroundPath: "/resources/vbg/pic0.jpg",
             focuseAttendeeId: "",
             globalMessages: [],
+
+            selectedInputVideoDevice2: NO_DEVICE_SELECTED,
+
         },
     }
 
@@ -356,6 +362,15 @@ class App extends React.Component {
     }
 
 
+
+    selectInputVideoDevice2 = (deviceId: string) => {
+        const gs = this.props as GlobalState
+        const props = this.props as any
+        const currentSettings = this.state.currentSettings
+        currentSettings.selectedInputVideoDevice2 = deviceId
+        this.setState({ currentSettings: currentSettings })
+    }    
+
     // For Speaker
     toggleSpeaker = () => {
         const gs = this.props as GlobalState
@@ -497,6 +512,7 @@ class App extends React.Component {
         sendText: this.sendText,
 
         // addMessagingConsumer: this.addMessagingConsumer,
+        selectInputVideoDevice2: this.selectInputVideoDevice2
     }
 
 
@@ -593,31 +609,7 @@ class App extends React.Component {
 
 
     drawOverlayCanvas = () => {
-        // console.log("DRAW OVERLAY CANVAS", this.state.messagingConsumer)
-        // for(let i in this.state.messagingConsumer){
-        //     this.state.messagingConsumer[i]()
-        // }
-        // const now = Date.now()
-        // this.mainOverlayVideoRef.current!.clearCanvas()
-        // this.AttendeeListRef.current!.clearCanvas()
-        // for (const i in this.state.globalMessages) {
-        //     const message = this.state.globalMessages[i]
-        //     if (now - message.startTime < 3000) {
-        //         if (message.type === MessageType.Stamp) {
-        //             const elapsed = now - message.startTime
-        //             const image = this.stamps[message.imgSrc]
-        //             const targetAttendeeId = message.targetId
-        //             this.mainOverlayVideoRef.current!.putStamp(targetAttendeeId, image, message.startTime, elapsed)
-        //             this.AttendeeListRef.current!.putStamp(targetAttendeeId, image, message.startTime, elapsed)
-        //         } else if (message.type === MessageType.Message) {
-        //             const elapsed = now - message.startTime
-        //             const targetAttendeeId = message.targetId
-        //             this.mainOverlayVideoRef.current!.putMessage(targetAttendeeId, message.message, message.startTime, elapsed)
-        //             this.AttendeeListRef.current!.putMessage(targetAttendeeId, message.message, message.startTime, elapsed)
-        //         }
-        //         // ctx.drawImage(image, (stamp.startTime % 5) * 40, localVideoMaskCanvas2.height - localVideoMaskCanvas2.height * (elapsed / 3000), 150, 150)
-        //     }
-        // }
+
         requestAnimationFrame(() => this.drawOverlayCanvas())
     }
 
