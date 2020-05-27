@@ -65,13 +65,13 @@ class LobbyMain extends React.Component {
 
         let lobbyMainColumnConfig: LobbyMainColumnConfigInf | null = null
 
-        if(gs.windowConfig.leftBarDisplay === true && gs.windowConfig.rigntBarDisplay === true){
+        if(gs.windowConfig.leftBarDisplay === true && gs.windowConfig.rightBarDisplay === true){
             lobbyMainColumnConfig = LobbyMainColumnConfig.default
-        }else if(gs.windowConfig.leftBarDisplay === true && gs.windowConfig.rigntBarDisplay === false){
+        }else if(gs.windowConfig.leftBarDisplay === true && gs.windowConfig.rightBarDisplay === false){
             lobbyMainColumnConfig = LobbyMainColumnConfig.noUserPanel
-        }else if(gs.windowConfig.leftBarDisplay === false && gs.windowConfig.rigntBarDisplay === true){
+        }else if(gs.windowConfig.leftBarDisplay === false && gs.windowConfig.rightBarDisplay === true){
             lobbyMainColumnConfig = LobbyMainColumnConfig.noRoomList
-        }else if(gs.windowConfig.leftBarDisplay === false && gs.windowConfig.rigntBarDisplay === false){
+        }else if(gs.windowConfig.leftBarDisplay === false && gs.windowConfig.rightBarDisplay === false){
             lobbyMainColumnConfig = LobbyMainColumnConfig.mainOnly
         }
 
@@ -87,11 +87,6 @@ class LobbyMain extends React.Component {
 
         return (
             <div>
-                {/* <Label onClick={(e)=>{
-                    this.handleDirectionChange('left');
-                    this.handleAnimationChange('scale down');
-                    console.log("CLICK")
-                }}> aaaaaa </Label> */}
             <Grid padded="horizontally">
                 <Grid.Row>
                         {leftColumn}
@@ -100,22 +95,6 @@ class LobbyMain extends React.Component {
                 </Grid.Row>
             </Grid>
 
-{/* 
-            <Sidebar.Pushable as={Segment}>
-  
-                <VerticalSidebar
-                animation={animation}
-                direction={direction}
-                visible={visible}
-                />
-
-                <Sidebar.Pusher dimmed={dimmed && visible}>
-                    <Segment basic>
-                    <Header as='h3'>Application Content</Header>
-                    <Image src='https://react.semantic-ui.com/images/wireframe/paragraph.png' />
-                    </Segment>
-                </Sidebar.Pusher>
-                </Sidebar.Pushable> */}
             </div>
 
 

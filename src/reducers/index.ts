@@ -10,7 +10,7 @@ interface StoreRoster{
 
 interface WindowConfig{
     leftBarDisplay    : boolean
-    rigntBarDisplay   : boolean
+    rightBarDisplay   : boolean
     mainScreenDisplay : boolean
     tileScreenDisplay : boolean
 }
@@ -107,7 +107,7 @@ export const initialState = {
     windowConfig                        : 
         {
             leftBarDisplay    : true,
-            rigntBarDisplay   : true,
+            rightBarDisplay   : true,
             mainScreenDisplay : true,
             tileScreenDisplay : true,
         },
@@ -242,8 +242,12 @@ const reducer = (state: GlobalState = initialState, action: any) => {
             gs.errorMessage = ""
             break
 
-
-        
+        case 'TOGGLE_LEFT_BAR':
+            gs.windowConfig.leftBarDisplay = !gs.windowConfig.leftBarDisplay
+            break
+        case 'TOGGLE_RIGHT_BAR':
+            gs.windowConfig.rightBarDisplay = !gs.windowConfig.rightBarDisplay
+            break
         case 'CREATE_MEETING_ROOM':
             //SAGA
             break

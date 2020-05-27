@@ -39,7 +39,8 @@ function mapDispatchToProps(dispatch: Dispatch) {
 
     closeError: () => {dispatch(Actions.closeError())},
 
-
+    toggleLeftBar: ()=>{dispatch(Actions.toggleLeftBar())},
+    toggleRightBar: ()=>{dispatch(Actions.toggleRightBar())},
 
 
     createMeetingRoom:  (base_url:string, roomID:string, name:string, region:string) =>

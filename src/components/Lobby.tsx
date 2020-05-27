@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Button, Form, Grid, GridColumn, Menu, Dropdown } from 'semantic-ui-react'
 import LobbyMain from './LobbyMain';
+import { GlobalState } from '../reducers';
 
 
 class LobbyHeader extends React.Component {
@@ -13,7 +14,8 @@ class LobbyHeader extends React.Component {
 
     render() {
         //const { activeItem } = this.state
-
+        const props = this.props as any
+        const gs = this.props as GlobalState
         return (
             <Menu stackable pointing secondary>
                 <Menu.Item>
@@ -32,12 +34,15 @@ class LobbyHeader extends React.Component {
                 >
                 </Menu.Item>
 
-
                 <Menu.Menu position='right'>
                     <Dropdown item text='View'>
                         <Dropdown.Menu>
-                            <Dropdown.Item>Show Left Pane</Dropdown.Item>
-                            <Dropdown.Item>Show Right Panel</Dropdown.Item>
+                            <Dropdown.Item onClick={(e)=>{props.toggleLeftBar()}}>
+                                {gs.windowConfig.leftBarDisplay ? "Hide Left Pane": "Show Left Pane"}
+                            </Dropdown.Item>
+                            <Dropdown.Item onClick={(e)=>{props.toggleRightBar()}}>
+                                {gs.windowConfig.rightBarDisplay ? "Hide Right Pane": "Show Right Pane"}
+                            </Dropdown.Item>
                         </Dropdown.Menu>
                     </Dropdown>
 

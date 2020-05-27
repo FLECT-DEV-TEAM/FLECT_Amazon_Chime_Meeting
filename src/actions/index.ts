@@ -37,6 +37,10 @@ export const Actions = createActions(
 
         'GET_ATTENDEE_INFORMATION'      : (...args) => (args),
         'UPDATE_ATTENDEE_INFORMATION'   : (...args) => (args),
+
+        'TOGGLE_LEFT_BAR'   : (...args) => (args),
+        'TOGGLE_RIGHT_BAR'   : (...args) => (args),
+
     },
 )
 
