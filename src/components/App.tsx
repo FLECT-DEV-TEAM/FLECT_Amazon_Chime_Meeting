@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { GlobalState } from '../reducers';
-import { AppStatus, LOGGER_BATCH_SIZE, LOGGER_INTERVAL_MS, AppEntranceStatus, AppMeetingStatus, AppLobbyStatus, NO_DEVICE_SELECTED } from '../const';
+import { AppStatus, LOGGER_BATCH_SIZE, LOGGER_INTERVAL_MS, AppEntranceStatus, AppMeetingStatus, AppLobbyStatus, NO_DEVICE_SELECTED, DataMessageTopic } from '../const';
 import * as bodyPix from '@tensorflow-models/body-pix';
 
 import {
@@ -15,7 +15,8 @@ import {
     ReconnectingPromisedWebSocket,
     DefaultPromisedWebSocketFactory,
     DefaultDOMWebSocketFactory,
-    FullJitterBackoff
+    FullJitterBackoff,
+    DataMessage
 } from 'amazon-chime-sdk-js';
 import Entrance from './Entrance';
 import Lobby from './Lobby';
@@ -24,7 +25,7 @@ import InMeetingRoom from './InMeetingRoom';
 import DeviceChangeObserverImpl from './DeviceChangeObserverImpl';
 import AudioVideoObserverImpl from './AudioVideoObserverImpl';
 import ContentShareObserverImpl from './ContentShareObserverImpl';
-import { setRealtimeSubscribeToAttendeeIdPresence, setSubscribeToActiveSpeakerDetector } from './subscribers';
+import { setRealtimeSubscribeToAttendeeIdPresence, setSubscribeToActiveSpeakerDetector, setRealtimeSubscribeToReceiveDataMessage } from './subscribers';
 import { getDeviceLists, getVideoDevice } from './utils'
 import { API_BASE_URL, MESSAGING_URL } from '../config';
 import MainOverlayVideoElement from './meetingComp/MainOverlayVideoElement';
@@ -89,6 +90,9 @@ const registerHandlers = (app: App, props: any, meetingSession: DefaultMeetingSe
 
     setRealtimeSubscribeToAttendeeIdPresence(app, meetingSession.audioVideo)
     setSubscribeToActiveSpeakerDetector(app, meetingSession.audioVideo)
+    setRealtimeSubscribeToReceiveDataMessage(app, meetingSession.audioVideo, DataMessageTopic.DRAWING.toString())
+    setRealtimeSubscribeToReceiveDataMessage(app, meetingSession.audioVideo, DataMessageTopic.STAMP.toString())
+    setRealtimeSubscribeToReceiveDataMessage(app, meetingSession.audioVideo, DataMessageTopic.CHAT.toString())
 
 }
 
@@ -106,8 +110,6 @@ interface Message {
     imgSrc: string
     message: string
 }
-
-
 
 /**
  * 
@@ -167,9 +169,6 @@ export interface AppState {
     currentSettings: CurrentSettings
 
 }
-
-
-
 
 /**
  * Main Component
@@ -284,7 +283,33 @@ class App extends React.Component {
         //console.log("updateActiveScore")
         //props.updateActiveScore(scores)
     }
+    /***************************
+    *  Callback for DataMessage
+    ****************************/
+    receivedDataMessage = (dataMessage: DataMessage) =>{
+        
+        console.log("DATAMESSAGE 5:", dataMessage)
+        if(dataMessage.topic === DataMessageTopic.CHAT.toString()){
 
+        }else if(dataMessage.topic === DataMessageTopic.STAMP.toString()){
+            const json = JSON.parse(Buffer.from(dataMessage.data).toString())
+            console.log("DATAMESSAGE 6:", json.data)
+            console.log(dataMessage)
+            const data = JSON.parse(json.data)
+
+            const message: Message = {
+                type: data.cmd,
+                startTime: data.startTime,
+                targetId: data.targetId,
+                imgSrc: data.imgPath ? data.imgPath : undefined,
+                message: data.message ? data.message : undefined,
+            }
+            this.state.currentSettings.globalMessages.push(message)
+
+        }else if(dataMessage.topic === DataMessageTopic.DRAWING.toString()){
+
+        }
+    }
 
     ////////////////////////////////
     /// User Action
@@ -480,6 +505,16 @@ class App extends React.Component {
         // this.state.localStamps.push(stamp)
     }
 
+    sendStampBySignal = (targetId: string, imgPath: string) => {
+        const gs = this.props as GlobalState
+        const message = {
+            action: 'sendmessage',
+            data: JSON.stringify({ "cmd": MessageType.Stamp, "targetId": targetId, "imgPath": imgPath, "startTime": Date.now() })
+        };
+        gs.meetingSession?.audioVideo.realtimeSendDataMessage(DataMessageTopic.STAMP.toString(), JSON.stringify(message))
+    }
+
+
     sendText = (targetId: string, msg: string) => {
         const message = {
             action: 'sendmessage',
@@ -512,7 +547,8 @@ class App extends React.Component {
         sendText: this.sendText,
 
         // addMessagingConsumer: this.addMessagingConsumer,
-        selectInputVideoDevice2: this.selectInputVideoDevice2
+        selectInputVideoDevice2: this.selectInputVideoDevice2,
+        sendStampBySignal: this.sendStampBySignal,
     }
 
 

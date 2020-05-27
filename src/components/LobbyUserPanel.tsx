@@ -12,6 +12,7 @@ import StampAccordion from './meetingComp/StampAccordion';
 import SendTextAccordion from './meetingComp/SendTextAccordion';
 import { AppState } from './App';
 import SecondaryCameraAccordion from './meetingComp/SecondaryCameraAccordion';
+import StampAccordionBySignal from './meetingComp/StampAccordionBySignal';
 
 
 interface PreviewPanelState{
@@ -149,6 +150,7 @@ class ConfigurationPanel extends React.Component {
                     <SendTextAccordion {...props}/>
 
                     <SecondaryCameraAccordion {...props} />
+                    <StampAccordionBySignal {...props} />
                 </Segment>
             </div>
         )

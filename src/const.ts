@@ -73,6 +73,11 @@ export const LobbyMainColumnConfig = {
 }
 
 
+export enum DataMessageTopic{
+    DRAWING,
+    CHAT,
+    STAMP,
+}
 
 
 export const LOGGER_BATCH_SIZE: number = 85;
