@@ -1,12 +1,14 @@
 import * as React from 'react';
 import { AppState } from '../App';
 import MainOverlayVideoElement from './MainOverlayVideoElement'
-
-interface OverlayVideoElementState{
-    hoverd: boolean
-}
+import MainOverlayVideoElementState from './MainOverlayVideoElement'
 
 class OverlayVideoElement extends MainOverlayVideoElement {
+
+    constructor(props:any){
+        super(props)
+        this.state.enableDrawing = false
+    }
 
     render()  {
         const props = this.props as any
@@ -23,6 +25,7 @@ class OverlayVideoElement extends MainOverlayVideoElement {
                 <video  ref={this.videoRef}  style={{ position: "absolute", width: "100%"}} />
                 <canvas ref={this.canvasRef} style={{ position: "absolute", width: "100%", border: border}} />
                 <canvas ref={this.statusCanvasRef} style={{position: "absolute", width: "100%"}} />
+
             </div>     
         )
     }

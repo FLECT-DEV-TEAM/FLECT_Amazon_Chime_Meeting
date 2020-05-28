@@ -3,7 +3,6 @@ import { Accordion, Icon, Grid } from 'semantic-ui-react';
 import { RS_STAMPS } from '../resources';
 import { AppState } from '../App';
 import { GlobalState } from '../../reducers';
-import { DataMessageTopic } from '../../const';
 
 interface StampAccordionBySignalState{
     open             : boolean

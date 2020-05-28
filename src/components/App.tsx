@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { GlobalState } from '../reducers';
-import { AppStatus, LOGGER_BATCH_SIZE, LOGGER_INTERVAL_MS, AppEntranceStatus, AppMeetingStatus, AppLobbyStatus, NO_DEVICE_SELECTED, DataMessageTopic } from '../const';
+import { AppStatus, LOGGER_BATCH_SIZE, LOGGER_INTERVAL_MS, AppEntranceStatus, AppMeetingStatus, AppLobbyStatus, NO_DEVICE_SELECTED } from '../const';
 import * as bodyPix from '@tensorflow-models/body-pix';
 
 import {
@@ -90,10 +90,19 @@ const registerHandlers = (app: App, props: any, meetingSession: DefaultMeetingSe
 
     setRealtimeSubscribeToAttendeeIdPresence(app, meetingSession.audioVideo)
     setSubscribeToActiveSpeakerDetector(app, meetingSession.audioVideo)
-    setRealtimeSubscribeToReceiveDataMessage(app, meetingSession.audioVideo, DataMessageTopic.DRAWING.toString())
-    setRealtimeSubscribeToReceiveDataMessage(app, meetingSession.audioVideo, DataMessageTopic.STAMP.toString())
-    setRealtimeSubscribeToReceiveDataMessage(app, meetingSession.audioVideo, DataMessageTopic.CHAT.toString())
+    setRealtimeSubscribeToReceiveDataMessage(app, meetingSession.audioVideo, MessageType.Drawing.toString())
+    setRealtimeSubscribeToReceiveDataMessage(app, meetingSession.audioVideo, MessageType.Stamp.toString())
+    setRealtimeSubscribeToReceiveDataMessage(app, meetingSession.audioVideo, MessageType.Message.toString())
 
+}
+
+let dataMessageConsumers:any[] = []
+export const addDataMessageConsumers = (consumer:any) =>{
+    console.log("ADD CONSUMER")
+    dataMessageConsumers.push(consumer)
+}
+export const removeDataMessageConsumers = (consumer:any) =>{
+    dataMessageConsumers = dataMessageConsumers.filter(n => n !== consumer)
 }
 
 
@@ -101,6 +110,13 @@ const registerHandlers = (app: App, props: any, meetingSession: DefaultMeetingSe
 export enum MessageType {
     Message,
     Stamp,
+    Drawing,
+}
+
+export enum DrawingType {
+    Draw,
+    Erase,
+    Clear,
 }
 
 interface Message {
@@ -289,9 +305,9 @@ class App extends React.Component {
     receivedDataMessage = (dataMessage: DataMessage) =>{
         
         console.log("DATAMESSAGE 5:", dataMessage)
-        if(dataMessage.topic === DataMessageTopic.CHAT.toString()){
+        if(dataMessage.topic === MessageType.Message.toString()){
 
-        }else if(dataMessage.topic === DataMessageTopic.STAMP.toString()){
+        }else if(dataMessage.topic === MessageType.Stamp.toString()){
             const json = JSON.parse(Buffer.from(dataMessage.data).toString())
             console.log("DATAMESSAGE 6:", json.data)
             console.log(dataMessage)
@@ -306,8 +322,22 @@ class App extends React.Component {
             }
             this.state.currentSettings.globalMessages.push(message)
 
-        }else if(dataMessage.topic === DataMessageTopic.DRAWING.toString()){
-
+        }else if(dataMessage.topic === MessageType.Drawing.toString()){
+            const json = JSON.parse(Buffer.from(dataMessage.data).toString())
+            const data = JSON.parse(json.data)
+            console.log(data)
+            dataMessageConsumers.map(consumer =>{
+                if(data.mode === DrawingType.Draw){
+                    consumer.draw(data.startXR, data.startYR, data.endXR, data.endYR, data.stroke, data.lineWidth, true)
+                }else if(data.mode === DrawingType.Erase){
+                    consumer.erase(data.startXR, data.startYR, data.endXR, data.endYR, true)
+                }else if(data.mode === DrawingType.Clear){
+                    console.log("CMD2",data.mode, DrawingType.Clear.toString())
+                    consumer.clear()
+                }else{
+                    console.log("CMD3",data.mode, DrawingType.Erase.toString())
+                }
+            })
         }
     }
 
@@ -511,9 +541,8 @@ class App extends React.Component {
             action: 'sendmessage',
             data: JSON.stringify({ "cmd": MessageType.Stamp, "targetId": targetId, "imgPath": imgPath, "startTime": Date.now() })
         };
-        gs.meetingSession?.audioVideo.realtimeSendDataMessage(DataMessageTopic.STAMP.toString(), JSON.stringify(message))
+        gs.meetingSession?.audioVideo.realtimeSendDataMessage(MessageType.Stamp.toString(), JSON.stringify(message))
     }
-
 
     sendText = (targetId: string, msg: string) => {
         const message = {
@@ -528,6 +557,26 @@ class App extends React.Component {
     // addMessagingConsumer = (func:()=>{}) =>{
     //     this.state.messagingConsumer.push(func)
     // }
+
+    sendDrawsingBySignal = (targetId: string, mode:string, startXR:number, startYR:number, endXR:number, endYR:number, stroke:string, lineWidth:number)=>{
+        const gs = this.props as GlobalState
+        const message={
+            action: 'sendmessage',
+            data: JSON.stringify({ 
+                cmd         : MessageType.Drawing,
+                targetId    : targetId, 
+                startTime   : Date.now(),
+                mode        : mode,
+                startXR     : startXR,
+                startYR     : startYR,
+                endXR       : endXR,
+                endYR       : endYR,
+                stroke      : stroke,
+                lineWidth   : lineWidth
+            })
+        }
+        gs.meetingSession?.audioVideo.realtimeSendDataMessage(MessageType.Drawing.toString(), JSON.stringify(message))
+    }
 
     callbacks: { [key: string]: any } = {
         toggleMute: this.toggleMute,
@@ -549,6 +598,7 @@ class App extends React.Component {
         // addMessagingConsumer: this.addMessagingConsumer,
         selectInputVideoDevice2: this.selectInputVideoDevice2,
         sendStampBySignal: this.sendStampBySignal,
+        sendDrawsingBySignal: this.sendDrawsingBySignal,
     }
 
 

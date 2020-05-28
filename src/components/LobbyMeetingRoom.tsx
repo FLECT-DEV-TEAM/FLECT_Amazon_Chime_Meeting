@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Button, Form, Grid, GridColumn, Menu, Dropdown, Icon } from 'semantic-ui-react'
+import { Button, Form, Grid, GridColumn, Menu, Dropdown, Icon, Checkbox, Label } from 'semantic-ui-react'
 import { GlobalState } from '../reducers';
 import { LobbyMainColumnConfig, LobbyMainColumnConfigInf, AppStatus} from '../const'
 import MainOverlayVideoElement from './meetingComp/MainOverlayVideoElement';
@@ -10,9 +10,48 @@ import OverlayVideoElement from './meetingComp/OverlayVideoElement';
 import { MESSAGING_URL } from '../config';
 
 
-class MainScreen extends React.Component{
-    mainOverlayVideoRef = React.createRef<MainOverlayVideoElement>()
 
+const colors = [
+    'red',
+    'orange',
+    'yellow',
+    'olive',
+    'green',
+    'teal',
+    'blue',
+    'violet',
+    'purple',
+    'pink',
+    'brown',
+    'grey',
+    'black',
+  ]
+  
+
+
+class MainScreen extends React.Component{
+    state={drawingStroke:"black", enableDrawing:false, erasing:false}
+    mainOverlayVideoRef = React.createRef<MainOverlayVideoElement>()
+    labelExampleCircular = () => (
+        <span>
+          {colors.map((color) => (
+              //@ts-ignore
+            <Label circular empty color={color} key={color} active={color===this.state.drawingStroke}
+                onClick={()=>{
+                    this.mainOverlayVideoRef.current!.setDrawingStroke(color);
+                    this.mainOverlayVideoRef.current!.setErasing(false);
+                    this.mainOverlayVideoRef.current!.setDrawingMode(true)
+                    this.setState({
+                        drawingStroke:color,
+                        enableDrawing:true,
+                        erasing:false,
+                    })
+
+                }
+            } />
+          ))}
+        </span>
+      )
     render(){
         const props = this.props as any
         const appState = props.appState as AppState
@@ -36,9 +75,42 @@ class MainScreen extends React.Component{
             <Grid>
                 <Grid.Row>
                     <Grid.Column>
-                        <MainOverlayVideoElement {...props} ref={this.mainOverlayVideoRef}/>
-                        {icon}
-                        {attendeeName}
+                        <div>
+                            <MainOverlayVideoElement {...props} ref={this.mainOverlayVideoRef}/>
+                        </div>
+                        <span>
+                            {icon}
+                            {attendeeName}
+                        </span>
+                        <span style={{paddingLeft:"30px"}}>
+                            <Icon name="pencil" color={this.state.enableDrawing? "red":"grey"}
+                                onClick ={
+                                    ()=>{
+                                        this.mainOverlayVideoRef.current!.setDrawingMode(!this.state.enableDrawing)
+                                        this.mainOverlayVideoRef.current!.setErasing(false)
+                                        this.setState({
+                                            enableDrawing:!this.state.enableDrawing,
+                                            erasing:false,
+                                        })
+                                    }
+                                }
+                            />
+                            {this.labelExampleCircular()}
+                            <Icon name="eraser" color={this.state.erasing? "red":"grey"}
+                                onClick={
+                                    ()=>{
+                                        this.mainOverlayVideoRef.current!.setErasing(true)
+                                        this.setState({
+                                            erasing:true,
+                                            enableDrawing:false
+                                        })
+                                    }
+                                } 
+                            />
+                            <Icon name="file outline" onClick={()=>{this.mainOverlayVideoRef.current!.clearDrawingCanvas()}} />
+                                
+
+                        </span>
                     </Grid.Column>
                 </Grid.Row>
             </Grid>
