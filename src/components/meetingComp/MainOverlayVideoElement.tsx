@@ -36,7 +36,6 @@ class MainOverlayVideoElement extends React.Component{
     )}
     drawing = (offsetX:number, offsetY:number, movementX:number, movementY:number) =>{
         const props = this.props as any
-        const thisAttendeeId = props.thisAttendeeId        
         //console.log("drawing", this.state.inDrawing, offsetX, offsetY)
         if(this.state.inDrawing && this.state.inDrawingMode && this.state.enableDrawing){
             const startX = offsetX - movementX
@@ -80,12 +79,11 @@ class MainOverlayVideoElement extends React.Component{
         this.setState({inDrawing:false})
     }
     clearDrawingCanvas = () =>{
-        const ctx = this.drawingCanvas.getContext("2d")!
         const props = this.props as any
-        ctx.clearRect(0,0, this.drawingCanvas.width!, this.drawingCanvas.height!)
+        this.clearDrawing()
         props.sendDrawsingBySignal("", DrawingType.Clear, 0, 0, 0, 0, this.state.drawingStroke, this.state.drawingLineWidth )
     }
-    clear = () =>{
+    clearDrawing = () =>{
         const ctx = this.drawingCanvas.getContext("2d")!
         ctx.clearRect(0,0, this.drawingCanvas.width!, this.drawingCanvas.height!)
     }

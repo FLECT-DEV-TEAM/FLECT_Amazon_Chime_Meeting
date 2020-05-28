@@ -20,18 +20,35 @@ import {
 } from 'amazon-chime-sdk-js';
 import Entrance from './Entrance';
 import Lobby from './Lobby';
-import SelectDevice from './SelectDevice';
-import InMeetingRoom from './InMeetingRoom';
 import DeviceChangeObserverImpl from './DeviceChangeObserverImpl';
 import AudioVideoObserverImpl from './AudioVideoObserverImpl';
 import ContentShareObserverImpl from './ContentShareObserverImpl';
 import { setRealtimeSubscribeToAttendeeIdPresence, setSubscribeToActiveSpeakerDetector, setRealtimeSubscribeToReceiveDataMessage } from './subscribers';
 import { getDeviceLists, getVideoDevice } from './utils'
 import { API_BASE_URL, MESSAGING_URL } from '../config';
-import MainOverlayVideoElement from './meetingComp/MainOverlayVideoElement';
 import { RS_STAMPS } from './resources';
 import ErrorPortal from './meetingComp/ErrorPortal';
 
+
+export enum MessageType {
+    Message,
+    Stamp,
+    Drawing,
+}
+
+export enum DrawingType {
+    Draw,
+    Erase,
+    Clear,
+}
+
+interface Message {
+    type: MessageType
+    startTime: number
+    targetId: string
+    imgSrc: string
+    message: string
+}
 
 /**
  * 
@@ -107,25 +124,7 @@ export const removeDataMessageConsumers = (consumer:any) =>{
 
 
 
-export enum MessageType {
-    Message,
-    Stamp,
-    Drawing,
-}
 
-export enum DrawingType {
-    Draw,
-    Erase,
-    Clear,
-}
-
-interface Message {
-    type: MessageType
-    startTime: number
-    targetId: string
-    imgSrc: string
-    message: string
-}
 
 /**
  * 
@@ -332,8 +331,7 @@ class App extends React.Component {
                 }else if(data.mode === DrawingType.Erase){
                     consumer.erase(data.startXR, data.startYR, data.endXR, data.endYR, true)
                 }else if(data.mode === DrawingType.Clear){
-                    console.log("CMD2",data.mode, DrawingType.Clear.toString())
-                    consumer.clear()
+                    consumer.clearDrawing()
                 }else{
                     console.log("CMD3",data.mode, DrawingType.Erase.toString())
                 }
@@ -374,7 +372,6 @@ class App extends React.Component {
 
     // For Camera
     toggleVideo = () => {
-        const gs = this.props as GlobalState
         const videoEnable = !this.state.currentSettings.videoEnable
         const currentSettings = this.state.currentSettings
         currentSettings.videoEnable = videoEnable
@@ -389,9 +386,6 @@ class App extends React.Component {
     }
 
     selectInputVideoDevice = (deviceId: string) => {
-        const gs = this.props as GlobalState
-        const props = this.props as any
-
 
         console.log("SELECT INPUTDEVICE", deviceId)
         getVideoDevice(deviceId).then(stream => {
@@ -821,14 +815,14 @@ class App extends React.Component {
                 // Messaging Websocket
                 const messagingURLWithQuery = `${MESSAGING_URL}?joinToken=${defaultMeetingSession.configuration.credentials!.joinToken}&meetingId=${defaultMeetingSession.configuration.meetingId}&attendeeId=${defaultMeetingSession.configuration.credentials!.attendeeId}`
                 console.log("MESSAGEING_URL", messagingURLWithQuery)
-                this.state.messagingSocket = new ReconnectingPromisedWebSocket(
+                const messagingSocket = new ReconnectingPromisedWebSocket(
                     messagingURLWithQuery,
                     [],
                     'arraybuffer',
                     new DefaultPromisedWebSocketFactory(new DefaultDOMWebSocketFactory()),
                     new FullJitterBackoff(1000, 0, 10000)
                 );
-                const messagingSocketPromise = this.state.messagingSocket.open(20 * 1000);
+                const messagingSocketPromise = messagingSocket.open(20 * 1000);
 
 
 
@@ -859,7 +853,7 @@ class App extends React.Component {
                     props.meetingPrepared(meetingSessionConf, defaultMeetingSession)
 
 
-                    this.state.messagingSocket!.addEventListener('message', (e: Event) => {
+                    messagingSocket.addEventListener('message', (e: Event) => {
                         const data = JSON.parse((e as MessageEvent).data);
                         console.log("Messaging!", data)
                         const message: Message = {
@@ -871,6 +865,7 @@ class App extends React.Component {
                         }
                         this.state.currentSettings.globalMessages.push(message)
                     })
+                    this.setState({messagingSocket: messagingSocket})
                 })
                 return <div />
             } else if (gs.meetingStatus === AppMeetingStatus.WILL_CLEAR) {
@@ -882,10 +877,11 @@ class App extends React.Component {
                         gs.meetingSession.audioVideo.unbindVideoElement(Number(key))
                     }
                     gs.meetingSession.audioVideo.stop()
-
-                    this.state.videoTileStates = {}
-                    this.state.roster = {}
-                    this.state.messagingConsumer = []
+                    this.setState({
+                        videoTileStates   : {},
+                        roster            : {},
+                        messagingConsumer : {},
+                    })
                     props.clearedMeetingSession()
                 }
             }
@@ -903,91 +899,6 @@ class App extends React.Component {
                 </div>
             )
         }
-
-
-        // /**
-        //  * For Created Room
-        //  */
-        // if(gs.status === AppStatus.CREATED_MEETING_ROOM){
-        //     const props      = this.props as any
-        //     const gs         = this.props as GlobalState
-        //     const baseURL    = gs.baseURL
-        //     const roomId     = gs.joinInfo.Meeting.MeetingId
-        //     const userName   = gs.userName
-        //     const region     = gs.region
-        //     props.enterSession(baseURL, roomId, userName, region)            
-        //     //this.enterMeetingRoom()
-        //     return <div/>
-        // }
-        // /**
-        //  * For ENTERING_SESSION
-        //  */
-        // if(gs.status === AppStatus.ENTERING_SESSION){
-        //     return <div/>
-        // }
-
-        // /**
-        //  * For Select Device Screen
-        //  */
-        // if(gs.status === AppStatus.SELECT_DEVICE){
-        //     // Create Meeting Session. To list devices, do this.
-        //     if(gs.meetingSessionConf === null){
-        //         const meetingSessionConf = new MeetingSessionConfiguration(gs.joinInfo.Meeting, gs.joinInfo.Attendee)
-        //         const defaultMeetingSession = initializeMeetingSession(gs, meetingSessionConf)
-
-        //         registerHandlers(this, props, defaultMeetingSession)
-        //         const url = new URL(window.location.href);
-        //         url.searchParams.set('m', gs.roomTitle);
-        //         window.history.replaceState({}, `${gs.roomTitle}`, url.toString());
-        //         props.initializedSession(meetingSessionConf, defaultMeetingSession)
-        //         return <div/>
-        //     }
-
-        //     // List devices and load AI Model
-        //     if(gs.inputAudioDevices === null){
-        //         const audioInputDevicesPromise  = gs.meetingSession!.audioVideo.listAudioInputDevices()
-        //         const videoInputDevicesPromise  = gs.meetingSession!.audioVideo.listVideoInputDevices()
-        //         const videoInputResolutions     = ["360p", "540p", "720p"]
-        //         const audioOutputDevicesPromise = gs.meetingSession!.audioVideo.listAudioOutputDevices()
-        //             const netPromise = bodyPix.load();
-
-        //         Promise.all([audioInputDevicesPromise, videoInputDevicesPromise, audioOutputDevicesPromise, netPromise]).then(([audioInputDevices, videoInputDevices, audioOutputDevices, bodyPix]) => {
-        //             console.log("Promise:", videoInputDevices)
-        //             this.state.bodyPix = bodyPix
-        //             props.setDevices(audioInputDevices, videoInputDevices, videoInputResolutions, audioOutputDevices)
-        //         })
-        //         return <div/>
-        //     }
-        // }
-
-        // /**
-        //  * Apply the information in Global store to the class status.
-        //  */
-        // for(let attendeeId in this.state.roster){
-        //     if(attendeeId in gs.storeRoster){
-        //         const attendee = this.state.roster[attendeeId]
-        //         attendee.name = gs.storeRoster[attendeeId].name
-        //     }
-        // }
-
-        /**
-         * render
-         */
-        // const bgColor="#324851"
-
-        // return (
-        //     <div  style={{ backgroundColor:bgColor, width: "100%",  height: "100%", top: 0, left: 0, }}>
-        //         {(()=>{
-        //             if(gs.status === AppStatus.LOGIN){
-        //                 return <Entrance {...props}/>
-        //             }else if(gs.status === AppStatus.SELECT_DEVICE){
-        //                 return <SelectDevice {...props}  />
-        //             }else if(gs.status === AppStatus.IN_MEETING_ROOM){
-        //                 return <InMeetingRoom  {...props} videoTileState={this.state.videoTileStates} roster={this.state.roster} bodyPix={this.state.bodyPix}/>
-        //             }
-        //         })()}
-        //     </div>
-        // )
         return <div />
     }
 }

@@ -16,12 +16,6 @@ class StampAccordion extends React.Component {
     this.setState({open: !this.state.open})
   }
 
-  ////////////////////////////////
-  /// Lifecycle
-  ///////////////////////////////
-  constructor(props:any) {
-    super(props);
-  }
 
   ////////////////////////////////
   /// UI

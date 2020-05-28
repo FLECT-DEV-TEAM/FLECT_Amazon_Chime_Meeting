@@ -1,7 +1,5 @@
 import * as React from 'react';
-import { Icon, Button, Accordion, Menu, Form, Divider, List} from 'semantic-ui-react';
-import { BUTTON_COLOR} from '../../const';
-import { AppState } from '../App';
+import { Icon, Accordion, Menu, Divider, List} from 'semantic-ui-react';
 
 
 interface VideoShareControlState{
@@ -20,7 +18,6 @@ class VideoShareControl extends React.Component {
 
     generateAccordion = () =>{
         const props = this.props as any
-        const appState = props.appState as AppState
     
         const grid = (
             <Accordion styled>

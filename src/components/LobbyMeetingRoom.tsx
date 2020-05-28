@@ -1,13 +1,11 @@
 import * as React from 'react';
-import { Button, Form, Grid, GridColumn, Menu, Dropdown, Icon, Checkbox, Label } from 'semantic-ui-react'
+import { Grid, Menu, Icon, Label } from 'semantic-ui-react'
 import { GlobalState } from '../reducers';
-import { LobbyMainColumnConfig, LobbyMainColumnConfigInf, AppStatus} from '../const'
+import { AppStatus} from '../const'
 import MainOverlayVideoElement from './meetingComp/MainOverlayVideoElement';
-import { VideoTileState } from 'amazon-chime-sdk-js';
 import { getTileId } from './utils';
-import App, { AppState } from './App';
+import { AppState } from './App';
 import OverlayVideoElement from './meetingComp/OverlayVideoElement';
-import { MESSAGING_URL } from '../config';
 
 
 
@@ -252,15 +250,9 @@ class LobbyMeetingRoom extends React.Component {
 
 
     componentDidUpdate = () => {
-        const props = this.props as any
         const gs = this.props as GlobalState
-        const appState = props.appState as AppState    
 
         console.log(gs)
-        // for(let i in this.id2ref){
-        //     const tmpRef = this.id2ref[i]
-        //     gs.meetingSession?.audioVideo.bindVideoElement(Number(i), tmpRef.current!.getVideoRef().current!)
-        // }
     }
 }
 

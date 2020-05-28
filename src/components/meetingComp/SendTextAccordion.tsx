@@ -1,6 +1,5 @@
 import * as React from 'react';
-import { Accordion, Icon, Grid, Input, Form } from 'semantic-ui-react';
-import { RS_STAMPS } from '../resources';
+import { Accordion, Icon, Form } from 'semantic-ui-react';
 import { AppState } from '../App';
 
 interface SendTextAccordionState{
@@ -18,12 +17,6 @@ class SendTextAccordion extends React.Component {
     this.setState({open: !this.state.open})
   }
 
-  ////////////////////////////////
-  /// Lifecycle
-  ///////////////////////////////
-  constructor(props:any) {
-    super(props);
-  }
 
   ////////////////////////////////
   /// UI

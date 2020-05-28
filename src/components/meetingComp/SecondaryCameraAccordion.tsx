@@ -1,7 +1,5 @@
 import * as React from 'react';
-import { Accordion, Icon, Grid, Input, Form, Dropdown, List } from 'semantic-ui-react';
-import { RS_STAMPS } from '../resources';
-import { AppState } from '../App';
+import { Accordion, Icon, Dropdown } from 'semantic-ui-react';
 import { GlobalState } from '../../reducers';
 import { getVideoDevice } from '../utils';
 
@@ -57,20 +55,12 @@ class SecondaryCameraAccordion extends React.Component {
 
   }
 
-  ////////////////////////////////
-  /// Lifecycle
-  ///////////////////////////////
-  constructor(props: any) {
-    super(props);
-  }
 
   ////////////////////////////////
   /// UI
   ///////////////////////////////
   generateAccordion = () => {
-    const props = this.props as any
     const gs = this.props as GlobalState
-    const appState = props.appState as AppState
     const inputVideoDevicesOpts = gs.inputVideoDevices!.map(info => { return { key: info.label, text: info.label, value: info.deviceId } })
     inputVideoDevicesOpts.push({key:"none", text:"none", value:"none"})
 

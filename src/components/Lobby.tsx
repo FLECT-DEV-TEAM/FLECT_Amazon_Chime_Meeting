@@ -1,9 +1,7 @@
 import * as React from 'react';
-import { Button, Form, Grid, GridColumn, Menu, Dropdown } from 'semantic-ui-react'
+import { Grid, Menu, Dropdown } from 'semantic-ui-react'
 import LobbyMain from './LobbyMain';
 import { GlobalState } from '../reducers';
-import { AppState } from './App';
-import { getVideoDevice } from './utils';
 
 
 class LobbyHeader extends React.Component {
@@ -57,7 +55,6 @@ class LobbyHeader extends React.Component {
 class Lobby extends React.Component {
     render() {
         const props = this.props as any
-        const appState = props.appState as AppState
         return (
 
             <Grid>

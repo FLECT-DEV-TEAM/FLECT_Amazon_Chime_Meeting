@@ -2,7 +2,6 @@ import * as React from 'react';
 import { Accordion, Icon, Grid } from 'semantic-ui-react';
 import { RS_STAMPS } from '../resources';
 import { AppState } from '../App';
-import { GlobalState } from '../../reducers';
 
 interface StampAccordionBySignalState{
     open             : boolean
@@ -15,13 +14,6 @@ class StampAccordionBySignal extends React.Component {
 
   handleClick() {
     this.setState({open: !this.state.open})
-  }
-
-  ////////////////////////////////
-  /// Lifecycle
-  ///////////////////////////////
-  constructor(props:any) {
-    super(props);
   }
 
   ////////////////////////////////
@@ -50,7 +42,6 @@ class StampAccordionBySignal extends React.Component {
 
     const props = this.props as any
     const appState = props.appState as AppState
-    const gs = this.props as GlobalState
 
     const stamps = []
     for (const i in RS_STAMPS) {
