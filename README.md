@@ -11,11 +11,15 @@ Inspired by https://github.com/aws/amazon-chime-sdk-js/tree/master/demos/browser
 - Virtual background
 - Send Stamp
 - Send Message
+- White board
 
 
 <p align="center">
 <img src="./doc/virtualBG.gif" width="300" />
 <img src="./doc/stamp.gif" width="300" />
+</p>
+<p align="center">
+<img src="./doc/whiteboard_mini.gif" width="300" />
 </p>
 
 
@@ -102,10 +106,19 @@ We can defined the prefix of the name of meeting room. By this, somebody who doe
 
 To define the prefix of room name, edit following line of "serverless.yml".
 ```
-    MEETING_ROOM_ID_PREFIX : "XXXX"
+    MEETING_ROOM_ID_PREFIX : "XXXX"    
 ```
 I say again that this is a very simple and weak way to restrict and this is not enough secure. We will provide some authentification method, maybe integrate with cognito.
 
-
 ## Note2
+Addition to Note1, we provide the login code.
+You can set the global code in "serverless.yml"
+```
+    CODE                   : "XXXX"
+```
+User cannot login without this CODE.
+I say again and again that this is a very simple and weak way to restrict and this is not enough secure. 
+
+
+## Note3
 This software is experimental version. 

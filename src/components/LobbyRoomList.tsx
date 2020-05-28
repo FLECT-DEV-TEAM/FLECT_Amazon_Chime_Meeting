@@ -1,7 +1,6 @@
 import * as React from 'react';
-import { Button, Form, Grid, GridColumn, Modal, Segment, Label, Feed, Header, Item, Menu, Dropdown, Divider, Checkbox, CheckboxProps, Icon, List } from 'semantic-ui-react'
+import { Button, Form, Modal, Segment, Header, Item, Divider, Checkbox, CheckboxProps, Icon, List } from 'semantic-ui-react'
 import { GlobalState, MeetingInfo } from '../reducers';
-import { LobbyMainColumnConfig, LobbyMainColumnConfigInf} from '../const'
 class LobbyRoomList extends React.Component {
     roomNameRef        = React.createRef<HTMLInputElement>()
     roomSecretCheckRef = React.createRef<React.Component<CheckboxProps, any, any>>()

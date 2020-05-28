@@ -3,19 +3,18 @@ import { Accordion, Icon, Grid } from 'semantic-ui-react';
 import { RS_STAMPS } from '../resources';
 import { AppState } from '../App';
 
-interface StampAccordionState{
+interface StampAccordionBySignalState{
     open             : boolean
 }
 
-class StampAccordion extends React.Component {
-  state: StampAccordionState = {
+class StampAccordionBySignal extends React.Component {
+  state: StampAccordionBySignalState = {
     open             : false,
   }
 
   handleClick() {
     this.setState({open: !this.state.open})
   }
-
 
   ////////////////////////////////
   /// UI
@@ -29,7 +28,7 @@ class StampAccordion extends React.Component {
             onClick={()=>{this.handleClick()}}
         >
             <Icon name='dropdown' />
-            Stamps
+            Stamps by signal(experimental)
         </Accordion.Title>
         <Accordion.Content active={this.state.open}>
             {this.generateStampTiles()}
@@ -43,12 +42,15 @@ class StampAccordion extends React.Component {
 
     const props = this.props as any
     const appState = props.appState as AppState
+
     const stamps = []
     for (const i in RS_STAMPS) {
       const imgPath = RS_STAMPS[i]
 
       stamps.push(
-            <img src={imgPath} width="10%" alt="" onClick={(e) => { props.sendStamp(appState.currentSettings.focuseAttendeeId, imgPath) }} />
+            <img src={imgPath} width="10%" alt="" onClick={(e) => { 
+              props.sendStampBySignal(appState.currentSettings.focuseAttendeeId, imgPath)
+            }} />
       )
     }
     return (
@@ -68,5 +70,5 @@ class StampAccordion extends React.Component {
 
 }
 
-export default StampAccordion;
+export default StampAccordionBySignal;
 

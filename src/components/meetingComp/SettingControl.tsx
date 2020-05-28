@@ -1,9 +1,7 @@
 import * as React from 'react';
-import { Icon, Button, Modal, Grid, Dropdown, List } from 'semantic-ui-react';
-import { BUTTON_COLOR } from '../../const';
+import { Icon, Button, Modal, Grid, List } from 'semantic-ui-react';
 import { RS_VBG } from '../resources';
 import { AppState } from '../App';
-import { GlobalState } from '../../reducers';
 
 // const trigger = (
 //     // <div as="a">
@@ -51,7 +49,6 @@ class SettingControl extends React.Component {
     
     generateVGSettingPanal = () => {
         const props = this.props as any
-        const gs = this.props as GlobalState
         const appState = props.appState as AppState
 
         const images = []
@@ -85,9 +82,6 @@ class SettingControl extends React.Component {
     }
 
     render() {
-        const otherSettingOpts=[{ key: "virtual background", text: "virtual background", value: "virtual background" } ]
-
-
         return (
           // @ts-ignore
           <div>

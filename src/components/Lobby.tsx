@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Button, Form, Grid, GridColumn, Menu, Dropdown } from 'semantic-ui-react'
+import { Grid, Menu, Dropdown } from 'semantic-ui-react'
 import LobbyMain from './LobbyMain';
 import { GlobalState } from '../reducers';
 
@@ -55,8 +55,8 @@ class LobbyHeader extends React.Component {
 class Lobby extends React.Component {
     render() {
         const props = this.props as any
-
         return (
+
             <Grid>
                 <Grid.Row>
                     <Grid.Column width={16}>

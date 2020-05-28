@@ -15,22 +15,40 @@ import {
     ReconnectingPromisedWebSocket,
     DefaultPromisedWebSocketFactory,
     DefaultDOMWebSocketFactory,
-    FullJitterBackoff
+    FullJitterBackoff,
+    DataMessage
 } from 'amazon-chime-sdk-js';
 import Entrance from './Entrance';
 import Lobby from './Lobby';
-import SelectDevice from './SelectDevice';
-import InMeetingRoom from './InMeetingRoom';
 import DeviceChangeObserverImpl from './DeviceChangeObserverImpl';
 import AudioVideoObserverImpl from './AudioVideoObserverImpl';
 import ContentShareObserverImpl from './ContentShareObserverImpl';
-import { setRealtimeSubscribeToAttendeeIdPresence, setSubscribeToActiveSpeakerDetector } from './subscribers';
+import { setRealtimeSubscribeToAttendeeIdPresence, setSubscribeToActiveSpeakerDetector, setRealtimeSubscribeToReceiveDataMessage } from './subscribers';
 import { getDeviceLists, getVideoDevice } from './utils'
 import { API_BASE_URL, MESSAGING_URL } from '../config';
-import MainOverlayVideoElement from './meetingComp/MainOverlayVideoElement';
 import { RS_STAMPS } from './resources';
 import ErrorPortal from './meetingComp/ErrorPortal';
 
+
+export enum MessageType {
+    Message,
+    Stamp,
+    Drawing,
+}
+
+export enum DrawingType {
+    Draw,
+    Erase,
+    Clear,
+}
+
+interface Message {
+    type: MessageType
+    startTime: number
+    targetId: string
+    imgSrc: string
+    message: string
+}
 
 /**
  * 
@@ -89,23 +107,22 @@ const registerHandlers = (app: App, props: any, meetingSession: DefaultMeetingSe
 
     setRealtimeSubscribeToAttendeeIdPresence(app, meetingSession.audioVideo)
     setSubscribeToActiveSpeakerDetector(app, meetingSession.audioVideo)
+    setRealtimeSubscribeToReceiveDataMessage(app, meetingSession.audioVideo, MessageType.Drawing.toString())
+    setRealtimeSubscribeToReceiveDataMessage(app, meetingSession.audioVideo, MessageType.Stamp.toString())
+    setRealtimeSubscribeToReceiveDataMessage(app, meetingSession.audioVideo, MessageType.Message.toString())
 
 }
 
-
-
-export enum MessageType {
-    Message,
-    Stamp,
+let dataMessageConsumers:any[] = []
+export const addDataMessageConsumers = (consumer:any) =>{
+    console.log("ADD CONSUMER")
+    dataMessageConsumers.push(consumer)
+}
+export const removeDataMessageConsumers = (consumer:any) =>{
+    dataMessageConsumers = dataMessageConsumers.filter(n => n !== consumer)
 }
 
-interface Message {
-    type: MessageType
-    startTime: number
-    targetId: string
-    imgSrc: string
-    message: string
-}
+
 
 
 
@@ -131,7 +148,10 @@ export interface CurrentSettings {
     selectedOutputAudioDevice: string
     virtualBackgroundPath: string
     focuseAttendeeId: string
-    globalMessages: Message[],
+    globalMessages: Message[]
+
+    selectedInputVideoDevice2: string
+
 }
 
 /**
@@ -144,9 +164,6 @@ export interface AppState {
     messagingSocket: ReconnectingPromisedWebSocket | null,
     stamps: { [key: string]: HTMLImageElement },
     messagingConsumer: (()=>{})[]
-
-    localVideoWidth: number,
-    localVideoHeight: number,
 
     outputAudioElement: HTMLAudioElement | null,
 
@@ -165,9 +182,6 @@ export interface AppState {
 
 }
 
-
-
-
 /**
  * Main Component
  */
@@ -181,8 +195,6 @@ class App extends React.Component {
         stamps: {},
         messagingConsumer: [],
 
-        localVideoWidth: 0,
-        localVideoHeight: 0,
         inputVideoStream: null,
         inputVideoElement: document.createElement("video"),
         inputVideoCanvas: document.createElement("canvas"),
@@ -206,6 +218,9 @@ class App extends React.Component {
             virtualBackgroundPath: "/resources/vbg/pic0.jpg",
             focuseAttendeeId: "",
             globalMessages: [],
+
+            selectedInputVideoDevice2: NO_DEVICE_SELECTED,
+
         },
     }
 
@@ -215,13 +230,14 @@ class App extends React.Component {
     ****************************/
     updateVideoTileState = (state: VideoTileState) => {
         let needUpdate = false
-        if (this.state.videoTileStates[state.tileId!]) {
+        const videoTileStates = this.state.videoTileStates
+        if (videoTileStates[state.tileId!]) {
         } else {
             needUpdate = true
         }
-        this.state.videoTileStates[state.tileId!] = state
+        videoTileStates[state.tileId!] = state
         if (needUpdate) {
-            this.setState({})
+            this.setState({videoTileStates:videoTileStates})
         }
         console.log("updateVideoTileState", this.state.videoTileStates)
     }
@@ -242,9 +258,9 @@ class App extends React.Component {
         const props = this.props as any
         const gs = this.props as GlobalState
         //props.changeAttendeeStatus(attendeeId, volume, muted, signalStrength, gs.baseURL, gs.roomID)
-
-        if ((attendeeId in this.state.roster) === false) {
-            this.state.roster[attendeeId] = {
+        const roster = this.state.roster
+        if ((attendeeId in roster) === false) {
+            roster[attendeeId] = {
                 attendeeId: attendeeId,
                 name: null,
                 active: false,
@@ -253,15 +269,16 @@ class App extends React.Component {
                 signalStrength: null
             }
         }
+        
 
         if (volume !== null) {
-            this.state.roster[attendeeId].volume = volume
+            roster[attendeeId].volume = volume
         }
         if (muted !== null) {
-            this.state.roster[attendeeId].muted = muted
+            roster[attendeeId].muted = muted
         }
         if (signalStrength !== null) {
-            this.state.roster[attendeeId].signalStrength = signalStrength
+            roster[attendeeId].signalStrength = signalStrength
         }
         if (this.state.roster[attendeeId].name === null || this.state.roster[attendeeId].name === "Unknown") { // ChimeがUnknownで返すときがある
             props.getAttendeeInformation(gs.joinInfo?.Meeting.MeetingId, attendeeId)
@@ -278,7 +295,47 @@ class App extends React.Component {
         //console.log("updateActiveScore")
         //props.updateActiveScore(scores)
     }
+    /***************************
+    *  Callback for DataMessage
+    ****************************/
+    receivedDataMessage = (dataMessage: DataMessage) =>{
+        
+        console.log("DATAMESSAGE 5:", dataMessage)
+        if(dataMessage.topic === MessageType.Message.toString()){
 
+        }else if(dataMessage.topic === MessageType.Stamp.toString()){
+            const json = JSON.parse(Buffer.from(dataMessage.data).toString())
+            console.log("DATAMESSAGE 6:", json.data)
+            console.log(dataMessage)
+            const data = JSON.parse(json.data)
+
+            const message: Message = {
+                type: data.cmd,
+                startTime: data.startTime,
+                targetId: data.targetId,
+                imgSrc: data.imgPath ? data.imgPath : undefined,
+                message: data.message ? data.message : undefined,
+            }
+            this.state.currentSettings.globalMessages.push(message)
+
+        }else if(dataMessage.topic === MessageType.Drawing.toString()){
+            const json = JSON.parse(Buffer.from(dataMessage.data).toString())
+            const data = JSON.parse(json.data)
+            console.log(data)
+            dataMessageConsumers.map(consumer =>{
+                if(data.mode === DrawingType.Draw){
+                    consumer.draw(data.startXR, data.startYR, data.endXR, data.endYR, data.stroke, data.lineWidth, true)
+                }else if(data.mode === DrawingType.Erase){
+                    consumer.erase(data.startXR, data.startYR, data.endXR, data.endYR, true)
+                }else if(data.mode === DrawingType.Clear){
+                    consumer.clearDrawing()
+                }else{
+                    console.log("CMD3",data.mode, DrawingType.Erase.toString())
+                }
+                return ""
+            })
+        }
+    }
 
     ////////////////////////////////
     /// User Action
@@ -313,7 +370,6 @@ class App extends React.Component {
 
     // For Camera
     toggleVideo = () => {
-        const gs = this.props as GlobalState
         const videoEnable = !this.state.currentSettings.videoEnable
         const currentSettings = this.state.currentSettings
         currentSettings.videoEnable = videoEnable
@@ -328,18 +384,14 @@ class App extends React.Component {
     }
 
     selectInputVideoDevice = (deviceId: string) => {
-        const gs = this.props as GlobalState
-        const props = this.props as any
-
 
         console.log("SELECT INPUTDEVICE", deviceId)
         getVideoDevice(deviceId).then(stream => {
             if (stream !== null) {
-                this.state.localVideoWidth = stream.getVideoTracks()[0].getSettings().width ? stream.getVideoTracks()[0].getSettings().width! : 0
-                this.state.localVideoHeight = stream.getVideoTracks()[0].getSettings().height ? stream.getVideoTracks()[0].getSettings().height! : 0
-                this.state.inputVideoElement!.srcObject = stream;
-                this.state.inputVideoStream = stream
-                this.state.inputVideoElement!.play()
+                const inputVideoElement = this.state.inputVideoElement!
+                inputVideoElement.srcObject = stream;
+                inputVideoElement.play()
+                this.setState({inputVideoStream:stream})
                 return new Promise((resolve, reject) => {
                     this.state.inputVideoElement!.onloadedmetadata = () => {
                         resolve();
@@ -356,10 +408,16 @@ class App extends React.Component {
     }
 
 
+
+    selectInputVideoDevice2 = (deviceId: string) => {
+        const currentSettings = this.state.currentSettings
+        currentSettings.selectedInputVideoDevice2 = deviceId
+        this.setState({ currentSettings: currentSettings })
+    }    
+
     // For Speaker
     toggleSpeaker = () => {
         const gs = this.props as GlobalState
-        const props = this.props as any
 
         const speakerEnable = !this.state.currentSettings.speakerEnable
         if (gs.meetingSession !== null) {
@@ -377,7 +435,6 @@ class App extends React.Component {
 
     selectOutputAudioDevice = (deviceId: string) => {
         const gs = this.props as GlobalState
-        const props = this.props as any
         if (gs.meetingSession !== null) {
             gs.meetingSession!.audioVideo.chooseAudioOutputDevice(deviceId)
         }
@@ -397,17 +454,18 @@ class App extends React.Component {
 
         } catch (e) {
         }
-        this.state.shareVideoElement.src = path
-        this.state.shareVideoElement.play()
+        const videoElement = this.state.shareVideoElement
+        videoElement.src = path
+        videoElement.play()
 
         setTimeout(
             async () => {
                 // @ts-ignore
                 const mediaStream: MediaStream = await this.state.shareVideoElement.captureStream()
                 await gs.meetingSession!.audioVideo.startContentShare(mediaStream)
-                this.state.shareVideoElement.currentTime = 0
-                this.state.shareVideoElement.pause()
-                this.setState({})
+                videoElement.currentTime = 0
+                videoElement.pause()
+                this.setState({shareVideoElement: videoElement})
             }
             , 5000); // I don't know but we need some seconds to restart video share....
     }
@@ -440,7 +498,6 @@ class App extends React.Component {
 
     // For Config
     setVirtualBackground = (imgPath: string) => {
-        this.state.currentSettings.virtualBackgroundPath = imgPath
         console.log("SetVirtual", imgPath)
         const currentSettings = this.state.currentSettings
         currentSettings.virtualBackgroundPath = imgPath
@@ -448,7 +505,6 @@ class App extends React.Component {
     }
 
     setFocusedAttendee = (attendeeId: string) => {
-        this.state.currentSettings.focuseAttendeeId = attendeeId
         console.log("focus:", this.state.currentSettings.focuseAttendeeId)
         const currentSettings = this.state.currentSettings
         currentSettings.focuseAttendeeId = attendeeId
@@ -465,6 +521,15 @@ class App extends React.Component {
         // this.state.localStamps.push(stamp)
     }
 
+    sendStampBySignal = (targetId: string, imgPath: string) => {
+        const gs = this.props as GlobalState
+        const message = {
+            action: 'sendmessage',
+            data: JSON.stringify({ "cmd": MessageType.Stamp, "targetId": targetId, "imgPath": imgPath, "startTime": Date.now() })
+        };
+        gs.meetingSession?.audioVideo.realtimeSendDataMessage(MessageType.Stamp.toString(), JSON.stringify(message))
+    }
+
     sendText = (targetId: string, msg: string) => {
         const message = {
             action: 'sendmessage',
@@ -478,6 +543,26 @@ class App extends React.Component {
     // addMessagingConsumer = (func:()=>{}) =>{
     //     this.state.messagingConsumer.push(func)
     // }
+
+    sendDrawsingBySignal = (targetId: string, mode:string, startXR:number, startYR:number, endXR:number, endYR:number, stroke:string, lineWidth:number)=>{
+        const gs = this.props as GlobalState
+        const message={
+            action: 'sendmessage',
+            data: JSON.stringify({ 
+                cmd         : MessageType.Drawing,
+                targetId    : targetId, 
+                startTime   : Date.now(),
+                mode        : mode,
+                startXR     : startXR,
+                startYR     : startYR,
+                endXR       : endXR,
+                endYR       : endYR,
+                stroke      : stroke,
+                lineWidth   : lineWidth
+            })
+        }
+        gs.meetingSession?.audioVideo.realtimeSendDataMessage(MessageType.Drawing.toString(), JSON.stringify(message))
+    }
 
     callbacks: { [key: string]: any } = {
         toggleMute: this.toggleMute,
@@ -497,6 +582,9 @@ class App extends React.Component {
         sendText: this.sendText,
 
         // addMessagingConsumer: this.addMessagingConsumer,
+        selectInputVideoDevice2: this.selectInputVideoDevice2,
+        sendStampBySignal: this.sendStampBySignal,
+        sendDrawsingBySignal: this.sendDrawsingBySignal,
     }
 
 
@@ -512,23 +600,26 @@ class App extends React.Component {
         const updateInterval = 100
         if (this.state.currentSettings.videoEnable === false) {
             const ctx = this.state.inputVideoCanvas2.getContext("2d")!
-            this.state.inputVideoCanvas2.width = 6
-            this.state.inputVideoCanvas2.height = 4
+            const inputVideoCanvas2 = this.state.inputVideoCanvas2
+            inputVideoCanvas2.width = 6
+            inputVideoCanvas2.height = 4
             ctx.fillStyle = "grey"
             ctx.fillRect(0, 0, this.state.inputVideoCanvas2.width, this.state.inputVideoCanvas2.height)
             setTimeout(this.drawVideoCanvas, updateInterval);
         } else if (this.state.currentSettings.virtualBackgroundPath === "/resources/vbg/pic0.jpg") {
             const ctx = this.state.inputVideoCanvas2.getContext("2d")!
-            this.state.inputVideoCanvas2.width = this.state.inputVideoStream?.getTracks()[0].getSettings().width!
-            this.state.inputVideoCanvas2.height = this.state.inputVideoStream?.getTracks()[0].getSettings().height!
+            const inputVideoCanvas2 = this.state.inputVideoCanvas2
+            inputVideoCanvas2.width = this.state.inputVideoStream?.getTracks()[0].getSettings().width!
+            inputVideoCanvas2.height = this.state.inputVideoStream?.getTracks()[0].getSettings().height!
             ctx.drawImage(this.state.inputVideoElement, 0, 0, this.state.inputVideoCanvas2.width, this.state.inputVideoCanvas2.height)
             requestAnimationFrame(() => this.drawVideoCanvas())
         } else {
 
             //// (1) Generate input image for segmentation.
             // To avoid to be slow performace, resolution is limited when using virtual background
-            this.state.inputVideoCanvas.width = 640
-            this.state.inputVideoCanvas.height = (this.state.inputVideoCanvas.width / 16) * 9
+            const inputVideoCanvas = this.state.inputVideoCanvas
+            inputVideoCanvas.width = 640
+            inputVideoCanvas.height = (this.state.inputVideoCanvas.width / 16) * 9
             const canvas = document.createElement("canvas")
             canvas.width  = 640
             canvas.height =  (this.state.inputVideoCanvas.width / 16) * 9
@@ -549,9 +640,11 @@ class App extends React.Component {
                 const maskedImage = this.state.inputMaskCanvas.getContext("2d")!.getImageData(0, 0, this.state.inputMaskCanvas.width, this.state.inputMaskCanvas.height)
 
                 //// (2-3) Generate background
-                this.state.virtualBGImage.src = this.state.currentSettings.virtualBackgroundPath
-                this.state.virtualBGCanvas.width = maskedImage.width
-                this.state.virtualBGCanvas.height = maskedImage.height
+                const virtualBGImage = this.state.virtualBGImage
+                virtualBGImage.src = this.state.currentSettings.virtualBackgroundPath
+                const virtualBGCanvas = this.state.virtualBGCanvas
+                virtualBGCanvas.width = maskedImage.width
+                virtualBGCanvas.height = maskedImage.height
                 const ctx = this.state.virtualBGCanvas.getContext("2d")!
                 ctx.drawImage(this.state.virtualBGImage, 0, 0, this.state.virtualBGCanvas.width, this.state.virtualBGCanvas.height)
                 const bgImageData = ctx.getImageData(0, 0, this.state.virtualBGCanvas.width, this.state.virtualBGCanvas.height)
@@ -581,9 +674,10 @@ class App extends React.Component {
                 const imageData = new ImageData(pixelData, maskedImage.width, maskedImage.height);
 
                 //// (2-5) output
-                this.state.inputVideoCanvas2.width = imageData.width
-                this.state.inputVideoCanvas2.height = imageData.height
-                this.state.inputVideoCanvas2.getContext("2d")!.putImageData(imageData, 0, 0)
+                const inputVideoCanvas2 = this.state.inputVideoCanvas2
+                inputVideoCanvas2.width = imageData.width
+                inputVideoCanvas2.height = imageData.height
+                inputVideoCanvas2.getContext("2d")!.putImageData(imageData, 0, 0)
 
             })
             requestAnimationFrame(() => this.drawVideoCanvas())
@@ -593,31 +687,7 @@ class App extends React.Component {
 
 
     drawOverlayCanvas = () => {
-        // console.log("DRAW OVERLAY CANVAS", this.state.messagingConsumer)
-        // for(let i in this.state.messagingConsumer){
-        //     this.state.messagingConsumer[i]()
-        // }
-        // const now = Date.now()
-        // this.mainOverlayVideoRef.current!.clearCanvas()
-        // this.AttendeeListRef.current!.clearCanvas()
-        // for (const i in this.state.globalMessages) {
-        //     const message = this.state.globalMessages[i]
-        //     if (now - message.startTime < 3000) {
-        //         if (message.type === MessageType.Stamp) {
-        //             const elapsed = now - message.startTime
-        //             const image = this.stamps[message.imgSrc]
-        //             const targetAttendeeId = message.targetId
-        //             this.mainOverlayVideoRef.current!.putStamp(targetAttendeeId, image, message.startTime, elapsed)
-        //             this.AttendeeListRef.current!.putStamp(targetAttendeeId, image, message.startTime, elapsed)
-        //         } else if (message.type === MessageType.Message) {
-        //             const elapsed = now - message.startTime
-        //             const targetAttendeeId = message.targetId
-        //             this.mainOverlayVideoRef.current!.putMessage(targetAttendeeId, message.message, message.startTime, elapsed)
-        //             this.AttendeeListRef.current!.putMessage(targetAttendeeId, message.message, message.startTime, elapsed)
-        //         }
-        //         // ctx.drawImage(image, (stamp.startTime % 5) * 40, localVideoMaskCanvas2.height - localVideoMaskCanvas2.height * (elapsed / 3000), 150, 150)
-        //     }
-        // }
+
         requestAnimationFrame(() => this.drawOverlayCanvas())
     }
 
@@ -640,8 +710,10 @@ class App extends React.Component {
          */
         if (gs.status === AppStatus.STARTED) {
             const base_url: string = [window.location.protocol, '//', window.location.host, window.location.pathname.replace(/\/*$/, '/').replace('/v2', '')].join('');
-            this.state.roster = {}
-            this.state.videoTileStates = {}
+            this.setState({
+                roster          : {},
+                videoTileStates : {},
+            })
             props.goEntrance(base_url)
             return <div />
         }
@@ -673,12 +745,13 @@ class App extends React.Component {
 
                 // Load Stamps
                 const RS_STAMPS_sorted = RS_STAMPS.sort()
+                const stamps: { [key: string]: HTMLImageElement } ={}
                 for (const i in RS_STAMPS_sorted) {
                     const imgPath = RS_STAMPS_sorted[i]
                     const image = new Image()
                     image.src = imgPath
                     image.onload = () => {
-                        this.state.stamps[imgPath] = image
+                        stamps[imgPath] = image
                     }
                 }
 
@@ -688,7 +761,7 @@ class App extends React.Component {
                     const videoInputDevices = deviceList['videoinput']
                     const audioOutputDevices = deviceList['audiooutput']
                     const inputVideoResolutions = ["360p", "540p", "720p"]
-                    this.state.bodyPix = bodyPix
+                    this.setState({bodyPix:bodyPix})
 
                     const currentSettings = this.state.currentSettings
                     currentSettings.selectedInputAudioDevice = audioInputDevices![0] ? audioInputDevices![0]['deviceId'] : NO_DEVICE_SELECTED
@@ -704,6 +777,7 @@ class App extends React.Component {
                             this.state.inputVideoElement!.play()
                             this.setState({
                                 inputVideoStream: stream,
+                                stamps: stamps,
                                 currentSettings: currentSettings
                             })
                             return new Promise((resolve, reject) => {
@@ -743,14 +817,14 @@ class App extends React.Component {
                 // Messaging Websocket
                 const messagingURLWithQuery = `${MESSAGING_URL}?joinToken=${defaultMeetingSession.configuration.credentials!.joinToken}&meetingId=${defaultMeetingSession.configuration.meetingId}&attendeeId=${defaultMeetingSession.configuration.credentials!.attendeeId}`
                 console.log("MESSAGEING_URL", messagingURLWithQuery)
-                this.state.messagingSocket = new ReconnectingPromisedWebSocket(
+                const messagingSocket = new ReconnectingPromisedWebSocket(
                     messagingURLWithQuery,
                     [],
                     'arraybuffer',
                     new DefaultPromisedWebSocketFactory(new DefaultDOMWebSocketFactory()),
                     new FullJitterBackoff(1000, 0, 10000)
                 );
-                const messagingSocketPromise = this.state.messagingSocket.open(20 * 1000);
+                const messagingSocketPromise = messagingSocket.open(20 * 1000);
 
 
 
@@ -781,7 +855,7 @@ class App extends React.Component {
                     props.meetingPrepared(meetingSessionConf, defaultMeetingSession)
 
 
-                    this.state.messagingSocket!.addEventListener('message', (e: Event) => {
+                    messagingSocket.addEventListener('message', (e: Event) => {
                         const data = JSON.parse((e as MessageEvent).data);
                         console.log("Messaging!", data)
                         const message: Message = {
@@ -793,6 +867,7 @@ class App extends React.Component {
                         }
                         this.state.currentSettings.globalMessages.push(message)
                     })
+                    this.setState({messagingSocket: messagingSocket})
                 })
                 return <div />
             } else if (gs.meetingStatus === AppMeetingStatus.WILL_CLEAR) {
@@ -804,10 +879,11 @@ class App extends React.Component {
                         gs.meetingSession.audioVideo.unbindVideoElement(Number(key))
                     }
                     gs.meetingSession.audioVideo.stop()
-
-                    this.state.videoTileStates = {}
-                    this.state.roster = {}
-                    this.state.messagingConsumer = []
+                    this.setState({
+                        videoTileStates   : {},
+                        roster            : {},
+                        messagingConsumer : {},
+                    })
                     props.clearedMeetingSession()
                 }
             }
@@ -825,91 +901,6 @@ class App extends React.Component {
                 </div>
             )
         }
-
-
-        // /**
-        //  * For Created Room
-        //  */
-        // if(gs.status === AppStatus.CREATED_MEETING_ROOM){
-        //     const props      = this.props as any
-        //     const gs         = this.props as GlobalState
-        //     const baseURL    = gs.baseURL
-        //     const roomId     = gs.joinInfo.Meeting.MeetingId
-        //     const userName   = gs.userName
-        //     const region     = gs.region
-        //     props.enterSession(baseURL, roomId, userName, region)            
-        //     //this.enterMeetingRoom()
-        //     return <div/>
-        // }
-        // /**
-        //  * For ENTERING_SESSION
-        //  */
-        // if(gs.status === AppStatus.ENTERING_SESSION){
-        //     return <div/>
-        // }
-
-        // /**
-        //  * For Select Device Screen
-        //  */
-        // if(gs.status === AppStatus.SELECT_DEVICE){
-        //     // Create Meeting Session. To list devices, do this.
-        //     if(gs.meetingSessionConf === null){
-        //         const meetingSessionConf = new MeetingSessionConfiguration(gs.joinInfo.Meeting, gs.joinInfo.Attendee)
-        //         const defaultMeetingSession = initializeMeetingSession(gs, meetingSessionConf)
-
-        //         registerHandlers(this, props, defaultMeetingSession)
-        //         const url = new URL(window.location.href);
-        //         url.searchParams.set('m', gs.roomTitle);
-        //         window.history.replaceState({}, `${gs.roomTitle}`, url.toString());
-        //         props.initializedSession(meetingSessionConf, defaultMeetingSession)
-        //         return <div/>
-        //     }
-
-        //     // List devices and load AI Model
-        //     if(gs.inputAudioDevices === null){
-        //         const audioInputDevicesPromise  = gs.meetingSession!.audioVideo.listAudioInputDevices()
-        //         const videoInputDevicesPromise  = gs.meetingSession!.audioVideo.listVideoInputDevices()
-        //         const videoInputResolutions     = ["360p", "540p", "720p"]
-        //         const audioOutputDevicesPromise = gs.meetingSession!.audioVideo.listAudioOutputDevices()
-        //             const netPromise = bodyPix.load();
-
-        //         Promise.all([audioInputDevicesPromise, videoInputDevicesPromise, audioOutputDevicesPromise, netPromise]).then(([audioInputDevices, videoInputDevices, audioOutputDevices, bodyPix]) => {
-        //             console.log("Promise:", videoInputDevices)
-        //             this.state.bodyPix = bodyPix
-        //             props.setDevices(audioInputDevices, videoInputDevices, videoInputResolutions, audioOutputDevices)
-        //         })
-        //         return <div/>
-        //     }
-        // }
-
-        // /**
-        //  * Apply the information in Global store to the class status.
-        //  */
-        // for(let attendeeId in this.state.roster){
-        //     if(attendeeId in gs.storeRoster){
-        //         const attendee = this.state.roster[attendeeId]
-        //         attendee.name = gs.storeRoster[attendeeId].name
-        //     }
-        // }
-
-        /**
-         * render
-         */
-        // const bgColor="#324851"
-
-        // return (
-        //     <div  style={{ backgroundColor:bgColor, width: "100%",  height: "100%", top: 0, left: 0, }}>
-        //         {(()=>{
-        //             if(gs.status === AppStatus.LOGIN){
-        //                 return <Entrance {...props}/>
-        //             }else if(gs.status === AppStatus.SELECT_DEVICE){
-        //                 return <SelectDevice {...props}  />
-        //             }else if(gs.status === AppStatus.IN_MEETING_ROOM){
-        //                 return <InMeetingRoom  {...props} videoTileState={this.state.videoTileStates} roster={this.state.roster} bodyPix={this.state.bodyPix}/>
-        //             }
-        //         })()}
-        //     </div>
-        // )
         return <div />
     }
 }

@@ -4,7 +4,7 @@ import { connect } from 'react-redux'
 import { Actions } from '../actions'
 import App from '../components/App'
 import { GlobalState } from '../reducers';
-import { MeetingSessionConfiguration, DefaultMeetingSession, VideoTileState } from 'amazon-chime-sdk-js';
+import { MeetingSessionConfiguration, DefaultMeetingSession } from 'amazon-chime-sdk-js';
 
 export interface Props {
 }

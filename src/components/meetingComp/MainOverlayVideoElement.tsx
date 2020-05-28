@@ -1,8 +1,14 @@
 import * as React from 'react';
-import {AppState, MessageType} from '../App';
+import {AppState, MessageType, DrawingType, addDataMessageConsumers} from '../App';
 
-interface MainOverlayVideoElementState{
-    hoverd: boolean
+export interface MainOverlayVideoElementState{
+    hoverd           : boolean
+    inDrawing        : boolean // mouse pressed or not
+    inDrawingMode    : boolean // drawingMode flag or not
+    enableDrawing    : boolean // this component support the drawing feature or not
+    drawingStroke    : string
+    drawingLineWidth : number
+    erasing          : boolean
 }
 
 class MainOverlayVideoElement extends React.Component{
@@ -11,11 +17,84 @@ class MainOverlayVideoElement extends React.Component{
     canvasRef = React.createRef<HTMLCanvasElement>()
     statusCanvasRef = React.createRef<HTMLCanvasElement>()
 
+    //drawingCanvasRef = React.createRef<HTMLCanvasElement>()
+
+    drawingCanvas = document.createElement("canvas")
+
     state: MainOverlayVideoElementState = {
-        hoverd : false
+        hoverd : false,
+        inDrawing: false,
+        inDrawingMode: false,
+        enableDrawing: true,
+        drawingStroke: "black",
+        drawingLineWidth: 2,
+        erasing: false,
     }
     statusImages: { [key: string]: HTMLImageElement } = {}
+    drawingStart = () =>{
+        this.setState({inDrawing:true}
+    )}
+    drawing = (offsetX:number, offsetY:number, movementX:number, movementY:number) =>{
+        const props = this.props as any
+        //console.log("drawing", this.state.inDrawing, offsetX, offsetY)
+        if(this.state.inDrawing && this.state.inDrawingMode && this.state.enableDrawing){
+            const startX = offsetX - movementX
+            const startY = offsetY - movementY
 
+            const startXR = startX  / this.drawingCanvas.width!
+            const startYR = startY  / this.drawingCanvas.height!
+            const endXR   = offsetX / this.drawingCanvas.width!
+            const endYR   = offsetY  / this.drawingCanvas.height!
+            if(this.state.erasing){
+                this.erase(startXR, startYR, endXR, endYR)
+                props.sendDrawsingBySignal("", DrawingType.Erase, startXR, startYR, endXR, endYR, this.state.drawingStroke, this.state.drawingLineWidth )
+            }else{
+                this.draw(startXR, startYR, endXR, endYR, this.state.drawingStroke, this.state.drawingLineWidth)
+                props.sendDrawsingBySignal("", DrawingType.Draw, startXR, startYR, endXR, endYR, this.state.drawingStroke, this.state.drawingLineWidth )
+            }
+
+        }
+    }
+    draw = (startXR:number, startYR:number, endXR:number, endYR:number, stroke:string, lineWidth:number, force:boolean=false) =>{
+        if(this.state.enableDrawing === false){return}
+        // if(this.state.enableDrawing===false && force ===false){return}
+        const ctx = this.drawingCanvas.getContext("2d")!
+        ctx.beginPath();
+        ctx.moveTo(startXR*this.drawingCanvas.width, startYR*this.drawingCanvas.height);
+        ctx.lineTo(endXR*this.drawingCanvas.width, endYR*this.drawingCanvas.height);
+        ctx.strokeStyle = stroke
+        ctx.lineWidth = lineWidth
+        ctx.stroke();
+        ctx.closePath();
+    }
+    erase = (startXR:number, startYR:number, endXR:number, endYR:number, force:boolean=false) =>{
+        if(this.state.enableDrawing === false){return}
+        const ctx = this.drawingCanvas!.getContext("2d")!
+        const width = 5
+        ctx.clearRect(startXR*this.drawingCanvas!.width-width, startYR*this.drawingCanvas!.height-width, width*2, width*2)
+        ctx.clearRect(endXR*this.drawingCanvas!.width-width, endYR*this.drawingCanvas!.height-width, width*2, width*2);
+    }
+    
+    drawingEnd = () =>{
+        this.setState({inDrawing:false})
+    }
+    clearDrawingCanvas = () =>{
+        const props = this.props as any
+        this.clearDrawing()
+        props.sendDrawsingBySignal("", DrawingType.Clear, 0, 0, 0, 0, this.state.drawingStroke, this.state.drawingLineWidth )
+    }
+    clearDrawing = () =>{
+        const ctx = this.drawingCanvas.getContext("2d")!
+        ctx.clearRect(0,0, this.drawingCanvas.width!, this.drawingCanvas.height!)
+    }
+
+    setDrawingMode    = (enable:boolean) => {
+        console.log("set!:", enable)
+        this.setState({inDrawingMode:enable})
+    }
+    setDrawingStroke    = (stroke:string)   => this.setState({drawingStroke:stroke})
+    setDrawingLineWidth = (width:number)    => this.setState({drawingStroke:width})
+    setErasing          = (erasing:boolean) => this.setState({erasing:erasing})
 
     fillText = (text:string, x:number, y:number) =>{
         this.canvasRef.current!.getContext("2d")!.fillText(text, x, y)
@@ -83,20 +162,47 @@ class MainOverlayVideoElement extends React.Component{
         this.canvasRef.current!.height = this.videoRef.current!.scrollHeight
         this.statusCanvasRef.current!.width = this.videoRef.current!.scrollWidth
         this.statusCanvasRef.current!.height = this.videoRef.current!.scrollHeight
+        // if(this.drawingCanvasRef.current!.width !== this.videoRef.current!.scrollWidth){
+
+        if(this.state.enableDrawing === true){
+            if(this.drawingCanvas.width !== this.videoRef.current!.scrollWidth || this.drawingCanvas.height !== this.videoRef.current!.scrollHeight){
+                try{
+                    this.divRef.current!.removeChild(this.drawingCanvas)
+                }catch(e){
+                    console.log(e)
+                }
+                const newCanvas = document.createElement("canvas")
+                this.divRef.current!.appendChild(newCanvas)
+                newCanvas.style.position="absolute"
+                newCanvas.style.width=`${this.videoRef.current!.scrollWidth}px`
+                newCanvas.style.height=`${this.videoRef.current!.scrollHeight}px`
+                newCanvas.width = this.videoRef.current!.scrollWidth
+                newCanvas.height = this.videoRef.current!.scrollHeight
+                console.log("WIDTH1:", this.videoRef.current!.scrollHeight)
+                console.log("WIDTH2:", newCanvas.height)
+    
+                if(this.drawingCanvas){
+                    newCanvas.getContext("2d")!.drawImage(this.drawingCanvas,0,0,newCanvas.width,newCanvas.height)
+                }
+                this.drawingCanvas=newCanvas
+                this.drawingCanvas.addEventListener("mousedown", (e)=>{
+                    this.drawingStart()
+                }, { passive: false })
+                this.drawingCanvas.addEventListener("mouseup", (e)=>{
+                    this.drawingEnd()
+                }, { passive: false })
+                this.drawingCanvas.addEventListener("mouseleave", (e)=>{
+                    this.drawingEnd()
+                }, { passive: false })
+                this.drawingCanvas.addEventListener("mousemove", (e)=>{
+                    this.drawing(e.offsetX, e.offsetY, e.movementX, e.movementY)
+                }, { passive: false })                    
+            }
+        }
     }
 
     componentDidMount() {
-        // const mute = new Image()
-        // mute.src = "/resources/system/microphone_rokuon_kinshi_mark.png"
-        // mute.onload = () => {
-        //     this.statusImages['mute'] = mute
-        // }
-        // const noMute = new Image()
-        // noMute.src = "/resources/system/demo-image.png .png"
-        // noMute.onload = () => {
-        //     this.statusImages['noMute'] = noMute
-        // }
-
+        addDataMessageConsumers(this)
         requestAnimationFrame(() => this.drawOverlayCanvas())
     }
 
@@ -139,50 +245,8 @@ class MainOverlayVideoElement extends React.Component{
         )
     }
 
-//    tmpStatusCanvas = document.createElement("canvas")
-    // drawStatus = () =>{
-    //     const props = this.props as any
-    //     const thisAttendeeId = props.thisAttendeeId     
-    //     const appState = props.appState as AppState
-    //     console.log(appState)
-
-    //     const attendee = appState.roster[thisAttendeeId]
-    //     if(attendee == undefined){
-    //         console.log("UNDEFINED", props)
-    //         return
-    //     }
-    //     if(this.statusImages['mute'] === undefined || this.statusImages['noMute'] === undefined){
-    //         console.log("Loading", props)
-    //         return
-    //     }
-    //     const name = (attendee.name !== undefined && attendee.name !== null)? attendee.name!.substring(0,20) : "unknown"
-
-    //     const mute = attendee.muted
-
-    //     const canvasWidth  = this.statusCanvasRef.current!.width
-    //     const canvasHeight = this.statusCanvasRef.current!.height
-    //     const fontSize     = Math.ceil(canvasHeight / 12)
-
-    //     const ctx = this.statusCanvasRef.current!.getContext("2d")!
-    //     ctx.font = `${fontSize}px メイリオ`;
-    //     ctx.textBaseline = 'top';
-
-    //     const imageWidth  = fontSize
-    //     const imageHeight = fontSize
-    //     const textWidth   = ctx.measureText(name).width;
-    //     const textHeight  = fontSize
-    //     const micImageKey = mute ? 'mute' : 'noMute'
-    //     const offsetX = 10
-    //     const offsetY = 10
-    //     ctx.fillStyle = '#ddcccc';
-    //     ctx.fillRect(offsetX, offsetY, imageWidth+textWidth, textHeight)
-    //     ctx.drawImage(this.statusImages[micImageKey], offsetX, offsetY, imageWidth, imageHeight)
-    //     ctx.fillStyle = '#000000';
-    //     ctx.fillText(name, offsetX + imageWidth, offsetY);
-    // }
 
     componentDidUpdate = () => {
-        console.log("componentDidUpdate Overlay")
         this.fitSize()
         //this.drawStatus()
     }

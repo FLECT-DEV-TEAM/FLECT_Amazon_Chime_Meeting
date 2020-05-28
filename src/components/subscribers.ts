@@ -1,4 +1,4 @@
-import { DefaultActiveSpeakerPolicy, AudioVideoFacade } from "amazon-chime-sdk-js";
+import { DefaultActiveSpeakerPolicy, AudioVideoFacade, DataMessage } from "amazon-chime-sdk-js";
 import App from "./App";
 
 export const setRealtimeSubscribeToAttendeeIdPresence= (app:App, audioVideo:AudioVideoFacade) => {
@@ -41,3 +41,17 @@ export const setSubscribeToActiveSpeakerDetector = (app:App, audioVideo:AudioVid
         100 //this.showActiveSpeakerScores ? 100 : 0, TODO
     );
 }
+
+
+
+
+// DataMessage
+export const setRealtimeSubscribeToReceiveDataMessage = (app:App, audioVideo:AudioVideoFacade, topic:string) =>{
+    const receiveDataMessageHandler = (dataMessage: DataMessage): void => {
+        app.receivedDataMessage(dataMessage)
+    }
+    audioVideo.realtimeSubscribeToReceiveDataMessage(topic, receiveDataMessageHandler)
+    
+}
+
+    

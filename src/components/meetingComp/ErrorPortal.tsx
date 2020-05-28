@@ -1,6 +1,5 @@
 import * as React from 'react';
-import { Icon, Button, Portal, Segment, Header } from 'semantic-ui-react';
-import { BUTTON_COLOR } from '../../const';
+import { Button, Portal, Segment, Header } from 'semantic-ui-react';
 import { GlobalState } from '../../reducers';
 
 class ErrorPortal extends React.Component {
@@ -12,7 +11,6 @@ class ErrorPortal extends React.Component {
     }
 
     render() {
-        const props = this.props as any
         const gs = this.props as GlobalState
         return (
 

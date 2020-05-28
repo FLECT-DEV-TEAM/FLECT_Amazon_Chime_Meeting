@@ -1,7 +1,6 @@
 import * as React from 'react';
-import { Button, Form, Grid, GridColumn, Segment, Header, Card, Icon, Image, Divider } from 'semantic-ui-react'
+import { Button, Segment, Header, Card, Divider } from 'semantic-ui-react'
 import { GlobalState } from '../reducers';
-import { LobbyMainColumnConfig, LobbyMainColumnConfigInf} from '../const'
 import VideoControl from './meetingComp/VideoControl';
 import MicControl from './meetingComp/MicControl';
 import SpeakerControl from './meetingComp/SpeakerControl';
@@ -11,7 +10,8 @@ import SettingControl from './meetingComp/SettingControl';
 import StampAccordion from './meetingComp/StampAccordion';
 import SendTextAccordion from './meetingComp/SendTextAccordion';
 import { AppState } from './App';
-import { Div } from '@tensorflow/tfjs-core';
+import SecondaryCameraAccordion from './meetingComp/SecondaryCameraAccordion';
+import StampAccordionBySignal from './meetingComp/StampAccordionBySignal';
 
 
 interface PreviewPanelState{
@@ -34,7 +34,6 @@ class PreviewPanel extends React.Component {
 
     drawPreviewCanvas =() => {
         const props = this.props as any
-        const gs = this.props as GlobalState
         const appState = props.appState as AppState
 
         if(appState.inputVideoCanvas2 !== undefined && this.previewCanvasRef.current !== null){
@@ -122,7 +121,6 @@ class ConfigurationPanel extends React.Component {
     }
 
     render (){
-        const gs = this.props as GlobalState
         const props = this.props as any
         return(
             <div>
@@ -147,6 +145,9 @@ class ConfigurationPanel extends React.Component {
                     <DisplayShareControl {...props} />
                     <StampAccordion {...props} />
                     <SendTextAccordion {...props}/>
+
+                    <SecondaryCameraAccordion {...props} />
+                    <StampAccordionBySignal {...props} />
                 </Segment>
             </div>
         )
@@ -158,9 +159,7 @@ class LobbyUserPanel extends React.Component {
 
 
     render() {
-        const gs = this.props as GlobalState
         const props = this.props as any
-        const appState = props.appState as AppState
 
         return (
             <div  style={{padding:"10px"}}>

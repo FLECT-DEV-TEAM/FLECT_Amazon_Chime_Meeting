@@ -1,6 +1,5 @@
 import * as React from 'react';
-import { Icon, Button, Dropdown, Grid, List } from 'semantic-ui-react';
-import { BUTTON_COLOR, BUTTON_COLOR_DISABLE } from '../../const';
+import { Icon, Dropdown, Grid, List } from 'semantic-ui-react';
 import { GlobalState } from '../../reducers';
 import { AppState } from '../App';
 
