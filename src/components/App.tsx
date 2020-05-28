@@ -165,9 +165,6 @@ export interface AppState {
     stamps: { [key: string]: HTMLImageElement },
     messagingConsumer: (()=>{})[]
 
-    localVideoWidth: number,
-    localVideoHeight: number,
-
     outputAudioElement: HTMLAudioElement | null,
 
     inputVideoStream: MediaStream | null,
@@ -198,8 +195,6 @@ class App extends React.Component {
         stamps: {},
         messagingConsumer: [],
 
-        localVideoWidth: 0,
-        localVideoHeight: 0,
         inputVideoStream: null,
         inputVideoElement: document.createElement("video"),
         inputVideoCanvas: document.createElement("canvas"),
@@ -235,13 +230,14 @@ class App extends React.Component {
     ****************************/
     updateVideoTileState = (state: VideoTileState) => {
         let needUpdate = false
-        if (this.state.videoTileStates[state.tileId!]) {
+        const videoTileStates = this.state.videoTileStates
+        if (videoTileStates[state.tileId!]) {
         } else {
             needUpdate = true
         }
-        this.state.videoTileStates[state.tileId!] = state
+        videoTileStates[state.tileId!] = state
         if (needUpdate) {
-            this.setState({})
+            this.setState({videoTileStates:videoTileStates})
         }
         console.log("updateVideoTileState", this.state.videoTileStates)
     }
@@ -262,9 +258,9 @@ class App extends React.Component {
         const props = this.props as any
         const gs = this.props as GlobalState
         //props.changeAttendeeStatus(attendeeId, volume, muted, signalStrength, gs.baseURL, gs.roomID)
-
-        if ((attendeeId in this.state.roster) === false) {
-            this.state.roster[attendeeId] = {
+        const roster = this.state.roster
+        if ((attendeeId in roster) === false) {
+            roster[attendeeId] = {
                 attendeeId: attendeeId,
                 name: null,
                 active: false,
@@ -273,15 +269,16 @@ class App extends React.Component {
                 signalStrength: null
             }
         }
+        
 
         if (volume !== null) {
-            this.state.roster[attendeeId].volume = volume
+            roster[attendeeId].volume = volume
         }
         if (muted !== null) {
-            this.state.roster[attendeeId].muted = muted
+            roster[attendeeId].muted = muted
         }
         if (signalStrength !== null) {
-            this.state.roster[attendeeId].signalStrength = signalStrength
+            roster[attendeeId].signalStrength = signalStrength
         }
         if (this.state.roster[attendeeId].name === null || this.state.roster[attendeeId].name === "Unknown") { // ChimeがUnknownで返すときがある
             props.getAttendeeInformation(gs.joinInfo?.Meeting.MeetingId, attendeeId)
@@ -335,6 +332,7 @@ class App extends React.Component {
                 }else{
                     console.log("CMD3",data.mode, DrawingType.Erase.toString())
                 }
+                return ""
             })
         }
     }
@@ -390,11 +388,10 @@ class App extends React.Component {
         console.log("SELECT INPUTDEVICE", deviceId)
         getVideoDevice(deviceId).then(stream => {
             if (stream !== null) {
-                this.state.localVideoWidth = stream.getVideoTracks()[0].getSettings().width ? stream.getVideoTracks()[0].getSettings().width! : 0
-                this.state.localVideoHeight = stream.getVideoTracks()[0].getSettings().height ? stream.getVideoTracks()[0].getSettings().height! : 0
-                this.state.inputVideoElement!.srcObject = stream;
-                this.state.inputVideoStream = stream
-                this.state.inputVideoElement!.play()
+                const inputVideoElement = this.state.inputVideoElement!
+                inputVideoElement.srcObject = stream;
+                inputVideoElement.play()
+                this.setState({inputVideoStream:stream})
                 return new Promise((resolve, reject) => {
                     this.state.inputVideoElement!.onloadedmetadata = () => {
                         resolve();
@@ -413,8 +410,6 @@ class App extends React.Component {
 
 
     selectInputVideoDevice2 = (deviceId: string) => {
-        const gs = this.props as GlobalState
-        const props = this.props as any
         const currentSettings = this.state.currentSettings
         currentSettings.selectedInputVideoDevice2 = deviceId
         this.setState({ currentSettings: currentSettings })
@@ -423,7 +418,6 @@ class App extends React.Component {
     // For Speaker
     toggleSpeaker = () => {
         const gs = this.props as GlobalState
-        const props = this.props as any
 
         const speakerEnable = !this.state.currentSettings.speakerEnable
         if (gs.meetingSession !== null) {
@@ -441,7 +435,6 @@ class App extends React.Component {
 
     selectOutputAudioDevice = (deviceId: string) => {
         const gs = this.props as GlobalState
-        const props = this.props as any
         if (gs.meetingSession !== null) {
             gs.meetingSession!.audioVideo.chooseAudioOutputDevice(deviceId)
         }
@@ -461,17 +454,18 @@ class App extends React.Component {
 
         } catch (e) {
         }
-        this.state.shareVideoElement.src = path
-        this.state.shareVideoElement.play()
+        const videoElement = this.state.shareVideoElement
+        videoElement.src = path
+        videoElement.play()
 
         setTimeout(
             async () => {
                 // @ts-ignore
                 const mediaStream: MediaStream = await this.state.shareVideoElement.captureStream()
                 await gs.meetingSession!.audioVideo.startContentShare(mediaStream)
-                this.state.shareVideoElement.currentTime = 0
-                this.state.shareVideoElement.pause()
-                this.setState({})
+                videoElement.currentTime = 0
+                videoElement.pause()
+                this.setState({shareVideoElement: videoElement})
             }
             , 5000); // I don't know but we need some seconds to restart video share....
     }
@@ -504,7 +498,6 @@ class App extends React.Component {
 
     // For Config
     setVirtualBackground = (imgPath: string) => {
-        this.state.currentSettings.virtualBackgroundPath = imgPath
         console.log("SetVirtual", imgPath)
         const currentSettings = this.state.currentSettings
         currentSettings.virtualBackgroundPath = imgPath
@@ -512,7 +505,6 @@ class App extends React.Component {
     }
 
     setFocusedAttendee = (attendeeId: string) => {
-        this.state.currentSettings.focuseAttendeeId = attendeeId
         console.log("focus:", this.state.currentSettings.focuseAttendeeId)
         const currentSettings = this.state.currentSettings
         currentSettings.focuseAttendeeId = attendeeId
@@ -608,23 +600,26 @@ class App extends React.Component {
         const updateInterval = 100
         if (this.state.currentSettings.videoEnable === false) {
             const ctx = this.state.inputVideoCanvas2.getContext("2d")!
-            this.state.inputVideoCanvas2.width = 6
-            this.state.inputVideoCanvas2.height = 4
+            const inputVideoCanvas2 = this.state.inputVideoCanvas2
+            inputVideoCanvas2.width = 6
+            inputVideoCanvas2.height = 4
             ctx.fillStyle = "grey"
             ctx.fillRect(0, 0, this.state.inputVideoCanvas2.width, this.state.inputVideoCanvas2.height)
             setTimeout(this.drawVideoCanvas, updateInterval);
         } else if (this.state.currentSettings.virtualBackgroundPath === "/resources/vbg/pic0.jpg") {
             const ctx = this.state.inputVideoCanvas2.getContext("2d")!
-            this.state.inputVideoCanvas2.width = this.state.inputVideoStream?.getTracks()[0].getSettings().width!
-            this.state.inputVideoCanvas2.height = this.state.inputVideoStream?.getTracks()[0].getSettings().height!
+            const inputVideoCanvas2 = this.state.inputVideoCanvas2
+            inputVideoCanvas2.width = this.state.inputVideoStream?.getTracks()[0].getSettings().width!
+            inputVideoCanvas2.height = this.state.inputVideoStream?.getTracks()[0].getSettings().height!
             ctx.drawImage(this.state.inputVideoElement, 0, 0, this.state.inputVideoCanvas2.width, this.state.inputVideoCanvas2.height)
             requestAnimationFrame(() => this.drawVideoCanvas())
         } else {
 
             //// (1) Generate input image for segmentation.
             // To avoid to be slow performace, resolution is limited when using virtual background
-            this.state.inputVideoCanvas.width = 640
-            this.state.inputVideoCanvas.height = (this.state.inputVideoCanvas.width / 16) * 9
+            const inputVideoCanvas = this.state.inputVideoCanvas
+            inputVideoCanvas.width = 640
+            inputVideoCanvas.height = (this.state.inputVideoCanvas.width / 16) * 9
             const canvas = document.createElement("canvas")
             canvas.width  = 640
             canvas.height =  (this.state.inputVideoCanvas.width / 16) * 9
@@ -645,9 +640,11 @@ class App extends React.Component {
                 const maskedImage = this.state.inputMaskCanvas.getContext("2d")!.getImageData(0, 0, this.state.inputMaskCanvas.width, this.state.inputMaskCanvas.height)
 
                 //// (2-3) Generate background
-                this.state.virtualBGImage.src = this.state.currentSettings.virtualBackgroundPath
-                this.state.virtualBGCanvas.width = maskedImage.width
-                this.state.virtualBGCanvas.height = maskedImage.height
+                const virtualBGImage = this.state.virtualBGImage
+                virtualBGImage.src = this.state.currentSettings.virtualBackgroundPath
+                const virtualBGCanvas = this.state.virtualBGCanvas
+                virtualBGCanvas.width = maskedImage.width
+                virtualBGCanvas.height = maskedImage.height
                 const ctx = this.state.virtualBGCanvas.getContext("2d")!
                 ctx.drawImage(this.state.virtualBGImage, 0, 0, this.state.virtualBGCanvas.width, this.state.virtualBGCanvas.height)
                 const bgImageData = ctx.getImageData(0, 0, this.state.virtualBGCanvas.width, this.state.virtualBGCanvas.height)
@@ -677,9 +674,10 @@ class App extends React.Component {
                 const imageData = new ImageData(pixelData, maskedImage.width, maskedImage.height);
 
                 //// (2-5) output
-                this.state.inputVideoCanvas2.width = imageData.width
-                this.state.inputVideoCanvas2.height = imageData.height
-                this.state.inputVideoCanvas2.getContext("2d")!.putImageData(imageData, 0, 0)
+                const inputVideoCanvas2 = this.state.inputVideoCanvas2
+                inputVideoCanvas2.width = imageData.width
+                inputVideoCanvas2.height = imageData.height
+                inputVideoCanvas2.getContext("2d")!.putImageData(imageData, 0, 0)
 
             })
             requestAnimationFrame(() => this.drawVideoCanvas())
@@ -712,8 +710,10 @@ class App extends React.Component {
          */
         if (gs.status === AppStatus.STARTED) {
             const base_url: string = [window.location.protocol, '//', window.location.host, window.location.pathname.replace(/\/*$/, '/').replace('/v2', '')].join('');
-            this.state.roster = {}
-            this.state.videoTileStates = {}
+            this.setState({
+                roster          : {},
+                videoTileStates : {},
+            })
             props.goEntrance(base_url)
             return <div />
         }
@@ -745,12 +745,13 @@ class App extends React.Component {
 
                 // Load Stamps
                 const RS_STAMPS_sorted = RS_STAMPS.sort()
+                const stamps: { [key: string]: HTMLImageElement } ={}
                 for (const i in RS_STAMPS_sorted) {
                     const imgPath = RS_STAMPS_sorted[i]
                     const image = new Image()
                     image.src = imgPath
                     image.onload = () => {
-                        this.state.stamps[imgPath] = image
+                        stamps[imgPath] = image
                     }
                 }
 
@@ -760,7 +761,7 @@ class App extends React.Component {
                     const videoInputDevices = deviceList['videoinput']
                     const audioOutputDevices = deviceList['audiooutput']
                     const inputVideoResolutions = ["360p", "540p", "720p"]
-                    this.state.bodyPix = bodyPix
+                    this.setState({bodyPix:bodyPix})
 
                     const currentSettings = this.state.currentSettings
                     currentSettings.selectedInputAudioDevice = audioInputDevices![0] ? audioInputDevices![0]['deviceId'] : NO_DEVICE_SELECTED
@@ -776,6 +777,7 @@ class App extends React.Component {
                             this.state.inputVideoElement!.play()
                             this.setState({
                                 inputVideoStream: stream,
+                                stamps: stamps,
                                 currentSettings: currentSettings
                             })
                             return new Promise((resolve, reject) => {
