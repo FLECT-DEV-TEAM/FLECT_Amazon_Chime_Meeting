@@ -28,7 +28,7 @@ class StampAccordionBySignal extends React.Component {
             onClick={()=>{this.handleClick()}}
         >
             <Icon name='dropdown' />
-            Stamps
+            Stamps by signal(experimental)
         </Accordion.Title>
         <Accordion.Content active={this.state.open}>
             {this.generateStampTiles()}
