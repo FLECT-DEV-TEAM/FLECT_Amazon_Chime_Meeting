@@ -9,6 +9,9 @@ export interface MainOverlayVideoElementState{
     drawingStroke    : string
     drawingLineWidth : number
     erasing          : boolean
+
+    previousX        : number
+    previousY        : number
 }
 
 class MainOverlayVideoElement extends React.Component{
@@ -29,6 +32,8 @@ class MainOverlayVideoElement extends React.Component{
         drawingStroke: "black",
         drawingLineWidth: 2,
         erasing: false,
+        previousX :0,
+        previousY :0,
     }
     statusImages: { [key: string]: HTMLImageElement } = {}
     drawingStart = () =>{
@@ -197,6 +202,26 @@ class MainOverlayVideoElement extends React.Component{
                 this.drawingCanvas.addEventListener("mousemove", (e)=>{
                     this.drawing(e.offsetX, e.offsetY, e.movementX, e.movementY)
                 }, { passive: false })                    
+
+                this.drawingCanvas.addEventListener("touchstart", (e)=>{
+                    this.drawingStart()
+                    this.setState({
+                        previousX:e.changedTouches[0].clientX-this.drawingCanvas.getBoundingClientRect().left,
+                        previousY:e.changedTouches[0].clientY-this.drawingCanvas.getBoundingClientRect().top,
+                    })
+                }, { passive: false })
+                this.drawingCanvas.addEventListener("touchmove", (e)=>{
+                    e.preventDefault(); 
+                    const prevX = this.state.previousX
+                    const prevY = this.state.previousY
+                    const thisTimeX = e.changedTouches[0].clientX-this.drawingCanvas.getBoundingClientRect().left
+                    const thisTimeY = e.changedTouches[0].clientY-this.drawingCanvas.getBoundingClientRect().top
+                    this.drawing(thisTimeX, thisTimeY, thisTimeX-prevX, thisTimeY-prevY)
+                    this.setState({previousX:thisTimeX,previousY:thisTimeY})
+                }, { passive: false })
+                this.drawingCanvas.addEventListener("touchend", (e)=>{
+                    this.drawingEnd()
+                }, { passive: false })
             }
         }
     }
