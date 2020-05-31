@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Icon, Accordion, Menu} from 'semantic-ui-react';
+import { Icon, Accordion, Menu, Label} from 'semantic-ui-react';
 
 interface DisplayShareControlState{
     open             : boolean
@@ -30,22 +30,12 @@ class DisplayShareControl extends React.Component {
                 </Accordion.Title>
                 <Accordion.Content active={this.state.open}>
                     <div>
-                        <Menu compact size="tiny">
-                            <Menu.Item
-                            icon="play"
-                            key="play"
-                            name="play"
-                            color="grey"
+                        <Label basic as="a" icon="play" 
                             onClick={() => { props.sharedDisplaySelected()}}
-                            />
-                            <Menu.Item
-                            icon="stop"
-                            key="stop"
-                            name="stop"
-                            color="grey"
+                        />
+                        <Label basic as="a" icon="stop" 
                             onClick={() => { props.stopSharedDisplay() }}
-                            />
-                        </Menu>
+                        />                        
                     </div>
 
                 </Accordion.Content>

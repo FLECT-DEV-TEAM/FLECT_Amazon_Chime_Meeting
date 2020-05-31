@@ -476,7 +476,10 @@ class App extends React.Component {
     pauseSharedVideo = () => {
         this.state.shareVideoElement.pause()
     }
-
+    stopSharedVideo = () => {
+        const gs = this.props as GlobalState
+        gs.meetingSession!.audioVideo.stopContentShare()
+    }
     // For SharedDisplay
     sharedDisplaySelected = () => {
         const gs = this.props as GlobalState
@@ -574,6 +577,7 @@ class App extends React.Component {
         sharedVideoSelected: this.sharedVideoSelected,
         playSharedVideo: this.playSharedVideo,
         pauseSharedVideo: this.pauseSharedVideo,
+        stopSharedVideo:  this.stopSharedVideo,
         sharedDisplaySelected: this.sharedDisplaySelected,
         stopSharedDisplay: this.stopSharedDisplay,
         setVirtualBackground: this.setVirtualBackground,
