@@ -13,14 +13,19 @@ Inspired by https://github.com/aws/amazon-chime-sdk-js/tree/master/demos/browser
 - Send Message
 - White board
 
-
+### Virtual BG/ Stamp
 <p align="center">
 <img src="./doc/virtualBG.gif" width="300" />
 <img src="./doc/stamp.gif" width="300" />
 </p>
+
+### WhiteBoard1
 <p align="center">
 <img src="./doc/whiteboard_mini.gif" width="600" />
 </p>
+
+
+### WhiteBoard2
 <p align="center">
 <img src="./doc/whiteboard2.gif" width="600" />
 </p>
