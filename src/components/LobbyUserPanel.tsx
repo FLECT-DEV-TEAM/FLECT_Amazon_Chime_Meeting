@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Button, Segment, Header, Card, Divider } from 'semantic-ui-react'
+import { Button, Segment, Header, Card, Divider, Icon } from 'semantic-ui-react'
 import { GlobalState } from '../reducers';
 import VideoControl from './meetingComp/VideoControl';
 import MicControl from './meetingComp/MicControl';
@@ -14,14 +14,14 @@ import SecondaryCameraAccordion from './meetingComp/SecondaryCameraAccordion';
 import StampAccordionBySignal from './meetingComp/StampAccordionBySignal';
 
 
-interface PreviewPanelState{
+interface PanelState{
     open             : boolean
 }
 
 class PreviewPanel extends React.Component {
     previewCanvasRef = React.createRef<HTMLCanvasElement>()
 
-    state: PreviewPanelState = {
+    state: PanelState = {
         open             : true,
     }
     handleClick() {
@@ -59,17 +59,13 @@ class PreviewPanel extends React.Component {
                 {this.state.open ?
                     (
                         <div>
-                        {/* <Segment>
-                            <div >
-                                <Button basic icon="angle up" size="tiny" width="100%" compact onClick={()=>{this.handleClick()}} />
-                            </div>
-
-                            <canvas ref={this.previewCanvasRef} style={{ display: "block" }} width="100%" height="100%" />
-                        </Segment> */}
-
                         <Card width="100%">
-                        <Button basic icon="angle up" size="tiny" compact onClick={()=>{this.handleClick()}} />
-                        <canvas ref={this.previewCanvasRef} style={{ display: "block" }} width="100%" height="100%" />
+                            <Button basic size="tiny"  compact onClick={()=>{this.handleClick()}} >
+                                {/* <Header as='h5'> */}
+                                    <Icon name="angle up" />Preview
+                                {/* </Header> */}
+                            </Button>
+                            <canvas ref={this.previewCanvasRef} style={{ display: "block" }} width="100%" height="100%" />
                         <Card.Content>
                             <Card.Header>{gs.userName} </Card.Header>
                             <Card.Meta>xxx@xxx.xcom</Card.Meta>
@@ -86,12 +82,12 @@ class PreviewPanel extends React.Component {
                     :
                     (
                         <div>
-                            {/* <Segment padded>
-                            <Button basic icon="angle down" size="tiny"  compact onClick={()=>{this.handleClick()}} />
-                            </Segment> */}
-
                         <Card  >
-                        <Button basic icon="angle down" size="tiny"  compact onClick={()=>{this.handleClick()}} />
+                            <Button basic size="tiny"  compact onClick={()=>{this.handleClick()}} >
+                                {/* <Header as='h5'> */}
+                                    <Icon name="angle down" />Preview
+                                {/* </Header> */}
+                            </Button>
                         </Card>
                         </div>
 
@@ -101,58 +97,140 @@ class PreviewPanel extends React.Component {
             </div>
         )
     }
-
 }
 
-
-
-interface ConfigurationPanelState{
-    open             : boolean
-}
-
-class ConfigurationPanel extends React.Component {
+class ConfigPanel extends React.Component {
     previewCanvasRef = React.createRef<HTMLCanvasElement>()
 
-    state: ConfigurationPanelState = {
+    state: PanelState = {
         open             : true,
     }
     handleClick() {
         this.setState({open: !this.state.open})
     }
 
-    render (){
+    render(){
         const props = this.props as any
+        const gs = this.props as GlobalState
         return(
             <div>
-                <Segment padded>
+                {this.state.open ?
+                    (
+                        <div>
 
-                    <Header as='h3' textAlign={'left'}> Configurations </Header>
-                    <p>
-                        <MicControl {...props} />
-                    </p>
-                    <p>
-                        <VideoControl {...props} />
-                    </p>
-                    <p>
-                        <SpeakerControl {...props} />
-                    </p>
-                    <p>
-                        <SettingControl {...props}/>
-                    </p>
+                        <Card width="100%">
+                            <Button basic size="tiny"  compact onClick={()=>{this.handleClick()}} >
+                                {/* <Header as='h5'> */}
+                                    <Icon name="angle up" />Configurations
+                                {/* </Header> */}
+                            </Button>                            
+                            <Card.Content>
+                                <p>
+                                    <MicControl {...props} />
+                                </p>
+                                <p>
+                                    <VideoControl {...props} />
+                                </p>
+                                <p>
+                                    <SpeakerControl {...props} />
+                                </p>
+                                <Divider />
+                                <p>
+                                    <SettingControl {...props}/>
+                                </p>
+                            </Card.Content>
+                        </Card>
+                        </div>
+                    )
+                    :
+                    (
+                        <div>
+                        <Card  >
+                            <Button basic size="tiny"  compact onClick={()=>{this.handleClick()}} >
+                                {/* <Header as='h5'> */}
+                                    <Icon name="angle down" />Configurations
+                                {/* </Header> */}
+                            </Button>
+                        </Card>
+                        </div>
 
-                    <Header as='h3' textAlign={'left'}> Actions </Header>
-                    <VideoShareControl {...props} />
-                    <DisplayShareControl {...props} />
-                    <StampAccordion {...props} />
-                    <SendTextAccordion {...props}/>
+                    )
 
-                    <SecondaryCameraAccordion {...props} />
-                    <StampAccordionBySignal {...props} />
-                </Segment>
+                }
             </div>
         )
     }
 }
+
+
+
+
+class ActionsPanel extends React.Component {
+    previewCanvasRef = React.createRef<HTMLCanvasElement>()
+
+    state: PanelState = {
+        open             : true,
+    }
+    handleClick() {
+        this.setState({open: !this.state.open})
+    }
+
+    render(){
+        const props = this.props as any
+        const gs = this.props as GlobalState
+        return(
+            <div>
+                {this.state.open ?
+                    (
+                        <div>
+
+                        <Card width="100%">
+                            <Button basic size="tiny"  compact onClick={()=>{this.handleClick()}} >
+                                {/* <Header as='h5'> */}
+                                    <Icon name="angle up" />Actions
+                                {/* </Header> */}
+                            </Button>                            
+                            <Card.Content>
+                                <VideoShareControl {...props} />
+                                <DisplayShareControl {...props} />
+                                <StampAccordion {...props} />
+                                <SendTextAccordion {...props}/>
+
+                                <SecondaryCameraAccordion {...props} />
+                                <StampAccordionBySignal {...props} />
+
+                            </Card.Content>
+                        </Card>
+                        </div>
+                    )
+                    :
+                    (
+                        <div>
+                        <Card  >
+                            <Button basic size="tiny"  compact onClick={()=>{this.handleClick()}} >
+                                {/* <Header as='h5'> */}
+                                    <Icon name="angle down" />Actions
+                                {/* </Header> */}
+                            </Button>
+                        </Card>
+                        </div>
+
+                    )
+
+                }
+            </div>
+        )
+    }
+}
+
+
+
+
+
+
+
+
+
 
 
 class LobbyUserPanel extends React.Component {
@@ -164,11 +242,12 @@ class LobbyUserPanel extends React.Component {
         return (
             <div  style={{padding:"10px"}}>
                 <PreviewPanel  {...props}/>
-
                 <Divider hidden />
 
-                <ConfigurationPanel {...props} />
+                <ConfigPanel {...props} />
+                <Divider hidden />
 
+                <ActionsPanel {...props} />
 
             </div>
         )

@@ -26,7 +26,7 @@ class SendTextAccordion extends React.Component {
     const appState = props.appState as AppState
 
     const grid = (
-        <Accordion styled>
+        <Accordion>
         <Accordion.Title
             active={this.state.open}
             index={0}

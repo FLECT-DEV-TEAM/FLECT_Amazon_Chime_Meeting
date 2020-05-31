@@ -22,7 +22,7 @@ class StampAccordion extends React.Component {
   ///////////////////////////////
   generateAccordion = () =>{
     const grid = (
-        <Accordion styled>
+        <Accordion>
         <Accordion.Title
             active={this.state.open}
             index={0}

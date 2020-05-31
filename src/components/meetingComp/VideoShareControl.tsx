@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Icon, Accordion, Menu, Divider, List} from 'semantic-ui-react';
+import { Icon, Accordion, Menu, Divider, List, Label} from 'semantic-ui-react';
 
 
 interface VideoShareControlState{
@@ -20,7 +20,7 @@ class VideoShareControl extends React.Component {
         const props = this.props as any
     
         const grid = (
-            <Accordion styled>
+            <Accordion>
                 <Accordion.Title
                     active={this.state.open}
                     index={0}
@@ -55,33 +55,15 @@ class VideoShareControl extends React.Component {
 
                     <Divider hidden />
                     <div>
-                        <Menu compact size="tiny">
-                            <Menu.Item
-                            icon="play"
-                            key="play"
-                            name="play"
-                            color="grey"
+                        <Label basic as="a" icon="play" 
                             onClick={(e) => { props.playSharedVideo() }}
-                            
-                            />
-                            <Menu.Item
-                            icon="pause"
-                            key="pause"
-                            name="pause"
-                            color="grey"
+                        />
+                        <Label basic as="a" icon="pause" 
                             onClick={(e) => { props.pauseSharedVideo() }}
-                            />
-                            <Menu.Item
-                            icon="stop"
-                            key="stop"
-                            name="stop"
-                            color="grey"
-                            disabled
-                            onClick={()=>{console.log("clicked")}}
-                            />
-
-
-                        </Menu>
+                        />
+                        <Label basic as="a" icon="stop" 
+                            onClick={(e) => { props.pauseSharedVideo() }}
+                        />
                     </div>
 
 
