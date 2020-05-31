@@ -19,8 +19,13 @@ Inspired by https://github.com/aws/amazon-chime-sdk-js/tree/master/demos/browser
 <img src="./doc/stamp.gif" width="300" />
 </p>
 <p align="center">
-<img src="./doc/whiteboard_mini.gif" width="300" />
+<img src="./doc/whiteboard_mini.gif" width="600" />
 </p>
+<p align="center">
+<img src="./doc/whiteboard2.gif" width="600" />
+</p>
+
+
 
 
 
