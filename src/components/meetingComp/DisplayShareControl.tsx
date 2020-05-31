@@ -19,7 +19,7 @@ class DisplayShareControl extends React.Component {
         const props = this.props as any
 
         const grid = (
-            <Accordion styled>
+            <Accordion>
                 <Accordion.Title
                     active={this.state.open}
                     index={0}

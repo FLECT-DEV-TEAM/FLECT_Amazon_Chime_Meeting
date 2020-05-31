@@ -65,7 +65,7 @@ class SecondaryCameraAccordion extends React.Component {
     inputVideoDevicesOpts.push({key:"none", text:"none", value:"none"})
 
     const grid = (
-      <Accordion styled>
+      <Accordion>
         <Accordion.Title
           active={this.state.open}
           index={0}

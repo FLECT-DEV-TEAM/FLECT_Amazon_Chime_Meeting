@@ -14,7 +14,6 @@ class MicControl extends React.Component {
         const props = this.props as any
         const gs = this.props as GlobalState
         const appState = props.appState as AppState
-        console.log("MIC", props)
         const inputAudioDevicesOpts=gs.inputAudioDevices!.map(info => { return { key: info.label, text: info.label, value: info.deviceId } })
         return (
             <Grid>
