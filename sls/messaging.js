@@ -129,6 +129,7 @@ exports.ondisconnect = async event => {
     return { statusCode: 200, body: 'Disconnected.' };
 };
 
+
 exports.sendmessage = async event => {
     console.log('sendmessage event:', JSON.stringify(event, null, 2));
     let attendees = {};
@@ -150,13 +151,11 @@ exports.sendmessage = async event => {
         apiVersion : '2018-11-29',
         endpoint   : `${event.requestContext.domainName}/${event.requestContext.stage}`
     });
-    const postData = JSON.parse(event.body).data;
-    console.log("postData: ", JSON.parse(postData))
-    const targetId = JSON.parse(postData).targetId
-    console.log("targetId: ", targetId)
-    const private = JSON.parse(postData).private
-    console.log("private: ", private)
-    const index = JSON.parse(postData).index
+    
+    console.log("DATA:",event.body)
+    const body = JSON.parse(event.body)
+    const targetId = body.targetId
+    const private  = body.private
 
     const postCalls = attendees.Items.map(async connection => {
         const connectionId = connection.ConnectionId.S
@@ -164,7 +163,7 @@ exports.sendmessage = async event => {
         if(private !==true || attendeeId === targetId){
             try {
                 await apigwManagementApi
-                    .postToConnection({ ConnectionId: connectionId, Data: postData })
+                    .postToConnection({ ConnectionId: connectionId, Data: JSON.stringify(body)})
                     .promise();
             } catch (e) {
                 if (e.statusCode === 410) {
@@ -177,24 +176,16 @@ exports.sendmessage = async event => {
             }
         }
     });
-    console.log("AAAAAAAAAAAAAAAAAAAAAAAAAAAAaaa1")
+
     try {
         await Promise.all(postCalls);
     } catch (e) {
         console.error(`failed to post: ${e.message}`);
         return { statusCode: 500, body: e.stack };
     }
+    
+    body.done              = true
+    body.content.fileParts = "" // reduce trafic
 
-
-    console.log("AAAAAAAAAAAAAAAAAAAAAAAAAAAAaaa2")
-    if(index >= 0){
-        const body = {cmd:-1}
-        console.log("FILE!!!!!!!!!!")
-        return { statusCode: 200, body: JSON.stringify(body) };
-    }else{
-        const body = {cmd:-1}
-        console.log("OTHER!!!!!!!!!!")
-        return { statusCode: 200, body: JSON.stringify(body) };
-        // return { statusCode: 200, body: '{cmd:}' };
-    }
+    return { statusCode: 200, body: JSON.stringify(body) };
 };

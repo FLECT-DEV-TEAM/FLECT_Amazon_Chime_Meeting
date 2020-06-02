@@ -30,6 +30,8 @@ import { getDeviceLists, getVideoDevice } from './utils'
 import { API_BASE_URL, MESSAGING_URL } from '../config';
 import { RS_STAMPS } from './resources';
 import ErrorPortal from './meetingComp/ErrorPortal';
+import { loadFile, sendFilePart, addFilePart, WSFile, saveFile } from './WebsocketApps/FileTransfer';
+import { WSMessage, WSMessageType } from './WebsocketApps/const';
 
 
 export enum MessageType {
@@ -52,58 +54,7 @@ interface Message {
     imgSrc: string
     message: string
 }
-interface FilePart{
-    uuid    : string
-    md5sum  : string
-    partNum : number
-    content : string
-    index   : number
-}
-const fileParts:{[uuid:string]:FilePart[]} = {}
-const addFilePart = (part:FilePart) =>{
-    if(fileParts[part.uuid] === undefined){
-      const lst = [part]
-      fileParts[part.uuid] = lst
-    }else{
-      fileParts[part.uuid].push(part)
-    }
-  }
-  
-  const fileReceiveComplete = (id:string):boolean =>{
-    if(fileParts[id] === undefined){
-      console.log("NOID!")
-      console.log(id)
-      console.log(fileParts)
-      return false
-    }
-    const partNum = fileParts[id][0].partNum
-    const len = fileParts[id].length
-    console.log(partNum, len)
-    return partNum === len
-  }
-  
-  const saveFile = (id:string) =>{
-    if(fileReceiveComplete(id) === false){
-      return
-    }
-  
-    const parts = fileParts[id]
-    const len = parts.length
-    parts.sort((a,b)=>{
-      if (a.index < b.index) return -1;
-      else return 1
-    })
-  
-    let content = ""  
-    for(let i in parts){
-      console.log(i)
-      content = content.concat(parts[i].content)
-    }
-  
-    const sum = md5.default(content)
-    
-    console.log("FILE_CONCAT", sum, parts[0].md5sum)
-}
+
 
 /**
  * 
@@ -621,7 +572,6 @@ class App extends React.Component {
         gs.meetingSession?.audioVideo.realtimeSendDataMessage(MessageType.Drawing.toString(), JSON.stringify(message))
     }
 
-    filePartLength = 1024*10
     fileTransferring = false
     id            = ""
     sum           = ""
@@ -631,58 +581,17 @@ class App extends React.Component {
     targetId      = ""
     // For File Share
     sharedFileSelected = (targetId:string, e: any) => {
-        //const path = URL.createObjectURL(e.target.files[0]);
-        //console.log("FILESHARE", path)
-        console.log("FILESHARE", e)
-        if(this.fileTransferring === true){
-            console.log("Already Transffering... ",this.filePartIndex, this.partNum)
-            return 
-        }
-        this.fileTransferring = true
-
-        const reader = new FileReader();
-        reader.onload= () =>{
-            // const content = Buffer.from(reader.result!).toString("base64")
-            // const id = uuid()
-            // const sum = md5.default(content)
-            // const length = content.length
-            // const partNum = Math.ceil(length / this.filePartLength)
-            this.content = Buffer.from(reader.result!).toString("base64")
-            this.id = uuid()
-            this.sum = md5.default(this.content)
-            const length = this.content.length
-            this.partNum =  Math.ceil(length / this.filePartLength)
-            this.filePartIndex = 0
-            this.targetId = targetId
-            this.sendNextFilePart()
-            // for(let i = 0; i < partNum; i++){
-            //     console.log("SENDING, ", i, partNum, targetId)
-            //     const message = {
-            //         action: 'sendmessage',
-            //         data: JSON.stringify({ "cmd": MessageType.File, "targetId":targetId, "private":true, "uuid":id, "md5sum":sum,
-            //                                 "partNum": partNum, "index":i, "content":content.slice(i*this.filePartLength, (i+1)*this.filePartLength)})
-            //     }
-            //     this.state.messagingSocket?.send(JSON.stringify(message))
-            // }
-        }
-        reader.readAsDataURL(e.target.files[0]);
-    }
-
-    sendNextFilePart = () =>{
-        if(this.filePartIndex >= this.partNum){
-            this.fileTransferring = false
-            console.log("file transfer done:",this.filePartIndex, this.partNum)
-            return
-        }
-        console.log("SENDING, ", this.filePartIndex, this.partNum, this.targetId)
-        const message = {
-            action: 'sendmessage',
-            //action: 'sendfile',
-            data: JSON.stringify({ "cmd": MessageType.File, "targetId":this.targetId, "private":true, "uuid":this.id, "md5sum":this.sum,
-                                    "partNum": this.partNum, "index":this.filePartIndex, "content":this.content.slice(this.filePartIndex*this.filePartLength, (this.filePartIndex+1)*this.filePartLength)})
-        }
-        this.filePartIndex += 1
-        this.state.messagingSocket?.send(JSON.stringify(message))
+        console.log("FILESHARE")
+        console.log(e)
+        console.log(e.target)
+        console.log(e.target.files)
+        console.log(e.target.files[0].name)
+        console.log(e.target.files[0].size)
+        
+        const id = uuid()
+        loadFile(e.target.files[0], id, e.target.files[0].name, ()=>{
+            sendFilePart(this.state.messagingSocket!, id, targetId)
+        })
     }
 
 
@@ -982,35 +891,52 @@ class App extends React.Component {
 
 
                     messagingSocket.addEventListener('message', (e: Event) => {
-                        console.log("MESSAGE!!!!!!",e)
-                        const data = JSON.parse((e as MessageEvent).data);
-                        console.log("Messaging!", data)
-                        if(data.cmd === MessageType.Message || data.cmd === MessageType.Stamp){
-                            const message: Message = {
-                                type: data.cmd,
-                                startTime: data.startTime,
-                                targetId: data.targetId,
-                                imgSrc: data.imgPath ? data.imgPath : undefined,
-                                message: data.message ? data.message : undefined,
+                        //console.log("MESSAGE!!!!!!",e)
+                        const data = JSON.parse((e as MessageEvent).data) as WSMessage;
+                        //console.log("data: ",data)
+                        if(data.cmd === WSMessageType.File){
+                            const filePart = data.content as WSFile
+                            if(data.done === false){
+                                // reciever
+                                const res = addFilePart(filePart)
+                                if(res.available===true){
+                                    saveFile(filePart.uuid)
+                                }
+                                console.log(`File Recieving...: ${res.recievedIndex}/${res.partNum}`)
+                            }else{
+                                // sender
+                                const res = sendFilePart(this.state.messagingSocket!, filePart.uuid, data.targetId)
+                                console.log(`File Transfering...: ${res.transferredIndex}/${res.partNum}`)
                             }
-                            this.state.currentSettings.globalMessages.push(message)
-                        }else if(data.cmd === MessageType.File){
-                            const filePart:FilePart = {
-                                uuid : data.uuid,
-                                partNum  : data.partNum,
-                                index: data.index,
-                                content: data.content,
-                                md5sum: data.md5sum,
-                            }
-                            addFilePart(filePart)
-                            if(fileReceiveComplete(data.uuid)){
-                                saveFile(data.uuid)
-                            }
-                        }else if(data.cmd < 0){
-                            this.sendNextFilePart()
-                        }else{
-                            console.log("Unknown Message Type: " + data.cmd)
                         }
+
+                        // console.log("Messaging!", data)
+                        // if(data.cmd === MessageType.Message || data.cmd === MessageType.Stamp){
+                        //     const message: Message = {
+                        //         type: data.cmd,
+                        //         startTime: data.startTime,
+                        //         targetId: data.targetId,
+                        //         imgSrc: data.imgPath ? data.imgPath : undefined,
+                        //         message: data.message ? data.message : undefined,
+                        //     }
+                        //     this.state.currentSettings.globalMessages.push(message)
+                        // }else if(data.cmd === MessageType.File){
+                        // //     const filePart:FilePart = {
+                        // //         uuid : data.uuid,
+                        // //         partNum  : data.partNum,
+                        // //         index: data.index,
+                        // //         content: data.content,
+                        // //         md5sum: data.md5sum,
+                        // //     }
+                        // //     addFilePart(filePart)
+                        // //     if(fileReceiveComplete(data.uuid)){
+                        // //         saveFile(data.uuid)
+                        // //     }
+                        // // }else if(data.cmd < 0){
+                        // //     this.sendNextFilePart()
+                        // }else{
+                        //     console.log("Unknown Message Type: " + data.cmd)
+                        // }
                     })
 
                     messagingSocket.addEventListener('error', (e: Event) => {
