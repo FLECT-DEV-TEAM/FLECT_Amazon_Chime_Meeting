@@ -2,6 +2,8 @@ service: flect-chime-sdk # you should configure here. use only lowercase and no 
 
 provider:
   name: aws
+  logs:
+    websocket: true
   runtime: nodejs12.x
   memorySize: 256
   stage: ${opt:stage, 'dev'}
@@ -76,8 +78,8 @@ resources:
           - AttributeName: "UserId"
             KeyType: "HASH"
         ProvisionedThroughput:
-          ReadCapacityUnits: "5"
-          WriteCapacityUnits: "5"
+          ReadCapacityUnits: "2"
+          WriteCapacityUnits: "2"
         GlobalSecondaryIndexes:
           - IndexName: "reverseGSI"
             KeySchema:
@@ -86,8 +88,8 @@ resources:
             Projection:
               ProjectionType: ALL
             ProvisionedThroughput:
-              ReadCapacityUnits: '5'
-              WriteCapacityUnits: '5'
+              ReadCapacityUnits: '2'
+              WriteCapacityUnits: '2'
     Meetings:
       Type: 'AWS::DynamoDB::Table'
       Properties:
@@ -100,8 +102,8 @@ resources:
           - AttributeName: "MeetingName"
             KeyType: HASH
         ProvisionedThroughput:
-          ReadCapacityUnits: "5"
-          WriteCapacityUnits: "5"
+          ReadCapacityUnits: "2"
+          WriteCapacityUnits: "2"
         GlobalSecondaryIndexes:
           - IndexName: "MeetingId"
             KeySchema:
@@ -110,8 +112,8 @@ resources:
             Projection:
               ProjectionType: ALL
             ProvisionedThroughput:
-              ReadCapacityUnits: "5"
-              WriteCapacityUnits: "5"
+              ReadCapacityUnits: "2"
+              WriteCapacityUnits: "2"
         TimeToLiveSpecification:
           AttributeName: "TTL"
           Enabled: true
@@ -125,8 +127,8 @@ resources:
           - AttributeName: "AttendeeId"
             KeyType: "HASH"
         ProvisionedThroughput:
-          ReadCapacityUnits: "5"
-          WriteCapacityUnits: "5"
+          ReadCapacityUnits: "2"
+          WriteCapacityUnits: "2"
 
     ### Role ###
     ChimeMeetingsAccessPolicy: # In-line
@@ -203,8 +205,8 @@ resources:
           AttributeName: TTL
           Enabled: true      
         ProvisionedThroughput:
-          ReadCapacityUnits: 5
-          WriteCapacityUnits: 5
+          ReadCapacityUnits: 2
+          WriteCapacityUnits: 2
 
 ###############
 ## Functions ##
@@ -377,9 +379,14 @@ functions:
   sendmessage:
     handler: sls/messaging.sendmessage
     role: FLECTChimeSdkLambdaRole
+    timeout: 15
     events:
       - websocket:
           route: sendmessage
+          routeResponseSelectionExpression: $default
+
+          
+
   auth:
     handler: sls/messaging.authorize
     role: FLECTChimeSdkLambdaRole

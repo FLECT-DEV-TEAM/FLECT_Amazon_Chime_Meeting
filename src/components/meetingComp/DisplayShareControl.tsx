@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Icon, Accordion, Menu, Label} from 'semantic-ui-react';
+import { Icon, Accordion, Label} from 'semantic-ui-react';
 
 interface DisplayShareControlState{
     open             : boolean

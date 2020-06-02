@@ -1,14 +1,15 @@
 import * as React from 'react';
-import { Icon, Accordion, Divider, List, Label} from 'semantic-ui-react';
+import { Icon, Accordion, List } from 'semantic-ui-react';
+import { AppState } from '../App';
 
 
-interface VideoShareControlState{
+interface FileShareControlState{
     open             : boolean
 }
 
 
-class VideoShareControl extends React.Component {
-    state: VideoShareControlState = {
+class FileShareControl extends React.Component {
+    state: FileShareControlState = {
         open             : false,
     }
     handleClick() {
@@ -18,7 +19,7 @@ class VideoShareControl extends React.Component {
 
     generateAccordion = () =>{
         const props = this.props as any
-    
+        const appState = props.appState as AppState
         const grid = (
             <Accordion>
                 <Accordion.Title
@@ -27,7 +28,7 @@ class VideoShareControl extends React.Component {
                     onClick={()=>{this.handleClick()}}
                 >
                     <Icon name='dropdown' />
-                    Video Share
+                    ShareFile
                 </Accordion.Title>
                 <Accordion.Content active={this.state.open}>
                     <div>
@@ -41,7 +42,7 @@ class VideoShareControl extends React.Component {
                             ref={this.fileInputRef}
                             type="file"
                             hidden
-                            onChange={(e) => props.sharedVideoSelected(e)}
+                            onChange={(e) => props.sharedFileSelected(appState.currentSettings.focuseAttendeeId, e)}
                         />
 
                         <List link>
@@ -50,23 +51,6 @@ class VideoShareControl extends React.Component {
                             </List.Item>
                         </List>
                     </div>
-
-
-
-                    <Divider hidden />
-                    <div>
-                        <Label basic as="a" icon="play" 
-                            onClick={(e) => { props.playSharedVideo() }}
-                        />
-                        <Label basic as="a" icon="pause" 
-                            onClick={(e) => { props.pauseSharedVideo() }}
-                        />
-                        <Label basic as="a" icon="stop" 
-                            onClick={(e) => { props.pauseSharedVideo() }}
-                        />
-                    </div>
-
-
                 </Accordion.Content>
             </Accordion>
         )
@@ -81,6 +65,6 @@ class VideoShareControl extends React.Component {
 
 }
 
-export default VideoShareControl;
+export default FileShareControl;
 
 
