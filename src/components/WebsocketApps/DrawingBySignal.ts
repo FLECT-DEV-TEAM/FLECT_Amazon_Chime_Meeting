@@ -1,7 +1,5 @@
-import * as md5 from 'md5';
-import { v4 as uuid } from 'uuid';
-import { WSMessage, WSMessageType } from './const';
-import { ReconnectingPromisedWebSocket, AudioVideoFacade } from 'amazon-chime-sdk-js';
+import { WSMessageType } from './const';
+import { AudioVideoFacade } from 'amazon-chime-sdk-js';
 
 export enum DrawingType {
     Draw,
