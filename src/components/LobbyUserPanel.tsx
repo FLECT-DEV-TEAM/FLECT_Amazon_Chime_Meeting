@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Button, Segment, Header, Card, Divider, Icon } from 'semantic-ui-react'
+import { Button, Card, Divider, Icon } from 'semantic-ui-react'
 import { GlobalState } from '../reducers';
 import VideoControl from './meetingComp/VideoControl';
 import MicControl from './meetingComp/MicControl';
@@ -12,6 +12,7 @@ import SendTextAccordion from './meetingComp/SendTextAccordion';
 import { AppState } from './App';
 import SecondaryCameraAccordion from './meetingComp/SecondaryCameraAccordion';
 import StampAccordionBySignal from './meetingComp/StampAccordionBySignal';
+import FileShareControl from './meetingComp/FileShare';
 
 
 interface PanelState{
@@ -111,7 +112,6 @@ class ConfigPanel extends React.Component {
 
     render(){
         const props = this.props as any
-        const gs = this.props as GlobalState
         return(
             <div>
                 {this.state.open ?
@@ -177,7 +177,6 @@ class ActionsPanel extends React.Component {
 
     render(){
         const props = this.props as any
-        const gs = this.props as GlobalState
         return(
             <div>
                 {this.state.open ?
@@ -199,6 +198,8 @@ class ActionsPanel extends React.Component {
                                 <SecondaryCameraAccordion {...props} />
                                 <StampAccordionBySignal {...props} />
 
+
+                                <FileShareControl {...props} />
                             </Card.Content>
                         </Card>
                         </div>

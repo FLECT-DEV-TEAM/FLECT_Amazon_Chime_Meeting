@@ -51,7 +51,6 @@ export const setRealtimeSubscribeToReceiveDataMessage = (app:App, audioVideo:Aud
         app.receivedDataMessage(dataMessage)
     }
     audioVideo.realtimeSubscribeToReceiveDataMessage(topic, receiveDataMessageHandler)
-    
 }
 
     

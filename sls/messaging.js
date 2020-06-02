@@ -129,6 +129,7 @@ exports.ondisconnect = async event => {
     return { statusCode: 200, body: 'Disconnected.' };
 };
 
+
 exports.sendmessage = async event => {
     console.log('sendmessage event:', JSON.stringify(event, null, 2));
     let attendees = {};
@@ -138,40 +139,53 @@ exports.sendmessage = async event => {
                     ':meetingId': { S: event.requestContext.authorizer.meetingId }
                 },
                 KeyConditionExpression : 'MeetingId = :meetingId',
-                ProjectionExpression   : 'ConnectionId',
+                ProjectionExpression   : 'ConnectionId, AttendeeId',
                 TableName              : CONNECTIONS_TABLE_NAME
             })
             .promise();
     } catch (e) {
+        console.log('Query error:', e);
         return { statusCode: 500, body: e.stack };
     }
     const apigwManagementApi = new AWS.ApiGatewayManagementApi({
         apiVersion : '2018-11-29',
         endpoint   : `${event.requestContext.domainName}/${event.requestContext.stage}`
     });
-    const postData = JSON.parse(event.body).data;
+    
+    console.log("DATA:",event.body)
+    const body = JSON.parse(event.body)
+    const targetId = body.targetId
+    const private  = body.private
 
     const postCalls = attendees.Items.map(async connection => {
-        const connectionId = connection.ConnectionId.S;
-        try {
-            await apigwManagementApi
-                .postToConnection({ ConnectionId: connectionId, Data: postData })
-                .promise();
-        } catch (e) {
-            if (e.statusCode === 410) {
-                console.log(`found stale connection, skipping ${connectionId}`);
-            } else {
-                console.error(
-                    `error posting to connection ${connectionId}: ${e.message}`
-                );
+        const connectionId = connection.ConnectionId.S
+        const attendeeId   = connection.AttendeeId.S
+        if(private !==true || attendeeId === targetId){
+            try {
+                await apigwManagementApi
+                    .postToConnection({ ConnectionId: connectionId, Data: JSON.stringify(body)})
+                    .promise();
+            } catch (e) {
+                if (e.statusCode === 410) {
+                    console.log(`found stale connection, skipping ${connectionId}`);
+                } else {
+                    console.error(
+                        `error posting to connection ${connectionId}: ${e.message}`
+                    );
+                }
             }
         }
     });
+
     try {
         await Promise.all(postCalls);
     } catch (e) {
         console.error(`failed to post: ${e.message}`);
         return { statusCode: 500, body: e.stack };
     }
-    return { statusCode: 200, body: 'Data sent.' };
+    
+    body.done              = true
+    body.content.fileParts = "" // reduce trafic
+
+    return { statusCode: 200, body: JSON.stringify(body) };
 };
