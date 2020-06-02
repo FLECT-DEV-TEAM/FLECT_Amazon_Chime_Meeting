@@ -123,9 +123,9 @@ class MainOverlayVideoElement extends React.Component{
         const ctx = this.canvasRef.current!.getContext("2d")!
         // console.log("STAMP SIZE1", image.width, image.height, width)
         // console.log("STAMP SIZE2", this.canvasRef.current!.width, this.canvasRef.current!.height, this.videoRef.current!.scrollWidth, this.videoRef.current!.scrollHeight)
-        console.log("putStamp", dstAttendeeId, thisAttendeeId)
-        console.log("putStamp", props)
-        console.log("putStamp", image)
+        // console.log("putStamp", dstAttendeeId, thisAttendeeId)
+        // console.log("putStamp", props)
+        // console.log("putStamp", image)
         ctx.drawImage(image, this.canvasRef.current!.width - ((startTime % 5) * 20 + width+10), this.canvasRef.current!.height -  this.canvasRef.current!.height * (elapsed / 3000), width, width)
     }
 

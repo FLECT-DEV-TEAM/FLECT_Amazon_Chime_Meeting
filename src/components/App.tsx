@@ -2,6 +2,8 @@ import * as React from 'react';
 import { GlobalState } from '../reducers';
 import { AppStatus, LOGGER_BATCH_SIZE, LOGGER_INTERVAL_MS, AppEntranceStatus, AppMeetingStatus, AppLobbyStatus, NO_DEVICE_SELECTED } from '../const';
 import * as bodyPix from '@tensorflow-models/body-pix';
+import * as md5 from 'md5';
+import { v4 as uuid } from 'uuid';
 
 import {
     ConsoleLogger,
@@ -34,6 +36,7 @@ export enum MessageType {
     Message,
     Stamp,
     Drawing,
+    File,
 }
 
 export enum DrawingType {
@@ -48,6 +51,58 @@ interface Message {
     targetId: string
     imgSrc: string
     message: string
+}
+interface FilePart{
+    uuid    : string
+    md5sum  : string
+    partNum : number
+    content : string
+    index   : number
+}
+const fileParts:{[uuid:string]:FilePart[]} = {}
+const addFilePart = (part:FilePart) =>{
+    if(fileParts[part.uuid] === undefined){
+      const lst = [part]
+      fileParts[part.uuid] = lst
+    }else{
+      fileParts[part.uuid].push(part)
+    }
+  }
+  
+  const fileReceiveComplete = (id:string):boolean =>{
+    if(fileParts[id] === undefined){
+      console.log("NOID!")
+      console.log(id)
+      console.log(fileParts)
+      return false
+    }
+    const partNum = fileParts[id][0].partNum
+    const len = fileParts[id].length
+    console.log(partNum, len)
+    return partNum === len
+  }
+  
+  const saveFile = (id:string) =>{
+    if(fileReceiveComplete(id) === false){
+      return
+    }
+  
+    const parts = fileParts[id]
+    const len = parts.length
+    parts.sort((a,b)=>{
+      if (a.index < b.index) return -1;
+      else return 1
+    })
+  
+    let content = ""  
+    for(let i in parts){
+      console.log(i)
+      content = content.concat(parts[i].content)
+    }
+  
+    const sum = md5.default(content)
+    
+    console.log("FILE_CONCAT", sum, parts[0].md5sum)
 }
 
 /**
@@ -115,7 +170,6 @@ const registerHandlers = (app: App, props: any, meetingSession: DefaultMeetingSe
 
 let dataMessageConsumers:any[] = []
 export const addDataMessageConsumers = (consumer:any) =>{
-    console.log("ADD CONSUMER")
     dataMessageConsumers.push(consumer)
 }
 export const removeDataMessageConsumers = (consumer:any) =>{
@@ -567,6 +621,73 @@ class App extends React.Component {
         gs.meetingSession?.audioVideo.realtimeSendDataMessage(MessageType.Drawing.toString(), JSON.stringify(message))
     }
 
+    filePartLength = 1024*10
+    fileTransferring = false
+    id            = ""
+    sum           = ""
+    partNum       = 0
+    filePartIndex = 0
+    content       = ""
+    targetId      = ""
+    // For File Share
+    sharedFileSelected = (targetId:string, e: any) => {
+        //const path = URL.createObjectURL(e.target.files[0]);
+        //console.log("FILESHARE", path)
+        console.log("FILESHARE", e)
+        if(this.fileTransferring === true){
+            console.log("Already Transffering... ",this.filePartIndex, this.partNum)
+            return 
+        }
+        this.fileTransferring = true
+
+        const reader = new FileReader();
+        reader.onload= () =>{
+            // const content = Buffer.from(reader.result!).toString("base64")
+            // const id = uuid()
+            // const sum = md5.default(content)
+            // const length = content.length
+            // const partNum = Math.ceil(length / this.filePartLength)
+            this.content = Buffer.from(reader.result!).toString("base64")
+            this.id = uuid()
+            this.sum = md5.default(this.content)
+            const length = this.content.length
+            this.partNum =  Math.ceil(length / this.filePartLength)
+            this.filePartIndex = 0
+            this.targetId = targetId
+            this.sendNextFilePart()
+            // for(let i = 0; i < partNum; i++){
+            //     console.log("SENDING, ", i, partNum, targetId)
+            //     const message = {
+            //         action: 'sendmessage',
+            //         data: JSON.stringify({ "cmd": MessageType.File, "targetId":targetId, "private":true, "uuid":id, "md5sum":sum,
+            //                                 "partNum": partNum, "index":i, "content":content.slice(i*this.filePartLength, (i+1)*this.filePartLength)})
+            //     }
+            //     this.state.messagingSocket?.send(JSON.stringify(message))
+            // }
+        }
+        reader.readAsDataURL(e.target.files[0]);
+    }
+
+    sendNextFilePart = () =>{
+        if(this.filePartIndex >= this.partNum){
+            this.fileTransferring = false
+            console.log("file transfer done:",this.filePartIndex, this.partNum)
+            return
+        }
+        console.log("SENDING, ", this.filePartIndex, this.partNum, this.targetId)
+        const message = {
+            action: 'sendmessage',
+            //action: 'sendfile',
+            data: JSON.stringify({ "cmd": MessageType.File, "targetId":this.targetId, "private":true, "uuid":this.id, "md5sum":this.sum,
+                                    "partNum": this.partNum, "index":this.filePartIndex, "content":this.content.slice(this.filePartIndex*this.filePartLength, (this.filePartIndex+1)*this.filePartLength)})
+        }
+        this.filePartIndex += 1
+        this.state.messagingSocket?.send(JSON.stringify(message))
+    }
+
+
+
+
     callbacks: { [key: string]: any } = {
         toggleMute: this.toggleMute,
         selectInputAudioDevice: this.selectInputAudioDevice,
@@ -589,6 +710,7 @@ class App extends React.Component {
         selectInputVideoDevice2: this.selectInputVideoDevice2,
         sendStampBySignal: this.sendStampBySignal,
         sendDrawsingBySignal: this.sendDrawsingBySignal,
+        sharedFileSelected: this.sharedFileSelected,
     }
 
 
@@ -860,16 +982,39 @@ class App extends React.Component {
 
 
                     messagingSocket.addEventListener('message', (e: Event) => {
+                        console.log("MESSAGE!!!!!!",e)
                         const data = JSON.parse((e as MessageEvent).data);
                         console.log("Messaging!", data)
-                        const message: Message = {
-                            type: data.cmd,
-                            startTime: data.startTime,
-                            targetId: data.targetId,
-                            imgSrc: data.imgPath ? data.imgPath : undefined,
-                            message: data.message ? data.message : undefined,
+                        if(data.cmd === MessageType.Message || data.cmd === MessageType.Stamp){
+                            const message: Message = {
+                                type: data.cmd,
+                                startTime: data.startTime,
+                                targetId: data.targetId,
+                                imgSrc: data.imgPath ? data.imgPath : undefined,
+                                message: data.message ? data.message : undefined,
+                            }
+                            this.state.currentSettings.globalMessages.push(message)
+                        }else if(data.cmd === MessageType.File){
+                            const filePart:FilePart = {
+                                uuid : data.uuid,
+                                partNum  : data.partNum,
+                                index: data.index,
+                                content: data.content,
+                                md5sum: data.md5sum,
+                            }
+                            addFilePart(filePart)
+                            if(fileReceiveComplete(data.uuid)){
+                                saveFile(data.uuid)
+                            }
+                        }else if(data.cmd < 0){
+                            this.sendNextFilePart()
+                        }else{
+                            console.log("Unknown Message Type: " + data.cmd)
                         }
-                        this.state.currentSettings.globalMessages.push(message)
+                    })
+
+                    messagingSocket.addEventListener('error', (e: Event) => {
+                        console.log("Error", e)
                     })
                     this.setState({messagingSocket: messagingSocket})
                 })

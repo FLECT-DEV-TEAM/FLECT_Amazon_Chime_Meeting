@@ -138,11 +138,12 @@ exports.sendmessage = async event => {
                     ':meetingId': { S: event.requestContext.authorizer.meetingId }
                 },
                 KeyConditionExpression : 'MeetingId = :meetingId',
-                ProjectionExpression   : 'ConnectionId',
+                ProjectionExpression   : 'ConnectionId, AttendeeId',
                 TableName              : CONNECTIONS_TABLE_NAME
             })
             .promise();
     } catch (e) {
+        console.log('Query error:', e);
         return { statusCode: 500, body: e.stack };
     }
     const apigwManagementApi = new AWS.ApiGatewayManagementApi({
@@ -150,28 +151,50 @@ exports.sendmessage = async event => {
         endpoint   : `${event.requestContext.domainName}/${event.requestContext.stage}`
     });
     const postData = JSON.parse(event.body).data;
+    console.log("postData: ", JSON.parse(postData))
+    const targetId = JSON.parse(postData).targetId
+    console.log("targetId: ", targetId)
+    const private = JSON.parse(postData).private
+    console.log("private: ", private)
+    const index = JSON.parse(postData).index
 
     const postCalls = attendees.Items.map(async connection => {
-        const connectionId = connection.ConnectionId.S;
-        try {
-            await apigwManagementApi
-                .postToConnection({ ConnectionId: connectionId, Data: postData })
-                .promise();
-        } catch (e) {
-            if (e.statusCode === 410) {
-                console.log(`found stale connection, skipping ${connectionId}`);
-            } else {
-                console.error(
-                    `error posting to connection ${connectionId}: ${e.message}`
-                );
+        const connectionId = connection.ConnectionId.S
+        const attendeeId   = connection.AttendeeId.S
+        if(private !==true || attendeeId === targetId){
+            try {
+                await apigwManagementApi
+                    .postToConnection({ ConnectionId: connectionId, Data: postData })
+                    .promise();
+            } catch (e) {
+                if (e.statusCode === 410) {
+                    console.log(`found stale connection, skipping ${connectionId}`);
+                } else {
+                    console.error(
+                        `error posting to connection ${connectionId}: ${e.message}`
+                    );
+                }
             }
         }
     });
+    console.log("AAAAAAAAAAAAAAAAAAAAAAAAAAAAaaa1")
     try {
         await Promise.all(postCalls);
     } catch (e) {
         console.error(`failed to post: ${e.message}`);
         return { statusCode: 500, body: e.stack };
     }
-    return { statusCode: 200, body: 'Data sent.' };
+
+
+    console.log("AAAAAAAAAAAAAAAAAAAAAAAAAAAAaaa2")
+    if(index >= 0){
+        const body = {cmd:-1}
+        console.log("FILE!!!!!!!!!!")
+        return { statusCode: 200, body: JSON.stringify(body) };
+    }else{
+        const body = {cmd:-1}
+        console.log("OTHER!!!!!!!!!!")
+        return { statusCode: 200, body: JSON.stringify(body) };
+        // return { statusCode: 200, body: '{cmd:}' };
+    }
 };
