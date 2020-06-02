@@ -1,5 +1,8 @@
 import * as React from 'react';
-import {AppState, MessageType, DrawingType, addDataMessageConsumers} from '../App';
+import {AppState, DrawingType, addDataMessageConsumers} from '../App';
+import { WSMessageType } from '../WebsocketApps/const';
+import { WSStamp } from '../WebsocketApps/Stamp'
+import { WSText } from '../WebsocketApps/Text'
 
 export interface MainOverlayVideoElementState{
     hoverd           : boolean
@@ -19,8 +22,6 @@ class MainOverlayVideoElement extends React.Component{
     videoRef  = React.createRef<HTMLVideoElement>()
     canvasRef = React.createRef<HTMLCanvasElement>()
     statusCanvasRef = React.createRef<HTMLCanvasElement>()
-
-    //drawingCanvasRef = React.createRef<HTMLCanvasElement>()
 
     drawingCanvas = document.createElement("canvas")
 
@@ -130,7 +131,7 @@ class MainOverlayVideoElement extends React.Component{
     }
 
 
-    putMessage = (dstAttendeeId:string, message:string, startTime:number, elapsed:number) =>{
+    putText = (dstAttendeeId:string, message:string, startTime:number, elapsed:number) =>{
         const props = this.props as any
         const thisAttendeeId = props.thisAttendeeId
         if(dstAttendeeId !== thisAttendeeId){
@@ -238,18 +239,19 @@ class MainOverlayVideoElement extends React.Component{
         const now = Date.now()
         this.clearCanvas()
 
-        for (const i in appState.currentSettings.globalMessages) {
-            const message = appState.currentSettings.globalMessages[i]
-            if (now - message.startTime < 3000) {
-                if (message.type === MessageType.Stamp) {
-                    const elapsed = now - message.startTime
-                    const image = appState.stamps[message.imgSrc]
-                    const targetAttendeeId = message.targetId
+        for (const i in appState.currentSettings.globalStamps ) {
+            const message = appState.currentSettings.globalStamps[i]
+            const elapsed = now - message.startTime
+            if (elapsed < 3000) {
+                if ( (message as any).imgPath !== undefined) {
+                    const stamp = message as WSStamp
+                    const image = appState.stamps[stamp.imgPath]
+                    const targetAttendeeId = stamp.targetId
                     this.putStamp(targetAttendeeId, image, message.startTime, elapsed)
-                } else if (message.type === MessageType.Message) {
-                    const elapsed = now - message.startTime
-                    const targetAttendeeId = message.targetId
-                    this.putMessage(targetAttendeeId, message.message, message.startTime, elapsed)
+                } else if ((message as any).text) {
+                    const text = message as WSText
+                    const targetAttendeeId = text.targetId
+                    this.putText(targetAttendeeId, text.text, message.startTime, elapsed)
                 }
             }
         }

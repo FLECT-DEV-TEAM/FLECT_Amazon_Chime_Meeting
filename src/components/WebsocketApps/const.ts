@@ -10,7 +10,7 @@ export interface WSMessage{
 
 // This values are used in lambda (js). So keep human-readable.
 export enum WSMessageType {
-    Message  = "Message",
+    Text     = "Text",
     Stamp    = "Stamp",
     Drawing  = "Drawing",
     File     = "File",

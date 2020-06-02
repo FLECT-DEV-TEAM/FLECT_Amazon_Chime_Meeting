@@ -2,7 +2,6 @@ import * as React from 'react';
 import { GlobalState } from '../reducers';
 import { AppStatus, LOGGER_BATCH_SIZE, LOGGER_INTERVAL_MS, AppEntranceStatus, AppMeetingStatus, AppLobbyStatus, NO_DEVICE_SELECTED } from '../const';
 import * as bodyPix from '@tensorflow-models/body-pix';
-import * as md5 from 'md5';
 import { v4 as uuid } from 'uuid';
 
 import {
@@ -32,27 +31,14 @@ import { RS_STAMPS } from './resources';
 import ErrorPortal from './meetingComp/ErrorPortal';
 import { loadFile, sendFilePart, addFilePart, WSFile, saveFile } from './WebsocketApps/FileTransfer';
 import { WSMessage, WSMessageType } from './WebsocketApps/const';
+import { sendStamp, WSStamp } from './WebsocketApps/Stamp';
+import { sendText, WSText } from './WebsocketApps/Text';
 
-
-export enum MessageType {
-    Message,
-    Stamp,
-    Drawing,
-    File,
-}
 
 export enum DrawingType {
     Draw,
     Erase,
     Clear,
-}
-
-interface Message {
-    type: MessageType
-    startTime: number
-    targetId: string
-    imgSrc: string
-    message: string
 }
 
 
@@ -113,9 +99,9 @@ const registerHandlers = (app: App, props: any, meetingSession: DefaultMeetingSe
 
     setRealtimeSubscribeToAttendeeIdPresence(app, meetingSession.audioVideo)
     setSubscribeToActiveSpeakerDetector(app, meetingSession.audioVideo)
-    setRealtimeSubscribeToReceiveDataMessage(app, meetingSession.audioVideo, MessageType.Drawing.toString())
-    setRealtimeSubscribeToReceiveDataMessage(app, meetingSession.audioVideo, MessageType.Stamp.toString())
-    setRealtimeSubscribeToReceiveDataMessage(app, meetingSession.audioVideo, MessageType.Message.toString())
+    setRealtimeSubscribeToReceiveDataMessage(app, meetingSession.audioVideo, WSMessageType.Drawing.toString())
+    setRealtimeSubscribeToReceiveDataMessage(app, meetingSession.audioVideo, WSMessageType.Stamp.toString())
+    setRealtimeSubscribeToReceiveDataMessage(app, meetingSession.audioVideo, WSMessageType.Text.toString())
 
 }
 
@@ -153,7 +139,7 @@ export interface CurrentSettings {
     selectedOutputAudioDevice: string
     virtualBackgroundPath: string
     focuseAttendeeId: string
-    globalMessages: Message[]
+    globalStamps: (WSStamp|WSText)[]
 
     selectedInputVideoDevice2: string
 
@@ -222,7 +208,7 @@ class App extends React.Component {
             selectedOutputAudioDevice: NO_DEVICE_SELECTED,
             virtualBackgroundPath: "/resources/vbg/pic0.jpg",
             focuseAttendeeId: "",
-            globalMessages: [],
+            globalStamps: [],
 
             selectedInputVideoDevice2: NO_DEVICE_SELECTED,
 
@@ -306,24 +292,24 @@ class App extends React.Component {
     receivedDataMessage = (dataMessage: DataMessage) =>{
         
         console.log("DATAMESSAGE 5:", dataMessage)
-        if(dataMessage.topic === MessageType.Message.toString()){
+        if(dataMessage.topic === WSMessageType.Text.toString()){
 
-        }else if(dataMessage.topic === MessageType.Stamp.toString()){
+        }else if(dataMessage.topic === WSMessageType.Stamp.toString()){
             const json = JSON.parse(Buffer.from(dataMessage.data).toString())
             console.log("DATAMESSAGE 6:", json.data)
             console.log(dataMessage)
             const data = JSON.parse(json.data)
 
-            const message: Message = {
-                type: data.cmd,
-                startTime: data.startTime,
-                targetId: data.targetId,
-                imgSrc: data.imgPath ? data.imgPath : undefined,
-                message: data.message ? data.message : undefined,
-            }
-            this.state.currentSettings.globalMessages.push(message)
+            // const message: Message = {
+            //     type: data.cmd,
+            //     startTime: data.startTime,
+            //     targetId: data.targetId,
+            //     imgSrc: data.imgPath ? data.imgPath : undefined,
+            //     message: data.message ? data.message : undefined,
+            // }
+            // this.state.currentSettings.globalMessages.push(message)
 
-        }else if(dataMessage.topic === MessageType.Drawing.toString()){
+        }else if(dataMessage.topic === WSMessageType.Drawing.toString()){
             const json = JSON.parse(Buffer.from(dataMessage.data).toString())
             const data = JSON.parse(json.data)
             console.log(data)
@@ -518,46 +504,33 @@ class App extends React.Component {
         currentSettings.focuseAttendeeId = attendeeId
         this.setState({ currentSettings: currentSettings })
     }
+    
     // For Messaging
 
     sendStamp = (targetId: string, imgPath: string) => {
-        const message = {
-            action: 'sendmessage',
-            data: JSON.stringify({ "cmd": MessageType.Stamp, "targetId": targetId, "imgPath": imgPath, "startTime": Date.now() })
-        };
-        this.state.messagingSocket?.send(JSON.stringify(message))
-        // this.state.localStamps.push(stamp)
+        sendStamp(this.state.messagingSocket!, targetId, imgPath, false)
     }
 
     sendStampBySignal = (targetId: string, imgPath: string) => {
         const gs = this.props as GlobalState
         const message = {
             action: 'sendmessage',
-            data: JSON.stringify({ "cmd": MessageType.Stamp, "targetId": targetId, "imgPath": imgPath, "startTime": Date.now() })
+            data: JSON.stringify({ "cmd": WSMessageType.Stamp, "targetId": targetId, "imgPath": imgPath, "startTime": Date.now() })
         };
-        gs.meetingSession?.audioVideo.realtimeSendDataMessage(MessageType.Stamp.toString(), JSON.stringify(message))
+        gs.meetingSession?.audioVideo.realtimeSendDataMessage(WSMessageType.Stamp.toString(), JSON.stringify(message))
     }
 
-    sendText = (targetId: string, msg: string) => {
-        const message = {
-            action: 'sendmessage',
-            data: JSON.stringify({ "cmd": MessageType.Message, "targetId": targetId, "message": msg, "startTime": Date.now() })
-        };
-        this.state.messagingSocket?.send(JSON.stringify(message))
-        // this.state.localStamps.push(stamp)
+    sendText = (targetId: string, text: string) => {
+        sendText(this.state.messagingSocket!, targetId, text, false)
     }
 
-    // // Messaging Callbacks
-    // addMessagingConsumer = (func:()=>{}) =>{
-    //     this.state.messagingConsumer.push(func)
-    // }
 
     sendDrawsingBySignal = (targetId: string, mode:string, startXR:number, startYR:number, endXR:number, endYR:number, stroke:string, lineWidth:number)=>{
         const gs = this.props as GlobalState
         const message={
             action: 'sendmessage',
             data: JSON.stringify({ 
-                cmd         : MessageType.Drawing,
+                cmd         : WSMessageType.Drawing,
                 targetId    : targetId, 
                 startTime   : Date.now(),
                 mode        : mode,
@@ -569,25 +542,12 @@ class App extends React.Component {
                 lineWidth   : lineWidth
             })
         }
-        gs.meetingSession?.audioVideo.realtimeSendDataMessage(MessageType.Drawing.toString(), JSON.stringify(message))
+        gs.meetingSession?.audioVideo.realtimeSendDataMessage(WSMessageType.Drawing.toString(), JSON.stringify(message))
     }
 
-    fileTransferring = false
-    id            = ""
-    sum           = ""
-    partNum       = 0
-    filePartIndex = 0
-    content       = ""
-    targetId      = ""
+
     // For File Share
     sharedFileSelected = (targetId:string, e: any) => {
-        console.log("FILESHARE")
-        console.log(e)
-        console.log(e.target)
-        console.log(e.target.files)
-        console.log(e.target.files[0].name)
-        console.log(e.target.files[0].size)
-        
         const id = uuid()
         loadFile(e.target.files[0], id, e.target.files[0].name, ()=>{
             sendFilePart(this.state.messagingSocket!, id, targetId)
@@ -908,6 +868,12 @@ class App extends React.Component {
                                 const res = sendFilePart(this.state.messagingSocket!, filePart.uuid, data.targetId)
                                 console.log(`File Transfering...: ${res.transferredIndex}/${res.partNum}`)
                             }
+                        }else if(data.cmd === WSMessageType.Text){
+                            const text  = data.content as WSText
+                            this.state.currentSettings.globalStamps.push(text)
+                        }else if(data.cmd === WSMessageType.Stamp){
+                            const stamp = data.content as WSStamp
+                            this.state.currentSettings.globalStamps.push(stamp)
                         }
 
                         // console.log("Messaging!", data)

@@ -384,7 +384,8 @@ functions:
       - websocket:
           route: sendmessage
           routeResponseSelectionExpression: $default
-          timeout: 20
+
+          
 
   auth:
     handler: sls/messaging.authorize
