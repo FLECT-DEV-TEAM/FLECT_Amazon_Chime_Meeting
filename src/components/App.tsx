@@ -33,14 +33,8 @@ import { loadFile, sendFilePart, addFilePart, WSFile, saveFile } from './Websock
 import { WSMessage, WSMessageType } from './WebsocketApps/const';
 import { sendStamp, WSStamp } from './WebsocketApps/Stamp';
 import { sendText, WSText } from './WebsocketApps/Text';
-
-
-export enum DrawingType {
-    Draw,
-    Erase,
-    Clear,
-}
-
+import { sendStampBySignal } from './WebsocketApps/StampBySignal';
+import { sendDrawingBySignal, DrawingType, WSDrawing } from './WebsocketApps/DrawingBySignal'
 
 /**
  * 
@@ -99,9 +93,9 @@ const registerHandlers = (app: App, props: any, meetingSession: DefaultMeetingSe
 
     setRealtimeSubscribeToAttendeeIdPresence(app, meetingSession.audioVideo)
     setSubscribeToActiveSpeakerDetector(app, meetingSession.audioVideo)
-    setRealtimeSubscribeToReceiveDataMessage(app, meetingSession.audioVideo, WSMessageType.Drawing.toString())
-    setRealtimeSubscribeToReceiveDataMessage(app, meetingSession.audioVideo, WSMessageType.Stamp.toString())
-    setRealtimeSubscribeToReceiveDataMessage(app, meetingSession.audioVideo, WSMessageType.Text.toString())
+    setRealtimeSubscribeToReceiveDataMessage(app, meetingSession.audioVideo, WSMessageType.Drawing)
+    setRealtimeSubscribeToReceiveDataMessage(app, meetingSession.audioVideo, WSMessageType.Stamp)
+    setRealtimeSubscribeToReceiveDataMessage(app, meetingSession.audioVideo, WSMessageType.Text)
 
 }
 
@@ -290,28 +284,16 @@ class App extends React.Component {
     *  Callback for DataMessage
     ****************************/
     receivedDataMessage = (dataMessage: DataMessage) =>{
-        
-        console.log("DATAMESSAGE 5:", dataMessage)
-        if(dataMessage.topic === WSMessageType.Text.toString()){
+        if(dataMessage.topic === WSMessageType.Text){
 
-        }else if(dataMessage.topic === WSMessageType.Stamp.toString()){
+        }else if(dataMessage.topic === WSMessageType.Stamp){
             const json = JSON.parse(Buffer.from(dataMessage.data).toString())
-            console.log("DATAMESSAGE 6:", json.data)
-            console.log(dataMessage)
-            const data = JSON.parse(json.data)
+            const stamp = json.content as WSStamp
+            this.state.currentSettings.globalStamps.push(stamp)
 
-            // const message: Message = {
-            //     type: data.cmd,
-            //     startTime: data.startTime,
-            //     targetId: data.targetId,
-            //     imgSrc: data.imgPath ? data.imgPath : undefined,
-            //     message: data.message ? data.message : undefined,
-            // }
-            // this.state.currentSettings.globalMessages.push(message)
-
-        }else if(dataMessage.topic === WSMessageType.Drawing.toString()){
+        }else if(dataMessage.topic === WSMessageType.Drawing){
             const json = JSON.parse(Buffer.from(dataMessage.data).toString())
-            const data = JSON.parse(json.data)
+            const data = json.content as WSDrawing
             console.log(data)
             dataMessageConsumers.map(consumer =>{
                 if(data.mode === DrawingType.Draw){
@@ -513,11 +495,7 @@ class App extends React.Component {
 
     sendStampBySignal = (targetId: string, imgPath: string) => {
         const gs = this.props as GlobalState
-        const message = {
-            action: 'sendmessage',
-            data: JSON.stringify({ "cmd": WSMessageType.Stamp, "targetId": targetId, "imgPath": imgPath, "startTime": Date.now() })
-        };
-        gs.meetingSession?.audioVideo.realtimeSendDataMessage(WSMessageType.Stamp.toString(), JSON.stringify(message))
+        sendStampBySignal(gs.meetingSession!.audioVideo, targetId, imgPath, false)
     }
 
     sendText = (targetId: string, text: string) => {
@@ -525,24 +503,9 @@ class App extends React.Component {
     }
 
 
-    sendDrawsingBySignal = (targetId: string, mode:string, startXR:number, startYR:number, endXR:number, endYR:number, stroke:string, lineWidth:number)=>{
+    sendDrawingBySignal = (targetId: string, mode:string, startXR:number, startYR:number, endXR:number, endYR:number, stroke:string, lineWidth:number)=>{
         const gs = this.props as GlobalState
-        const message={
-            action: 'sendmessage',
-            data: JSON.stringify({ 
-                cmd         : WSMessageType.Drawing,
-                targetId    : targetId, 
-                startTime   : Date.now(),
-                mode        : mode,
-                startXR     : startXR,
-                startYR     : startYR,
-                endXR       : endXR,
-                endYR       : endYR,
-                stroke      : stroke,
-                lineWidth   : lineWidth
-            })
-        }
-        gs.meetingSession?.audioVideo.realtimeSendDataMessage(WSMessageType.Drawing.toString(), JSON.stringify(message))
+        sendDrawingBySignal(gs.meetingSession!.audioVideo, targetId, mode, startXR, startYR, endXR, endYR, stroke, lineWidth, false)
     }
 
 
@@ -578,7 +541,7 @@ class App extends React.Component {
         // addMessagingConsumer: this.addMessagingConsumer,
         selectInputVideoDevice2: this.selectInputVideoDevice2,
         sendStampBySignal: this.sendStampBySignal,
-        sendDrawsingBySignal: this.sendDrawsingBySignal,
+        sendDrawingBySignal: this.sendDrawingBySignal,
         sharedFileSelected: this.sharedFileSelected,
     }
 

@@ -1,8 +1,9 @@
 import * as React from 'react';
-import {AppState, DrawingType, addDataMessageConsumers} from '../App';
+import {AppState, addDataMessageConsumers} from '../App';
 import { WSMessageType } from '../WebsocketApps/const';
 import { WSStamp } from '../WebsocketApps/Stamp'
 import { WSText } from '../WebsocketApps/Text'
+import { DrawingType } from '../WebsocketApps/DrawingBySignal';
 
 export interface MainOverlayVideoElementState{
     hoverd           : boolean
@@ -53,10 +54,10 @@ class MainOverlayVideoElement extends React.Component{
             const endYR   = offsetY  / this.drawingCanvas.height!
             if(this.state.erasing){
                 this.erase(startXR, startYR, endXR, endYR)
-                props.sendDrawsingBySignal("", DrawingType.Erase, startXR, startYR, endXR, endYR, this.state.drawingStroke, this.state.drawingLineWidth )
+                props.sendDrawingBySignal("", DrawingType.Erase, startXR, startYR, endXR, endYR, this.state.drawingStroke, this.state.drawingLineWidth )
             }else{
                 this.draw(startXR, startYR, endXR, endYR, this.state.drawingStroke, this.state.drawingLineWidth)
-                props.sendDrawsingBySignal("", DrawingType.Draw, startXR, startYR, endXR, endYR, this.state.drawingStroke, this.state.drawingLineWidth )
+                props.sendDrawingBySignal("", DrawingType.Draw, startXR, startYR, endXR, endYR, this.state.drawingStroke, this.state.drawingLineWidth )
             }
 
         }
@@ -87,7 +88,7 @@ class MainOverlayVideoElement extends React.Component{
     clearDrawingCanvas = () =>{
         const props = this.props as any
         this.clearDrawing()
-        props.sendDrawsingBySignal("", DrawingType.Clear, 0, 0, 0, 0, this.state.drawingStroke, this.state.drawingLineWidth )
+        props.sendDrawingBySignal("", DrawingType.Clear, 0, 0, 0, 0, this.state.drawingStroke, this.state.drawingLineWidth )
     }
     clearDrawing = () =>{
         const ctx = this.drawingCanvas.getContext("2d")!
