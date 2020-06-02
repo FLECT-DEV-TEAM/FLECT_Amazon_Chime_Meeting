@@ -1,5 +1,3 @@
-import * as md5 from 'md5';
-import { v4 as uuid } from 'uuid';
 import { WSMessage, WSMessageType } from './const';
 import { ReconnectingPromisedWebSocket } from 'amazon-chime-sdk-js';
 

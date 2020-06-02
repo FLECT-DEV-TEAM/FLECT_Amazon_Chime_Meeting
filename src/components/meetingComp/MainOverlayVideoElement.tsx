@@ -1,6 +1,5 @@
 import * as React from 'react';
 import {AppState, addDataMessageConsumers} from '../App';
-import { WSMessageType } from '../WebsocketApps/const';
 import { WSStamp } from '../WebsocketApps/Stamp'
 import { WSText } from '../WebsocketApps/Text'
 import { DrawingType } from '../WebsocketApps/DrawingBySignal';
