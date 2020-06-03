@@ -127,6 +127,7 @@ class MainOverlayVideoElement extends React.Component{
         // console.log("putStamp", dstAttendeeId, thisAttendeeId)
         // console.log("putStamp", props)
         // console.log("putStamp", image)
+        console.log("STARTTIME:",startTime)
         ctx.drawImage(image, this.canvasRef.current!.width - ((startTime % 5) * 20 + width+10), this.canvasRef.current!.height -  this.canvasRef.current!.height * (elapsed / 3000), width, width)
     }
 
@@ -235,6 +236,7 @@ class MainOverlayVideoElement extends React.Component{
     drawOverlayCanvas = () => {
         const props = this.props as any
         const appState = props.appState as AppState
+        const thisAttendeeId = props.thisAttendeeId
         this.fitSize()
         const now = Date.now()
         this.clearCanvas()
@@ -254,6 +256,14 @@ class MainOverlayVideoElement extends React.Component{
                     this.putText(targetAttendeeId, text.text, message.startTime, elapsed)
                 }
             }
+        }
+
+        if(appState.roster[thisAttendeeId] && appState.roster[thisAttendeeId].paused){
+            const canvasHeight = this.statusCanvasRef.current!.height
+            const fontSize     = Math.ceil(canvasHeight / 12)
+            const ctx = this.statusCanvasRef.current!.getContext("2d")!
+            ctx.font = `${fontSize}px メイリオ`;
+            ctx.fillText("(Paused!)",200,200)
         }
         requestAnimationFrame(() => this.drawOverlayCanvas())
     }
@@ -275,7 +285,6 @@ class MainOverlayVideoElement extends React.Component{
 
     componentDidUpdate = () => {
         this.fitSize()
-        //this.drawStatus()
     }
 }
 

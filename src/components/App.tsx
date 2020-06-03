@@ -25,7 +25,7 @@ import DeviceChangeObserverImpl from './DeviceChangeObserverImpl';
 import AudioVideoObserverImpl from './AudioVideoObserverImpl';
 import ContentShareObserverImpl from './ContentShareObserverImpl';
 import { setRealtimeSubscribeToAttendeeIdPresence, setSubscribeToActiveSpeakerDetector, setRealtimeSubscribeToReceiveDataMessage } from './subscribers';
-import { getDeviceLists, getVideoDevice } from './utils'
+import { getDeviceLists, getVideoDevice, getTileId } from './utils'
 import { API_BASE_URL, MESSAGING_URL } from '../config';
 import { RS_STAMPS } from './resources';
 import ErrorPortal from './meetingComp/ErrorPortal';
@@ -118,9 +118,10 @@ export interface Attendee {
     attendeeId: string
     name: string | null
     active: boolean
-    volume: number | null
-    muted: boolean | null
-    signalStrength: number | null
+    volume: number
+    muted: boolean
+    paused: boolean
+    signalStrength: number
 }
 
 export interface CurrentSettings {
@@ -249,9 +250,10 @@ class App extends React.Component {
                 attendeeId: attendeeId,
                 name: null,
                 active: false,
-                volume: null,
-                muted: null,
-                signalStrength: null
+                volume: 0,
+                muted: false,
+                paused: false,
+                signalStrength: 0
             }
         }
         
@@ -480,6 +482,7 @@ class App extends React.Component {
         this.setState({ currentSettings: currentSettings })        
     }
 
+    // For TileView Control
     setFocusedAttendee = (attendeeId: string) => {
         console.log("focus:", this.state.currentSettings.focuseAttendeeId)
         const currentSettings = this.state.currentSettings
@@ -487,6 +490,32 @@ class App extends React.Component {
         this.setState({ currentSettings: currentSettings })
     }
     
+    pauseVideoTile = (attendeeId:string) =>{
+        const gs = this.props as GlobalState
+        const tileId = getTileId(attendeeId, this.state.videoTileStates)
+        if(tileId >= 0){
+            gs.meetingSession!.audioVideo.pauseVideoTile(tileId)
+            const roster = this.state.roster
+            roster[attendeeId].paused = true
+            this.setState({roster:roster})
+        }else{
+            console.log("There is no tile: ", tileId, attendeeId)
+        }
+    }
+    unpauseVideoTile = (attendeeId:string) =>{
+        const gs = this.props as GlobalState
+        const tileId = getTileId(attendeeId, this.state.videoTileStates)
+        if(tileId >= 0){
+            gs.meetingSession!.audioVideo.unpauseVideoTile(tileId)
+            const roster = this.state.roster
+            roster[attendeeId].paused = false
+            this.setState({roster:roster})
+        }else{
+            console.log("There is no tile: ", tileId, attendeeId)
+        }
+    }
+
+
     // For Messaging
 
     sendStamp = (targetId: string, imgPath: string) => {
@@ -535,6 +564,8 @@ class App extends React.Component {
         stopSharedDisplay: this.stopSharedDisplay,
         setVirtualBackground: this.setVirtualBackground,
         setFocusedAttendee: this.setFocusedAttendee,
+        pauseVideoTile: this.pauseVideoTile,
+        unpauseVideoTile: this.unpauseVideoTile,
         sendStamp: this.sendStamp,
         sendText: this.sendText,
 
