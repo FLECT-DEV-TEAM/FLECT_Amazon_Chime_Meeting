@@ -1,4 +1,4 @@
-import { AppStatus, NO_DEVICE_SELECTED, AppEntranceStatus, AppMeetingStatus, AppLobbyStatus } from "../const"
+import { AppStatus, NO_DEVICE_SELECTED, AppEntranceStatus, AppMeetingStatus, AppLobbyStatus, LocalVideoConfigs } from "../const"
 import { MeetingSessionConfiguration, DefaultMeetingSession } from "amazon-chime-sdk-js"
 
 
@@ -116,7 +116,7 @@ export const initialState = {
 
     inputAudioDevices                   : null,
     inputVideoDevices                   : null,
-    inputVideoResolutions               : ["360p", "540p", "720p"],
+    inputVideoResolutions               : Object.keys(LocalVideoConfigs),
     outputAudioDevices                  : null,
     selectedInputAudioDevice            : NO_DEVICE_SELECTED,
     selectedInputVideoResolution        : NO_DEVICE_SELECTED,

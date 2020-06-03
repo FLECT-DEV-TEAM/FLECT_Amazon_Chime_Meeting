@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { GlobalState } from '../reducers';
-import { AppStatus, LOGGER_BATCH_SIZE, LOGGER_INTERVAL_MS, AppEntranceStatus, AppMeetingStatus, AppLobbyStatus, NO_DEVICE_SELECTED } from '../const';
+import { AppStatus, LOGGER_BATCH_SIZE, LOGGER_INTERVAL_MS, AppEntranceStatus, AppMeetingStatus, AppLobbyStatus, NO_DEVICE_SELECTED, LocalVideoConfigs } from '../const';
 import * as bodyPix from '@tensorflow-models/body-pix';
 import { v4 as uuid } from 'uuid';
 
@@ -351,7 +351,7 @@ class App extends React.Component {
         this.setState({ currentSettings: currentSettings })
         if (videoEnable) {
             //gs.meetingSession!.audioVideo.startLocalVideoTile()
-            this.selectInputVideoDevice(currentSettings.selectedInputVideoResolution)
+            this.selectInputVideoDevice(currentSettings.selectedInputVideoDevice)
         } else {
             this.state.inputVideoStream?.getVideoTracks()[0].stop()
             //gs.meetingSession!.audioVideo.stopLocalVideoTile()
@@ -359,23 +359,33 @@ class App extends React.Component {
     }
 
     selectInputVideoDevice = (deviceId: string) => {
-
         console.log("SELECT INPUTDEVICE", deviceId)
-        getVideoDevice(deviceId).then(stream => {
+        const gs = this.props as GlobalState
+        const videoInputPromise = gs.meetingSession!.audioVideo.chooseVideoInputDevice(null)
+        const getVideoDevicePromise = getVideoDevice(deviceId)
+
+        Promise.all([videoInputPromise, getVideoDevicePromise]).then(([_, stream])=>{
+            console.log("getDevice1", stream)
             if (stream !== null) {
                 const inputVideoElement = this.state.inputVideoElement!
                 inputVideoElement.srcObject = stream;
                 inputVideoElement.play()
+                console.log("getDevice2", stream)
                 this.setState({inputVideoStream:stream})
+                // @ts-ignore
+                const mediaStream = this.state.inputVideoCanvas2.captureStream()
+                gs.meetingSession!.audioVideo.chooseVideoInputDevice(mediaStream)
                 return new Promise((resolve, reject) => {
                     this.state.inputVideoElement!.onloadedmetadata = () => {
                         resolve();
                     };
                 });
             }
+
         }).catch((e) => {
             console.log("DEVICE:error:", e)
         });
+
 
         const currentSettings = this.state.currentSettings
         currentSettings.selectedInputVideoDevice = deviceId
@@ -482,6 +492,23 @@ class App extends React.Component {
         this.setState({ currentSettings: currentSettings })        
     }
 
+    selectInputVideoResolution = (value: string) =>{
+        const gs = this.props as GlobalState
+
+        const videoConfig = LocalVideoConfigs[value]
+        //console.log(videoConfig)
+        gs.meetingSession!.audioVideo.chooseVideoInputQuality(videoConfig.width, videoConfig.height, videoConfig.frameRate, videoConfig.maxBandwidthKbps);
+
+        const currentSettings = this.state.currentSettings
+        currentSettings.selectedInputVideoResolution = value
+        this.setState({ currentSettings: currentSettings })
+
+        const videoEnable = this.state.currentSettings.videoEnable
+        if (videoEnable) {
+            this.selectInputVideoDevice(currentSettings.selectedInputVideoDevice)
+        }         
+    }
+
     // For TileView Control
     setFocusedAttendee = (attendeeId: string) => {
         console.log("focus:", this.state.currentSettings.focuseAttendeeId)
@@ -556,6 +583,7 @@ class App extends React.Component {
         selectInputVideoDevice: this.selectInputVideoDevice,
         toggleSpeaker: this.toggleSpeaker,
         selectOutputAudioDevice: this.selectOutputAudioDevice,
+        selectInputVideoResolution: this.selectInputVideoResolution,
         sharedVideoSelected: this.sharedVideoSelected,
         playSharedVideo: this.playSharedVideo,
         pauseSharedVideo: this.pauseSharedVideo,

@@ -72,8 +72,66 @@ export const LobbyMainColumnConfig = {
     noUserPanel : LobbyMainColumnConfigMainNoUserPanel,
 }
 
+export interface LocalVideoConfig {
+    name:string,
+    width:number,
+    height:number,
+    frameRate:number,
+    maxBandwidthKbps: number,
+}
+//["180p", "360p", "540p", "720p"],
+export const LocalVideoConfig180p:LocalVideoConfig = {
+    name: "180p",
+    width:320,
+    height:180,
+    frameRate:15,
+    maxBandwidthKbps: 200,
+}
+export const LocalVideoConfig180p2:LocalVideoConfig = {
+    name: "180p",
+    width:320,
+    height:180,
+    frameRate:15,
+    maxBandwidthKbps: 100,
+}
+export const LocalVideoConfig180p3:LocalVideoConfig = {
+    name: "180p",
+    width:320,
+    height:180,
+    frameRate:15,
+    maxBandwidthKbps: 50,
+}
 
+export const LocalVideoConfig360p:LocalVideoConfig = {
+    name: "360p",
+    width:640,
+    height:360,
+    frameRate:15,
+    maxBandwidthKbps: 600,
+}
+export const LocalVideoConfig540p:LocalVideoConfig = {
+    name: "540p",
+    width:960,
+    height:540,
+    frameRate:15,
+    maxBandwidthKbps: 1500,
+}
+export const LocalVideoConfig720p:LocalVideoConfig = {
+    name: "720p",
+    width:1280,
+    height:720,
+    frameRate:15,
+    maxBandwidthKbps: 2000,
+}
 
+export const LocalVideoConfigs:{[key:string]:LocalVideoConfig} = {
+    vc180p: LocalVideoConfig180p,
+    vc180p2: LocalVideoConfig180p2,
+    vc180p3: LocalVideoConfig180p3,
+    vc360p: LocalVideoConfig360p,
+    vc540p: LocalVideoConfig540p,
+    vc720p: LocalVideoConfig720p,
+}
 
 export const LOGGER_BATCH_SIZE: number = 85;
 export const LOGGER_INTERVAL_MS: number = 1150;

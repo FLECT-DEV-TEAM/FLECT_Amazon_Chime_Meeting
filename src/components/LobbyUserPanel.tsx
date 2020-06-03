@@ -13,6 +13,7 @@ import { AppState } from './App';
 import SecondaryCameraAccordion from './meetingComp/SecondaryCameraAccordion';
 import StampAccordionBySignal from './meetingComp/StampAccordionBySignal';
 import FileShareControl from './meetingComp/FileShare';
+import VideoResolutionControl from './meetingComp/VideoResolutionControl';
 
 
 interface PanelState{
@@ -135,6 +136,9 @@ class ConfigPanel extends React.Component {
                                     <SpeakerControl {...props} />
                                 </p>
                                 <Divider />
+                                <p>
+                                    <VideoResolutionControl {...props} />
+                                </p>
                                 <p>
                                     <SettingControl {...props}/>
                                 </p>
