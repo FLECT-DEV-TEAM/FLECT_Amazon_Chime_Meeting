@@ -349,19 +349,18 @@ class App extends React.Component {
         currentSettings.videoEnable = videoEnable
         this.setState({ currentSettings: currentSettings })
         if (videoEnable) {
-            // gs.meetingSession!.audioVideo.startLocalVideoTile()
             this.selectInputVideoDevice(currentSettings.selectedInputVideoDevice)
         } else {
             //gs.meetingSession!.audioVideo.chooseVideoInputDevice(null)
-//            this.state.inputVideoStream?.getVideoTracks()[0].stop()
-            gs.meetingSession!.audioVideo.stopLocalVideoTile()
+            this.state.inputVideoStream?.getVideoTracks()[0].stop()
+            gs.meetingSession?.audioVideo.stopLocalVideoTile()
         }
     }
 
     selectInputVideoDevice = (deviceId: string) => {
         console.log("SELECT INPUTDEVICE", deviceId)
         const gs = this.props as GlobalState
-        const videoInputPromise = gs.meetingSession!.audioVideo.chooseVideoInputDevice(null)
+        const videoInputPromise = gs.meetingSession?.audioVideo.chooseVideoInputDevice(null)
         const getVideoDevicePromise = getVideoDevice(deviceId)
 
         const videoElementPromise = Promise.all([videoInputPromise, getVideoDevicePromise]).then(([_, stream])=>{
@@ -387,7 +386,7 @@ class App extends React.Component {
             console.log("PROMISE2")
             // @ts-ignore
             const mediaStream = this.state.inputVideoCanvas2.captureStream()
-            gs.meetingSession!.audioVideo.chooseVideoInputDevice(mediaStream).then(()=>{
+            gs.meetingSession?.audioVideo.chooseVideoInputDevice(mediaStream).then(()=>{
                 gs.meetingSession!.audioVideo.startLocalVideoTile()
             })
         })
@@ -614,7 +613,6 @@ class App extends React.Component {
 
     componentDidMount() {
         requestAnimationFrame(() => this.drawVideoCanvas())
-        // requestAnimationFrame(() => this.drawOverlayCanvas())
     }
 
 
@@ -796,6 +794,7 @@ class App extends React.Component {
 
                     getVideoDevice(currentSettings.selectedInputVideoDevice).then(stream => {
                         if (stream !== null) {
+
                             this.state.inputVideoElement!.srcObject = stream
                             this.state.inputVideoElement!.play()
                             this.setState({
