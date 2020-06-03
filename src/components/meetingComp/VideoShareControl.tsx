@@ -50,19 +50,15 @@ class VideoShareControl extends React.Component {
                             </List.Item>
                         </List>
                     </div>
-
-
-
-                    <Divider hidden />
-                    <div>
-                        <Label basic as="a" icon="play" 
-                            onClick={(e) => { props.playSharedVideo() }}
+                    <div style={{paddingLeft:"10px"}}>
+                        <Icon basic link name="play" 
+                            onClick={() => { props.playSharedVideo() }}
                         />
-                        <Label basic as="a" icon="pause" 
-                            onClick={(e) => { props.pauseSharedVideo() }}
+                        <Icon basic link name="pause" 
+                            onClick={() => { props.pauseSharedVideo() }}
                         />
-                        <Label basic as="a" icon="stop" 
-                            onClick={(e) => { props.pauseSharedVideo() }}
+                        <Icon basic link name="stop" 
+                            onClick={() => { props.stopSharedVideo() }}
                         />
                     </div>
 

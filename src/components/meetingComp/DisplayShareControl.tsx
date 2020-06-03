@@ -29,11 +29,11 @@ class DisplayShareControl extends React.Component {
                     Display Share
                 </Accordion.Title>
                 <Accordion.Content active={this.state.open}>
-                    <div>
-                        <Label basic as="a" icon="play" 
+                    <div style={{paddingLeft:"10px"}}>
+                        <Icon basic link name="play" 
                             onClick={() => { props.sharedDisplaySelected()}}
                         />
-                        <Label basic as="a" icon="stop" 
+                        <Icon basic link name="stop" 
                             onClick={() => { props.stopSharedDisplay() }}
                         />                        
                     </div>
