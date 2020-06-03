@@ -239,7 +239,7 @@ class App extends React.Component {
         this.setState({})
     }
     changeAttendeeStatus = (attendeeId: string, volume: number | null, muted: boolean | null, signalStrength: number | null) => {
-        console.log("changeAttendeeStatus", attendeeId)
+        // console.log("changeAttendeeStatus", attendeeId)
         const props = this.props as any
         const gs = this.props as GlobalState
         //props.changeAttendeeStatus(attendeeId, volume, muted, signalStrength, gs.baseURL, gs.roomID)
@@ -807,9 +807,7 @@ class App extends React.Component {
                     } else {
                         defaultMeetingSession.audioVideo.unbindAudioElement();
                     }
-                    console.log("start local video1")
                     defaultMeetingSession.audioVideo.startLocalVideoTile()
-                    console.log("start local video2")
                     props.meetingPrepared(meetingSessionConf, defaultMeetingSession)
 
 
@@ -838,34 +836,6 @@ class App extends React.Component {
                             const stamp = data.content as WSStamp
                             this.state.currentSettings.globalStamps.push(stamp)
                         }
-
-                        // console.log("Messaging!", data)
-                        // if(data.cmd === MessageType.Message || data.cmd === MessageType.Stamp){
-                        //     const message: Message = {
-                        //         type: data.cmd,
-                        //         startTime: data.startTime,
-                        //         targetId: data.targetId,
-                        //         imgSrc: data.imgPath ? data.imgPath : undefined,
-                        //         message: data.message ? data.message : undefined,
-                        //     }
-                        //     this.state.currentSettings.globalMessages.push(message)
-                        // }else if(data.cmd === MessageType.File){
-                        // //     const filePart:FilePart = {
-                        // //         uuid : data.uuid,
-                        // //         partNum  : data.partNum,
-                        // //         index: data.index,
-                        // //         content: data.content,
-                        // //         md5sum: data.md5sum,
-                        // //     }
-                        // //     addFilePart(filePart)
-                        // //     if(fileReceiveComplete(data.uuid)){
-                        // //         saveFile(data.uuid)
-                        // //     }
-                        // // }else if(data.cmd < 0){
-                        // //     this.sendNextFilePart()
-                        // }else{
-                        //     console.log("Unknown Message Type: " + data.cmd)
-                        // }
                     })
 
                     messagingSocket.addEventListener('error', (e: Event) => {

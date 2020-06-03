@@ -66,14 +66,6 @@ export interface GlobalState {
     joinInfo                          : JoinInfo | null
 
 
-
-
-
-    roomTitle                         : string
-    userAttendeeId                    : string
-    userBaseAttendeeId                : string
-    region                            : string
-
     meetingSessionConf                : MeetingSessionConfiguration | null
     meetingSession                    : DefaultMeetingSession | null
 
@@ -81,10 +73,10 @@ export interface GlobalState {
     inputVideoDevices                 : MediaDeviceInfo[]  | null
     inputVideoResolutions             : string[]
     outputAudioDevices                : MediaDeviceInfo[] | null
-    selectedInputAudioDevice          : string
-    selectedInputVideoDevice          : string
-    selectedInputVideoResolution      : string
-    selectedOutputAudioDevice         : string
+    // selectedInputAudioDevice          : string
+    // selectedInputVideoDevice          : string
+    // selectedInputVideoResolution      : string
+    // selectedOutputAudioDevice         : string
 
     storeRoster                       : {[attendeeId:string]:StoreRoster}
 
@@ -181,10 +173,10 @@ const reducer = (state: GlobalState = initialState, action: any) => {
             gs.inputAudioDevices = action.payload[0]
             gs.inputVideoDevices = action.payload[1]
             gs.outputAudioDevices = action.payload[2]
-            gs.selectedInputAudioDevice      = gs.inputAudioDevices![0]     ? gs.inputAudioDevices![0]['deviceId']     : NO_DEVICE_SELECTED
-            gs.selectedInputVideoDevice      = gs.inputVideoDevices![0]     ? gs.inputVideoDevices![0]['deviceId']     : NO_DEVICE_SELECTED
-            gs.selectedInputVideoResolution  = gs.inputVideoResolutions![0] ? gs.inputVideoResolutions![0]             : NO_DEVICE_SELECTED
-            gs.selectedOutputAudioDevice     = gs.outputAudioDevices![0]    ? gs.outputAudioDevices![0]['deviceId']    : NO_DEVICE_SELECTED
+            // gs.selectedInputAudioDevice      = gs.inputAudioDevices![0]     ? gs.inputAudioDevices![0]['deviceId']     : NO_DEVICE_SELECTED
+            // gs.selectedInputVideoDevice      = gs.inputVideoDevices![0]     ? gs.inputVideoDevices![0]['deviceId']     : NO_DEVICE_SELECTED
+            // gs.selectedInputVideoResolution  = gs.inputVideoResolutions![0] ? gs.inputVideoResolutions![0]             : NO_DEVICE_SELECTED
+            // gs.selectedOutputAudioDevice     = gs.outputAudioDevices![0]    ? gs.outputAudioDevices![0]['deviceId']    : NO_DEVICE_SELECTED
             break
     
 

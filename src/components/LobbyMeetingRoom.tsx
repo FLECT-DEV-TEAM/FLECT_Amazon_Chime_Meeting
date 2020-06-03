@@ -247,13 +247,6 @@ class LobbyMeetingRoom extends React.Component {
         )
 
     }
-
-
-    componentDidUpdate = () => {
-        const gs = this.props as GlobalState
-
-        console.log(gs)
-    }
 }
 
 export default LobbyMeetingRoom;
