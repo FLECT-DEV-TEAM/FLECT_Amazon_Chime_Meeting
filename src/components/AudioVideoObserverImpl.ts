@@ -34,6 +34,7 @@ class AudioVideoObserverImpl implements AudioVideoObserver{
     }
     videoAvailabilityDidChange(availability: MeetingSessionVideoAvailability): void {
         //this.canStartLocalVideo = availability.canStartLocalVideo;
+        console.log(`video availability changed: canStartLocalVideo `, availability);
         console.log(`video availability changed: canStartLocalVideo  ${availability.canStartLocalVideo}`);
     }
 

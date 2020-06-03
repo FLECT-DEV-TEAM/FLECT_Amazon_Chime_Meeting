@@ -107,10 +107,6 @@ export const removeDataMessageConsumers = (consumer:any) =>{
     dataMessageConsumers = dataMessageConsumers.filter(n => n !== consumer)
 }
 
-
-
-
-
 /**
  * 
  */
@@ -206,7 +202,6 @@ class App extends React.Component {
             globalStamps: [],
 
             selectedInputVideoDevice2: NO_DEVICE_SELECTED,
-
         },
     }
 
@@ -225,11 +220,14 @@ class App extends React.Component {
         if (needUpdate) {
             this.setState({videoTileStates:videoTileStates})
         }
+        console.log("updateVideoTileState ", state.tileId!)
         console.log("updateVideoTileState", this.state.videoTileStates)
     }
     removeVideoTileState = (tileId: number) => {
         delete this.state.videoTileStates[tileId]
         this.setState({})
+        console.log("removeVideoTileState ", tileId)
+
     }
     /***************************
     *  Callback for attendee change
@@ -345,16 +343,18 @@ class App extends React.Component {
 
     // For Camera
     toggleVideo = () => {
+        const gs = this.props as GlobalState
         const videoEnable = !this.state.currentSettings.videoEnable
         const currentSettings = this.state.currentSettings
         currentSettings.videoEnable = videoEnable
         this.setState({ currentSettings: currentSettings })
         if (videoEnable) {
-            //gs.meetingSession!.audioVideo.startLocalVideoTile()
+            // gs.meetingSession!.audioVideo.startLocalVideoTile()
             this.selectInputVideoDevice(currentSettings.selectedInputVideoDevice)
         } else {
-            this.state.inputVideoStream?.getVideoTracks()[0].stop()
-            //gs.meetingSession!.audioVideo.stopLocalVideoTile()
+            //gs.meetingSession!.audioVideo.chooseVideoInputDevice(null)
+//            this.state.inputVideoStream?.getVideoTracks()[0].stop()
+            gs.meetingSession!.audioVideo.stopLocalVideoTile()
         }
     }
 
@@ -364,7 +364,7 @@ class App extends React.Component {
         const videoInputPromise = gs.meetingSession!.audioVideo.chooseVideoInputDevice(null)
         const getVideoDevicePromise = getVideoDevice(deviceId)
 
-        Promise.all([videoInputPromise, getVideoDevicePromise]).then(([_, stream])=>{
+        const videoElementPromise = Promise.all([videoInputPromise, getVideoDevicePromise]).then(([_, stream])=>{
             console.log("getDevice1", stream)
             if (stream !== null) {
                 const inputVideoElement = this.state.inputVideoElement!
@@ -372,27 +372,29 @@ class App extends React.Component {
                 inputVideoElement.play()
                 console.log("getDevice2", stream)
                 this.setState({inputVideoStream:stream})
-                // @ts-ignore
-                const mediaStream = this.state.inputVideoCanvas2.captureStream()
-                gs.meetingSession!.audioVideo.chooseVideoInputDevice(mediaStream)
                 return new Promise((resolve, reject) => {
                     this.state.inputVideoElement!.onloadedmetadata = () => {
                         resolve();
                     };
                 });
             }
-
         }).catch((e) => {
             console.log("DEVICE:error:", e)
         });
 
-
+        console.log("PROMISE1")
+        videoElementPromise.then(()=>{
+            console.log("PROMISE2")
+            // @ts-ignore
+            const mediaStream = this.state.inputVideoCanvas2.captureStream()
+            gs.meetingSession!.audioVideo.chooseVideoInputDevice(mediaStream).then(()=>{
+                gs.meetingSession!.audioVideo.startLocalVideoTile()
+            })
+        })
         const currentSettings = this.state.currentSettings
         currentSettings.selectedInputVideoDevice = deviceId
         this.setState({ currentSettings: currentSettings })
     }
-
-
 
     selectInputVideoDevice2 = (deviceId: string) => {
         const currentSettings = this.state.currentSettings
@@ -511,7 +513,12 @@ class App extends React.Component {
 
     // For TileView Control
     setFocusedAttendee = (attendeeId: string) => {
+        const gs = this.props as GlobalState
         console.log("focus:", this.state.currentSettings.focuseAttendeeId)
+        if(attendeeId === gs.joinInfo?.Attendee.AttendeeId && this.state.currentSettings.videoEnable === false){
+            console.log("local video is off")
+            return
+        }
         const currentSettings = this.state.currentSettings
         currentSettings.focuseAttendeeId = attendeeId
         this.setState({ currentSettings: currentSettings })
@@ -704,7 +711,6 @@ class App extends React.Component {
 
 
     drawOverlayCanvas = () => {
-
         requestAnimationFrame(() => this.drawOverlayCanvas())
     }
 
