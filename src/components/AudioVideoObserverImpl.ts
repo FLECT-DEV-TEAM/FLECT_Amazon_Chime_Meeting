@@ -47,7 +47,7 @@ class AudioVideoObserverImpl implements AudioVideoObserver{
     ////// videoNotReceivingEnoughData?(receivingDataMap
 
     metricsDidReceive(clientMetricReport: ClientMetricReport): void {
-        const metricReport = clientMetricReport.getObservableMetrics();
+        //const metricReport = clientMetricReport.getObservableMetrics();
         //console.log("metricsDidReceive", metricReport)
         // if (typeof metricReport.availableSendBandwidth === 'number' && !isNaN(metricReport.availableSendBandwidth)) {
         //     (document.getElementById('video-uplink-bandwidth') as HTMLSpanElement).innerHTML =

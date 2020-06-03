@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Icon, Accordion, Divider, List, Label} from 'semantic-ui-react';
+import { Icon, Accordion, List } from 'semantic-ui-react';
 
 
 interface VideoShareControlState{

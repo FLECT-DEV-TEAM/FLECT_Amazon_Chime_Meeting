@@ -1,4 +1,4 @@
-import { AppStatus, NO_DEVICE_SELECTED, AppEntranceStatus, AppMeetingStatus, AppLobbyStatus, LocalVideoConfigs } from "../const"
+import { AppStatus, AppEntranceStatus, AppMeetingStatus, AppLobbyStatus, LocalVideoConfigs } from "../const"
 import { MeetingSessionConfiguration, DefaultMeetingSession } from "amazon-chime-sdk-js"
 
 
@@ -73,10 +73,6 @@ export interface GlobalState {
     inputVideoDevices                 : MediaDeviceInfo[]  | null
     inputVideoResolutions             : string[]
     outputAudioDevices                : MediaDeviceInfo[] | null
-    // selectedInputAudioDevice          : string
-    // selectedInputVideoDevice          : string
-    // selectedInputVideoResolution      : string
-    // selectedOutputAudioDevice         : string
 
     storeRoster                       : {[attendeeId:string]:StoreRoster}
 
@@ -89,7 +85,7 @@ export interface GlobalState {
     errorMessage                      : string
 }
 
-export const initialState = {
+export const initialState:GlobalState = {
     counter                             : 0,
     baseURL                             : "",
     userName                            : "",
@@ -105,10 +101,6 @@ export const initialState = {
         },
     meetings                            : [],
 
-    roomTitle                           : "",
-    userAttendeeId                      : "",
-    userBaseAttendeeId                  : "",
-    region                              : "",
 
     joinInfo                            : null,
     meetingSessionConf                  : null,
@@ -118,10 +110,6 @@ export const initialState = {
     inputVideoDevices                   : null,
     inputVideoResolutions               : Object.keys(LocalVideoConfigs),
     outputAudioDevices                  : null,
-    selectedInputAudioDevice            : NO_DEVICE_SELECTED,
-    selectedInputVideoResolution        : NO_DEVICE_SELECTED,
-    selectedInputVideoDevice            : NO_DEVICE_SELECTED,
-    selectedOutputAudioDevice           : NO_DEVICE_SELECTED,
 
 
     storeRoster                         : {},
@@ -173,10 +161,6 @@ const reducer = (state: GlobalState = initialState, action: any) => {
             gs.inputAudioDevices = action.payload[0]
             gs.inputVideoDevices = action.payload[1]
             gs.outputAudioDevices = action.payload[2]
-            // gs.selectedInputAudioDevice      = gs.inputAudioDevices![0]     ? gs.inputAudioDevices![0]['deviceId']     : NO_DEVICE_SELECTED
-            // gs.selectedInputVideoDevice      = gs.inputVideoDevices![0]     ? gs.inputVideoDevices![0]['deviceId']     : NO_DEVICE_SELECTED
-            // gs.selectedInputVideoResolution  = gs.inputVideoResolutions![0] ? gs.inputVideoResolutions![0]             : NO_DEVICE_SELECTED
-            // gs.selectedOutputAudioDevice     = gs.outputAudioDevices![0]    ? gs.outputAudioDevices![0]['deviceId']    : NO_DEVICE_SELECTED
             break
     
 

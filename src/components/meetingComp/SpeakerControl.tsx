@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Icon, Dropdown, Grid, List, Popup } from 'semantic-ui-react';
+import { Icon, Dropdown, Grid, Popup } from 'semantic-ui-react';
 import { AppState } from '../App';
 import { GlobalState } from '../../reducers';
 

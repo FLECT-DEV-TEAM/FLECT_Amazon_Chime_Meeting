@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Icon, Dropdown, Grid, List, Popup } from 'semantic-ui-react';
+import { Icon, Dropdown, Grid } from 'semantic-ui-react';
 import { AppState } from '../App';
 import { GlobalState } from '../../reducers';
 
@@ -15,7 +15,6 @@ class VideoResolutionControl extends React.Component {
     render() {
         const props = this.props as any
         const gs = this.props as GlobalState
-        const appState = props.appState as AppState
         const inputVideoResolutionsOpts=gs.inputVideoResolutions!.map(info => { return { key: info, text: info, value: info } })
 
         return (
