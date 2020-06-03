@@ -39,17 +39,15 @@ class PreviewPanel extends React.Component {
         const appState = props.appState as AppState
 
         if(appState.inputVideoCanvas2 !== undefined && this.previewCanvasRef.current !== null){
-            if(this.previewCanvasRef.current!.width   !== 0 && this.previewCanvasRef.current!.height !== 0 &&
-                appState.inputVideoCanvas2.width !== 0 && appState.inputVideoCanvas2.height !== 0
-                ){
-                    const orgWidth  = appState.inputVideoStream?.getVideoTracks()[0].getSettings().width!
-                    const orgHeight = appState.inputVideoStream?.getVideoTracks()[0].getSettings().height!
+            if(appState.inputVideoCanvas2.width !== 0 && appState.inputVideoCanvas2.height !== 0){
+                const orgWidth  = appState.inputVideoStream?.getVideoTracks()[0].getSettings().width!
+                const orgHeight = appState.inputVideoStream?.getVideoTracks()[0].getSettings().height!
 
-                    this.previewCanvasRef.current!.width  = this.previewCanvasRef.current!.scrollWidth
-                    this.previewCanvasRef.current!.height = (this.previewCanvasRef.current!.width/orgWidth) * orgHeight
+                this.previewCanvasRef.current!.width  = this.previewCanvasRef.current!.scrollWidth
+                this.previewCanvasRef.current!.height = (this.previewCanvasRef.current!.width/orgWidth) * orgHeight
 
                 const ctx = this.previewCanvasRef.current!.getContext("2d")!
-                ctx.drawImage(appState.inputVideoCanvas2, 0, 0, this.previewCanvasRef.current!.scrollWidth,this.previewCanvasRef.current!.scrollHeight)
+                ctx.drawImage(appState.inputVideoCanvas2, 0, 0, this.previewCanvasRef.current!.width, this.previewCanvasRef.current!.height)
             }
         }
         requestAnimationFrame(() => this.drawPreviewCanvas())

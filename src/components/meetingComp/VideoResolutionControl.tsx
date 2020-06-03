@@ -1,6 +1,5 @@
 import * as React from 'react';
 import { Icon, Dropdown, Grid } from 'semantic-ui-react';
-import { AppState } from '../App';
 import { GlobalState } from '../../reducers';
 
 const trigger = (

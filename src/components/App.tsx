@@ -195,7 +195,8 @@ class App extends React.Component {
             speakerEnable: true,
             selectedInputAudioDevice: NO_DEVICE_SELECTED,
             selectedInputVideoDevice: NO_DEVICE_SELECTED,
-            selectedInputVideoResolution: NO_DEVICE_SELECTED,
+//            selectedInputVideoResolution: "vc720p",
+            selectedInputVideoResolution: "vc180p3",
             selectedOutputAudioDevice: NO_DEVICE_SELECTED,
             virtualBackgroundPath: "/resources/vbg/pic0.jpg",
             focuseAttendeeId: "",
@@ -631,20 +632,25 @@ class App extends React.Component {
         } else if (this.state.currentSettings.virtualBackgroundPath === "/resources/vbg/pic0.jpg") {
             const ctx = this.state.inputVideoCanvas2.getContext("2d")!
             const inputVideoCanvas2 = this.state.inputVideoCanvas2
-            inputVideoCanvas2.width = this.state.inputVideoStream?.getTracks()[0].getSettings().width!
-            inputVideoCanvas2.height = this.state.inputVideoStream?.getTracks()[0].getSettings().height!
-            ctx.drawImage(this.state.inputVideoElement, 0, 0, this.state.inputVideoCanvas2.width, this.state.inputVideoCanvas2.height)
+            const outputWidth = this.state.inputVideoStream?.getTracks()[0].getSettings().width!
+            const outputHeight = this.state.inputVideoStream?.getTracks()[0].getSettings().height!
+            inputVideoCanvas2.width  = LocalVideoConfigs[this.state.currentSettings.selectedInputVideoResolution].width
+            inputVideoCanvas2.height = (inputVideoCanvas2.width/outputWidth) * outputHeight
+            
+            ctx.drawImage(this.state.inputVideoElement, 0, 0, inputVideoCanvas2.width, inputVideoCanvas2.height)
             requestAnimationFrame(() => this.drawVideoCanvas())
         } else {
 
             //// (1) Generate input image for segmentation.
             // To avoid to be slow performace, resolution is limited when using virtual background
             const inputVideoCanvas = this.state.inputVideoCanvas
-            inputVideoCanvas.width = 640
-            inputVideoCanvas.height = (this.state.inputVideoCanvas.width / 16) * 9
+            const outputWidth = this.state.inputVideoStream?.getTracks()[0].getSettings().width!
+            const outputHeight = this.state.inputVideoStream?.getTracks()[0].getSettings().height!
+            inputVideoCanvas.width  = LocalVideoConfigs[this.state.currentSettings.selectedInputVideoResolution].width
+            inputVideoCanvas.height = (inputVideoCanvas.width/outputWidth) * outputHeight
             const canvas = document.createElement("canvas")
-            canvas.width  = 640
-            canvas.height =  (this.state.inputVideoCanvas.width / 16) * 9
+            canvas.width  = inputVideoCanvas.width
+            canvas.height =  inputVideoCanvas.height
             const ctx = canvas.getContext("2d")!
             ctx.drawImage(this.state.inputVideoElement, 0, 0, canvas.width, canvas.height)
 
@@ -670,7 +676,6 @@ class App extends React.Component {
                 const ctx = this.state.virtualBGCanvas.getContext("2d")!
                 ctx.drawImage(this.state.virtualBGImage, 0, 0, this.state.virtualBGCanvas.width, this.state.virtualBGCanvas.height)
                 const bgImageData = ctx.getImageData(0, 0, this.state.virtualBGCanvas.width, this.state.virtualBGCanvas.height)
-
                 //// (2-4) merge background and mask
                 const pixelData = new Uint8ClampedArray(maskedImage.width * maskedImage.height * 4)
                 for (let rowIndex = 0; rowIndex < maskedImage.height; rowIndex++) {
@@ -781,13 +786,11 @@ class App extends React.Component {
                     const audioInputDevices = deviceList['audioinput']
                     const videoInputDevices = deviceList['videoinput']
                     const audioOutputDevices = deviceList['audiooutput']
-                    const inputVideoResolutions = ["360p", "540p", "720p"]
                     this.setState({bodyPix:bodyPix})
 
                     const currentSettings = this.state.currentSettings
                     currentSettings.selectedInputAudioDevice = audioInputDevices![0] ? audioInputDevices![0]['deviceId'] : NO_DEVICE_SELECTED
                     currentSettings.selectedInputVideoDevice = videoInputDevices![0] ? videoInputDevices![0]['deviceId'] : NO_DEVICE_SELECTED
-                    currentSettings.selectedInputVideoResolution = inputVideoResolutions![0] ? inputVideoResolutions![0] : NO_DEVICE_SELECTED
                     currentSettings.selectedOutputAudioDevice = audioOutputDevices![0] ? audioOutputDevices![0]['deviceId'] : NO_DEVICE_SELECTED
                     props.lobbyPrepared(audioInputDevices, videoInputDevices, audioOutputDevices)
                     props.refreshRoomList()
