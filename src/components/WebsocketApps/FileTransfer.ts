@@ -32,6 +32,7 @@ export interface RecievingStatus{
     recievedIndex    : number
     partNum          : number
     available        : boolean
+    startTime        : number
 }
 
 const loadedFiles:{[uuid:string]:WSFile}                   = {}
@@ -146,7 +147,8 @@ export const addFilePart = (part:WSFile):RecievingStatus => {
         filename         : file.filename,
         recievedIndex    : file.fileParts.length - 1,
         partNum          : file.partNum,
-        available        : file.fileParts.length === file.partNum
+        available        : file.fileParts.length === file.partNum,
+        startTime        : Date.now()
     }
     return result
 }

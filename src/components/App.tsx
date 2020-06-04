@@ -29,12 +29,13 @@ import { getDeviceLists, getVideoDevice, getTileId } from './utils'
 import { API_BASE_URL, MESSAGING_URL } from '../config';
 import { RS_STAMPS } from './resources';
 import ErrorPortal from './meetingComp/ErrorPortal';
-import { loadFile, sendFilePart, addFilePart, WSFile, saveFile } from './WebsocketApps/FileTransfer';
+import { loadFile, sendFilePart, addFilePart, WSFile, saveFile, RecievingStatus, SendingStatus } from './WebsocketApps/FileTransfer';
 import { WSMessage, WSMessageType } from './WebsocketApps/const';
 import { sendStamp, WSStamp } from './WebsocketApps/Stamp';
 import { sendText, WSText } from './WebsocketApps/Text';
 import { sendStampBySignal } from './WebsocketApps/StampBySignal';
 import { sendDrawingBySignal, DrawingType, WSDrawing } from './WebsocketApps/DrawingBySignal'
+import { WebsocketApps } from './WebsocketApps/WebsocketApps'
 
 /**
  * 
@@ -143,9 +144,8 @@ export interface AppState {
     videoTileStates: { [id: number]: VideoTileState }
     roster: { [attendeeId: string]: Attendee }
     bodyPix: bodyPix.BodyPix | null
-    messagingSocket: ReconnectingPromisedWebSocket | null,
+    messagingSocket: WebsocketApps | null,
     stamps: { [key: string]: HTMLImageElement },
-    messagingConsumer: (()=>{})[]
 
     outputAudioElement: HTMLAudioElement | null,
 
@@ -175,7 +175,6 @@ class App extends React.Component {
         bodyPix: null,
         messagingSocket: null,
         stamps: {},
-        messagingConsumer: [],
 
         inputVideoStream: null,
         inputVideoElement: document.createElement("video"),
@@ -551,9 +550,8 @@ class App extends React.Component {
 
 
     // For Messaging
-
     sendStamp = (targetId: string, imgPath: string) => {
-        sendStamp(this.state.messagingSocket!, targetId, imgPath, false)
+        this.state.messagingSocket!.sendStamp(targetId, imgPath)
     }
 
     sendStampBySignal = (targetId: string, imgPath: string) => {
@@ -562,26 +560,18 @@ class App extends React.Component {
     }
 
     sendText = (targetId: string, text: string) => {
-        sendText(this.state.messagingSocket!, targetId, text, false)
+        this.state.messagingSocket!.sendText(targetId, text)
     }
-
 
     sendDrawingBySignal = (targetId: string, mode:string, startXR:number, startYR:number, endXR:number, endYR:number, stroke:string, lineWidth:number)=>{
         const gs = this.props as GlobalState
         sendDrawingBySignal(gs.meetingSession!.audioVideo, targetId, mode, startXR, startYR, endXR, endYR, stroke, lineWidth, false)
     }
 
-
     // For File Share
     sharedFileSelected = (targetId:string, e: any) => {
-        const id = uuid()
-        loadFile(e.target.files[0], id, e.target.files[0].name, ()=>{
-            sendFilePart(this.state.messagingSocket!, id, targetId)
-        })
+        this.state.messagingSocket!.startFileTransfer(targetId, e)
     }
-
-
-
 
     callbacks: { [key: string]: any } = {
         toggleMute: this.toggleMute,
@@ -839,18 +829,12 @@ class App extends React.Component {
                 // url.searchParams.set('m', gs.roomTitle);
                 // window.history.replaceState({}, `${gs.roomTitle}`, url.toString());
 
-                // Messaging Websocket
-                const messagingURLWithQuery = `${MESSAGING_URL}?joinToken=${defaultMeetingSession.configuration.credentials!.joinToken}&meetingId=${defaultMeetingSession.configuration.meetingId}&attendeeId=${defaultMeetingSession.configuration.credentials!.attendeeId}`
-                console.log("MESSAGEING_URL", messagingURLWithQuery)
-                const messagingSocket = new ReconnectingPromisedWebSocket(
-                    messagingURLWithQuery,
-                    [],
-                    'arraybuffer',
-                    new DefaultPromisedWebSocketFactory(new DefaultDOMWebSocketFactory()),
-                    new FullJitterBackoff(1000, 0, 10000)
-                );
-                const messagingSocketPromise = messagingSocket.open(20 * 1000);
-
+                const messagingSocket = new WebsocketApps(
+                    defaultMeetingSession.configuration.meetingId!,
+                    defaultMeetingSession.configuration.credentials!.attendeeId!,
+                    defaultMeetingSession.configuration.credentials!.joinToken!
+                )
+                const messagingSocketPromise = messagingSocket.open()
 
 
 
@@ -877,37 +861,24 @@ class App extends React.Component {
                     defaultMeetingSession.audioVideo.startLocalVideoTile()
                     props.meetingPrepared(meetingSessionConf, defaultMeetingSession)
 
-
-                    messagingSocket.addEventListener('message', (e: Event) => {
-                        //console.log("MESSAGE!!!!!!",e)
-                        const data = JSON.parse((e as MessageEvent).data) as WSMessage;
-                        //console.log("data: ",data)
-                        if(data.cmd === WSMessageType.File){
-                            const filePart = data.content as WSFile
-                            if(data.done === false){
-                                // reciever
-                                const res = addFilePart(filePart)
-                                if(res.available===true){
-                                    saveFile(filePart.uuid)
-                                }
-                                console.log(`File Recieving...: ${res.recievedIndex}/${res.partNum}`)
-                            }else{
-                                // sender
-                                const res = sendFilePart(this.state.messagingSocket!, filePart.uuid, data.targetId)
-                                console.log(`File Transfering...: ${res.transferredIndex}/${res.partNum}`)
-                            }
-                        }else if(data.cmd === WSMessageType.Text){
-                            const text  = data.content as WSText
-                            this.state.currentSettings.globalStamps.push(text)
-                        }else if(data.cmd === WSMessageType.Stamp){
-                            const stamp = data.content as WSStamp
-                            this.state.currentSettings.globalStamps.push(stamp)
+                    // Set WebsocketApps Event
+                    messagingSocket.addFileRecievingEventListener((e:RecievingStatus)=>{
+                        if(e.available===true){
+                            saveFile(e.uuid)
                         }
+                        console.log(`File Recieving...: ${e.recievedIndex}/${e.partNum}`)
+                    })
+                    messagingSocket.addFileSendingEventListener((e:SendingStatus)=>{
+                        console.log(`File Transfering...: ${e.transferredIndex}/${e.partNum}`)
+                    })
+                    messagingSocket.addStampEventListener((e:WSStamp)=>{
+                        this.state.currentSettings.globalStamps.push(e)
+                    })
+                    messagingSocket.addTextEventListener((e:WSText)=>{
+                        this.state.currentSettings.globalStamps.push(e)
                     })
 
-                    messagingSocket.addEventListener('error', (e: Event) => {
-                        console.log("Error", e)
-                    })
+
                     this.setState({messagingSocket: messagingSocket})
                 })
                 return <div />
