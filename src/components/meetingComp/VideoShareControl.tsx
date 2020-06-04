@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Icon, Accordion, Divider, List, Label} from 'semantic-ui-react';
+import { Icon, Accordion, List } from 'semantic-ui-react';
 
 
 interface VideoShareControlState{
@@ -30,39 +30,29 @@ class VideoShareControl extends React.Component {
                     Video Share
                 </Accordion.Title>
                 <Accordion.Content active={this.state.open}>
-                    <div>
-                        {/* <Button compact basic 
-                            content="select file."
-                            labelPosition="left"
-                            icon="folder"
-                            onClick={() => this.fileInputRef.current!.click()}
-                        /> */}
-                        <input
-                            ref={this.fileInputRef}
-                            type="file"
-                            hidden
-                            onChange={(e) => props.sharedVideoSelected(e)}
-                        />
-
+                    <div style={{paddingLeft:"10px"}}>
                         <List link>
                             <List.Item as='a' active onClick={() => this.fileInputRef.current!.click()}>
                                 <Icon name="folder"  active />Choose file.
                             </List.Item>
                         </List>
                     </div>
-
-
-
-                    <Divider hidden />
-                    <div>
-                        <Label basic as="a" icon="play" 
-                            onClick={(e) => { props.playSharedVideo() }}
+                    <input
+                            ref={this.fileInputRef}
+                            type="file"
+                            hidden
+                            onChange={(e) => props.sharedVideoSelected(e)}
                         />
-                        <Label basic as="a" icon="pause" 
-                            onClick={(e) => { props.pauseSharedVideo() }}
+
+                    <div style={{paddingLeft:"10px"}}>
+                        <Icon basic link name="play" 
+                            onClick={() => { props.playSharedVideo() }}
                         />
-                        <Label basic as="a" icon="stop" 
-                            onClick={(e) => { props.pauseSharedVideo() }}
+                        <Icon basic link name="pause" 
+                            onClick={() => { props.pauseSharedVideo() }}
+                        />
+                        <Icon basic link name="stop" 
+                            onClick={() => { props.stopSharedVideo() }}
                         />
                     </div>
 

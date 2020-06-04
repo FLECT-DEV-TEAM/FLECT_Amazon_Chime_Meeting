@@ -34,8 +34,8 @@ class MainScreen extends React.Component{
         <span>
           {colors.map((color) => (
               //@ts-ignore
-            <Label circular empty color={color} key={color} active={color===this.state.drawingStroke}
-                onClick={()=>{
+            <Label circular empty as="a" color={color} key={color} active={color===this.state.drawingStroke}
+                link onClick={()=>{
                     this.mainOverlayVideoRef.current!.setDrawingStroke(color);
                     this.mainOverlayVideoRef.current!.setErasing(false);
                     this.mainOverlayVideoRef.current!.setDrawingMode(true)
@@ -57,16 +57,18 @@ class MainScreen extends React.Component{
         const thisAttendeeId = props.thisAttendeeId 
         const attendeeInfo = appState.roster[thisAttendeeId]
         let attendeeName = "no focused"
-        let icon = <div/>
+        let muted = <div/>
         if(attendeeInfo === undefined){
         }else{
             attendeeName = (attendeeInfo.name !== undefined && attendeeInfo.name !== null)? attendeeInfo.name!.substring(0,20) : "unknown"
-            icon = attendeeInfo.muted ? (<Icon name="mute"  color="red" />) : (<Icon name="unmute"/>)
+            muted = attendeeInfo.muted ? (<Icon name="mute"  color="red" />) : (<Icon name="unmute"/>)
         }
 
         const focusedTileId = getTileId(thisAttendeeId, appState.videoTileStates)
         if(focusedTileId > 0 && this.mainOverlayVideoRef.current !== null){
             gs.meetingSession?.audioVideo.bindVideoElement(focusedTileId, this.mainOverlayVideoRef.current.getVideoRef().current!)
+        }else{
+            console.log("not focusedid", focusedTileId, this.mainOverlayVideoRef.current)
         }
 
         return(
@@ -77,12 +79,12 @@ class MainScreen extends React.Component{
                             <MainOverlayVideoElement {...props} ref={this.mainOverlayVideoRef}/>
                         </div>
                         <span>
-                            {icon}
+                            {muted}
                             {attendeeName}
                         </span>
                         <span style={{paddingLeft:"30px"}}>
                             <Icon name="pencil" color={this.state.enableDrawing? "red":"grey"}
-                                onClick ={
+                                link onClick ={
                                     ()=>{
                                         this.mainOverlayVideoRef.current!.setDrawingMode(!this.state.enableDrawing)
                                         this.mainOverlayVideoRef.current!.setErasing(false)
@@ -95,7 +97,7 @@ class MainScreen extends React.Component{
                             />
                             {this.labelExampleCircular()}
                             <Icon name="eraser" color={this.state.erasing? "red":"grey"}
-                                onClick={
+                                link onClick={
                                     ()=>{
                                         this.mainOverlayVideoRef.current!.setErasing(true)
                                         this.setState({
@@ -105,7 +107,7 @@ class MainScreen extends React.Component{
                                     }
                                 } 
                             />
-                            <Icon name="file outline" onClick={()=>{this.mainOverlayVideoRef.current!.clearDrawingCanvas()}} />
+                            <Icon name="file outline" link onClick={()=>{this.mainOverlayVideoRef.current!.clearDrawingCanvas()}} />
                                 
 
                         </span>
@@ -129,15 +131,26 @@ class TileScreenTile extends React.Component{
         const thisAttendeeId = props.thisAttendeeId 
         const attendeeInfo = appState.roster[thisAttendeeId]
         let attendeeName = "loading...."
-        let icon = <span/>
+        let muted = <span/>
+        let paused = <span/>
         let focusIcon = <span/>
+
         if(attendeeInfo === undefined){
         }else{
             attendeeName = (attendeeInfo.name !== undefined && attendeeInfo.name !== null)? attendeeInfo.name!.substring(0,20) : "unknown"
-            icon = attendeeInfo.muted ? (<Icon name="mute"  color="red" />) : (<Icon name="unmute"/>)
+            muted = attendeeInfo.muted ? (<Icon name="mute"  color="red" />) : (<Icon name="unmute"/>)
+            
+            paused = attendeeInfo.paused ?
+             (<Icon name="pause circle outline" color="red" link onClick={()=>{
+                props.unpauseVideoTile(thisAttendeeId)
+                }} />)
+             : 
+             (<Icon name="pause circle outline" link onClick={()=>{
+                props.pauseVideoTile(thisAttendeeId)
+                }} />)
             focusIcon = thisAttendeeId === appState.currentSettings.focuseAttendeeId ? (<Icon name="eye"  color="red" />) : (<span />)
-        }
 
+        }
 
 
         const thisTileId = getTileId(thisAttendeeId, appState.videoTileStates)
@@ -149,10 +162,16 @@ class TileScreenTile extends React.Component{
             <Grid.Column width={4} >
                 <div style={{padding:"5px"}}>
                 <OverlayVideoElement {...props} ref={this.tileOverlayVideoRef}/>
-                {icon}
+                </div>
+                <span>
+                {muted}
+                </span>
+                <span>
+                {paused}
+                </span>
                 {focusIcon}
                 {attendeeName}
-                </div>
+                
             </Grid.Column>
         )
     }
@@ -199,12 +218,15 @@ class LobbyMeetingRoom extends React.Component {
             const tmpRef = React.createRef<MainOverlayVideoElement>()
             this.id2ref[tileId!] = tmpRef
             const cell = (
-                <TileScreenTile  {...props} thisAttendeeId={attendeeId}/>
+                <TileScreenTile {...props} thisAttendeeId={attendeeId}/>
             )
             this.cells.push(cell)
         }
 
-
+        const mainScreen = this.state.showMainScreen===true ? 
+            (<MainScreen {...props} thisAttendeeId={appState.currentSettings.focuseAttendeeId}/>)
+            :
+            (<div />)
         return (
             <div>
 
@@ -227,11 +249,12 @@ class LobbyMeetingRoom extends React.Component {
                 <Grid>
                     <Grid.Row>
                         <Grid.Column>
-                            {this.state.showMainScreen?
+                            {mainScreen}
+                            {/* {this.state.showMainScreen?
                             (<MainScreen {...props} thisAttendeeId={appState.currentSettings.focuseAttendeeId}/>)
                             :
                             (<div/>)
-                            }
+                            } */}
                             
                         </Grid.Column>
                     </Grid.Row>
@@ -246,13 +269,6 @@ class LobbyMeetingRoom extends React.Component {
             </div>
         )
 
-    }
-
-
-    componentDidUpdate = () => {
-        const gs = this.props as GlobalState
-
-        console.log(gs)
     }
 }
 

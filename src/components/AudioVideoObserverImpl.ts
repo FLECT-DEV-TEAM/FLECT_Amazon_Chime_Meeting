@@ -34,6 +34,7 @@ class AudioVideoObserverImpl implements AudioVideoObserver{
     }
     videoAvailabilityDidChange(availability: MeetingSessionVideoAvailability): void {
         //this.canStartLocalVideo = availability.canStartLocalVideo;
+        console.log(`video availability changed: canStartLocalVideo `, availability);
         console.log(`video availability changed: canStartLocalVideo  ${availability.canStartLocalVideo}`);
     }
 
@@ -45,30 +46,30 @@ class AudioVideoObserverImpl implements AudioVideoObserver{
     }
     ////// videoNotReceivingEnoughData?(receivingDataMap
 
-    metricsDidReceivemetricsDidReceive(clientMetricReport: ClientMetricReport): void {
-        const metricReport = clientMetricReport.getObservableMetrics();
-        console.log("metricsDidReceivemetricsDidReceive", metricReport)
-        if (typeof metricReport.availableSendBandwidth === 'number' && !isNaN(metricReport.availableSendBandwidth)) {
-            (document.getElementById('video-uplink-bandwidth') as HTMLSpanElement).innerHTML =
-                'Available Uplink Bandwidth: ' + String(metricReport.availableSendBandwidth / 1000) + ' Kbps';
-        } else if (typeof metricReport.availableOutgoingBitrate === 'number' && !isNaN(metricReport.availableOutgoingBitrate)) {
-            (document.getElementById('video-uplink-bandwidth') as HTMLSpanElement).innerHTML =
-                'Available Uplink Bandwidth: ' + String(metricReport.availableOutgoingBitrate / 1000) + ' Kbps';
-        } else {
-            (document.getElementById('video-uplink-bandwidth') as HTMLSpanElement).innerHTML =
-                'Available Uplink Bandwidth: Unknown';
-        }
+    metricsDidReceive(clientMetricReport: ClientMetricReport): void {
+        //const metricReport = clientMetricReport.getObservableMetrics();
+        //console.log("metricsDidReceive", metricReport)
+        // if (typeof metricReport.availableSendBandwidth === 'number' && !isNaN(metricReport.availableSendBandwidth)) {
+        //     (document.getElementById('video-uplink-bandwidth') as HTMLSpanElement).innerHTML =
+        //         'Available Uplink Bandwidth: ' + String(metricReport.availableSendBandwidth / 1000) + ' Kbps';
+        // } else if (typeof metricReport.availableOutgoingBitrate === 'number' && !isNaN(metricReport.availableOutgoingBitrate)) {
+        //     (document.getElementById('video-uplink-bandwidth') as HTMLSpanElement).innerHTML =
+        //         'Available Uplink Bandwidth: ' + String(metricReport.availableOutgoingBitrate / 1000) + ' Kbps';
+        // } else {
+        //     (document.getElementById('video-uplink-bandwidth') as HTMLSpanElement).innerHTML =
+        //         'Available Uplink Bandwidth: Unknown';
+        // }
 
-        if (typeof metricReport.availableReceiveBandwidth === 'number' && !isNaN(metricReport.availableReceiveBandwidth)) {
-            (document.getElementById('video-downlink-bandwidth') as HTMLSpanElement).innerHTML =
-                'Available Downlink Bandwidth: ' + String(metricReport.availableReceiveBandwidth / 1000) + ' Kbps';
-        } else if (typeof metricReport.availableIncomingBitrate === 'number' && !isNaN(metricReport.availableIncomingBitrate)) {
-            (document.getElementById('video-downlink-bandwidth') as HTMLSpanElement).innerHTML =
-                'Available Downlink Bandwidth: ' + String(metricReport.availableIncomingBitrate / 1000) + ' Kbps';
-        } else {
-            (document.getElementById('video-downlink-bandwidth') as HTMLSpanElement).innerHTML =
-                'Available Downlink Bandwidth: Unknown';
-        }
+        // if (typeof metricReport.availableReceiveBandwidth === 'number' && !isNaN(metricReport.availableReceiveBandwidth)) {
+        //     (document.getElementById('video-downlink-bandwidth') as HTMLSpanElement).innerHTML =
+        //         'Available Downlink Bandwidth: ' + String(metricReport.availableReceiveBandwidth / 1000) + ' Kbps';
+        // } else if (typeof metricReport.availableIncomingBitrate === 'number' && !isNaN(metricReport.availableIncomingBitrate)) {
+        //     (document.getElementById('video-downlink-bandwidth') as HTMLSpanElement).innerHTML =
+        //         'Available Downlink Bandwidth: ' + String(metricReport.availableIncomingBitrate / 1000) + ' Kbps';
+        // } else {
+        //     (document.getElementById('video-downlink-bandwidth') as HTMLSpanElement).innerHTML =
+        //         'Available Downlink Bandwidth: Unknown';
+        // }
     }
     ////// connectionHealthDidChange
 
@@ -81,8 +82,6 @@ class AudioVideoObserverImpl implements AudioVideoObserver{
     videoSendDidBecomeUnavailable(): void {
         console.log('sending video is not available');
     }
-
-
 }
 
 export default AudioVideoObserverImpl

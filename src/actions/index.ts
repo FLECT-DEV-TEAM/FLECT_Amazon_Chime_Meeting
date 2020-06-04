@@ -29,10 +29,6 @@ export const Actions = createActions(
         'ENTER_SESSION'                 : (...args) => (args),
         'MEETING_PREPARED'           : (...args) => (args),
         'LOBBY_PREPARED'                : (...args) => (args),
-        'SELECT_INPUT_AUDIO_DEVICE'     : (args)    => (args),
-        'SELECT_INPUT_VIDEO_DEVICE'     : (args)    => (args),
-        'SELECT_INPUT_VIDEO_RESOLUTION' : (args)    => (args),
-        'SELECT_OUTPUT_AUDIO_DEVICE'    : (args)    => (args),
         'START_MEETING'                 : (args)    => (args),
 
         'GET_ATTENDEE_INFORMATION'      : (...args) => (args),

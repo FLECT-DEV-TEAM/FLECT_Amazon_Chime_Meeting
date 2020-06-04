@@ -50,11 +50,6 @@ function mapDispatchToProps(dispatch: Dispatch) {
                       {dispatch(Actions.enterSession(base_url, roomID, name, region))},
 
 
-
-    selectInputAudioDevice:(val:string)     => {dispatch(Actions.selectInputAudioDevice(val))},
-    selectInputVideoDevice:(val:string)     => {dispatch(Actions.selectInputVideoDevice(val))},
-    selectInputVideoResolution:(val:string) => {dispatch(Actions.selectInputVideoResolution(val))},
-    selectOutputAudioDevice:(val:string)    => {dispatch(Actions.selectOutputAudioDevice(val))},
     startMeeting:() =>{dispatch(Actions.startMeeting())},
     // updateActiveScore:(scores: { [attendeeId: string]: number }) => {dispatch(Actions.updateActiveScore(scores))},
     // changeActiveSpeaker: (attendeeId:string) =>{dispatch(Actions.changeActiveSpeaker(attendeeId))},

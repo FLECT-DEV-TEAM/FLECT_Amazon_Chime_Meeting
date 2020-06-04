@@ -13,6 +13,7 @@ import { AppState } from './App';
 import SecondaryCameraAccordion from './meetingComp/SecondaryCameraAccordion';
 import StampAccordionBySignal from './meetingComp/StampAccordionBySignal';
 import FileShareControl from './meetingComp/FileShare';
+import VideoResolutionControl from './meetingComp/VideoResolutionControl';
 
 
 interface PanelState{
@@ -35,20 +36,18 @@ class PreviewPanel extends React.Component {
 
     drawPreviewCanvas =() => {
         const props = this.props as any
-        const appState = props.appState as AppState
+       const appState = props.appState as AppState
 
-        if(appState.inputVideoCanvas2 !== undefined && this.previewCanvasRef.current !== null){
-            if(this.previewCanvasRef.current!.width   !== 0 && this.previewCanvasRef.current!.height !== 0 &&
-                appState.inputVideoCanvas2.width !== 0 && appState.inputVideoCanvas2.height !== 0
-                ){
-                    const orgWidth  = appState.inputVideoStream?.getVideoTracks()[0].getSettings().width!
-                    const orgHeight = appState.inputVideoStream?.getVideoTracks()[0].getSettings().height!
+        if(this.previewCanvasRef.current !== null){
+            if(appState.localVideoEffectors.inputVideoCanvas2.width !== 0 && appState.localVideoEffectors.inputVideoCanvas2.height !== 0){
+                const orgWidth  = appState.localVideoEffectors.inputVideoStream?.getVideoTracks()[0].getSettings().width!
+                const orgHeight = appState.localVideoEffectors.inputVideoStream?.getVideoTracks()[0].getSettings().height!
 
-                    this.previewCanvasRef.current!.width  = this.previewCanvasRef.current!.scrollWidth
-                    this.previewCanvasRef.current!.height = (this.previewCanvasRef.current!.width/orgWidth) * orgHeight
+                this.previewCanvasRef.current!.width  = this.previewCanvasRef.current!.scrollWidth
+                this.previewCanvasRef.current!.height = (this.previewCanvasRef.current!.width/orgWidth) * orgHeight
 
                 const ctx = this.previewCanvasRef.current!.getContext("2d")!
-                ctx.drawImage(appState.inputVideoCanvas2, 0, 0, this.previewCanvasRef.current!.scrollWidth,this.previewCanvasRef.current!.scrollHeight)
+                ctx.drawImage(appState.localVideoEffectors.inputVideoCanvas2, 0, 0, this.previewCanvasRef.current!.width, this.previewCanvasRef.current!.height)
             }
         }
         requestAnimationFrame(() => this.drawPreviewCanvas())
@@ -135,6 +134,9 @@ class ConfigPanel extends React.Component {
                                     <SpeakerControl {...props} />
                                 </p>
                                 <Divider />
+                                <p>
+                                    <VideoResolutionControl {...props} />
+                                </p>
                                 <p>
                                     <SettingControl {...props}/>
                                 </p>

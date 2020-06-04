@@ -59,7 +59,7 @@ class SettingControl extends React.Component {
             <Grid.Column width={4}>
                 <div onClick={() => { props.setVirtualBackground(imgPath) }} style={
                 (() => {
-                    return appState.currentSettings.virtualBackgroundPath === imgPath ?
+                    return appState.localVideoEffectors.virtualBackgroundImagePath === imgPath ?
                     { color: "red", border: "2px solid #ff0000", width: "100%", height: "100%" } :
                     { width: "100%", height: "100%" }
                 })()

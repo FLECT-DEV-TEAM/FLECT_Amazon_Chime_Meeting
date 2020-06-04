@@ -15,8 +15,8 @@ class OverlayVideoElement extends MainOverlayVideoElement {
         const border = this.state.hoverd  ? "2px solid #ff0000" : "2px solid #000000"
         return(
             <div ref={this.divRef} 
-                onMouseEnter={()=>{console.log("enter");this.setState({hoverd:true})}} 
-                onMouseLeave={()=>{console.log("leave");this.setState({hoverd:false})}} 
+                onMouseEnter={()=>{this.setState({hoverd:true})}} 
+                onMouseLeave={()=>{this.setState({hoverd:false})}} 
                 onClick ={()=>{console.log("clicked");props.setFocusedAttendee(thisAttendeeId)}}
                 >
                 <video  ref={this.videoRef}  style={{ position: "absolute", width: "100%"}} />

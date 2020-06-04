@@ -1,8 +1,7 @@
 import * as React from 'react';
 import { GlobalState } from '../reducers';
-import { AppStatus, LOGGER_BATCH_SIZE, LOGGER_INTERVAL_MS, AppEntranceStatus, AppMeetingStatus, AppLobbyStatus, NO_DEVICE_SELECTED } from '../const';
+import { AppStatus, LOGGER_BATCH_SIZE, LOGGER_INTERVAL_MS, AppEntranceStatus, AppMeetingStatus, AppLobbyStatus, NO_DEVICE_SELECTED, LocalVideoConfigs } from '../const';
 import * as bodyPix from '@tensorflow-models/body-pix';
-import { v4 as uuid } from 'uuid';
 
 import {
     ConsoleLogger,
@@ -13,10 +12,6 @@ import {
     Logger,
     MeetingSessionPOSTLogger,
     VideoTileState,
-    ReconnectingPromisedWebSocket,
-    DefaultPromisedWebSocketFactory,
-    DefaultDOMWebSocketFactory,
-    FullJitterBackoff,
     DataMessage
 } from 'amazon-chime-sdk-js';
 import Entrance from './Entrance';
@@ -25,16 +20,18 @@ import DeviceChangeObserverImpl from './DeviceChangeObserverImpl';
 import AudioVideoObserverImpl from './AudioVideoObserverImpl';
 import ContentShareObserverImpl from './ContentShareObserverImpl';
 import { setRealtimeSubscribeToAttendeeIdPresence, setSubscribeToActiveSpeakerDetector, setRealtimeSubscribeToReceiveDataMessage } from './subscribers';
-import { getDeviceLists, getVideoDevice } from './utils'
-import { API_BASE_URL, MESSAGING_URL } from '../config';
+import { getDeviceLists, getTileId } from './utils'
+import { API_BASE_URL } from '../config';
 import { RS_STAMPS } from './resources';
 import ErrorPortal from './meetingComp/ErrorPortal';
-import { loadFile, sendFilePart, addFilePart, WSFile, saveFile } from './WebsocketApps/FileTransfer';
-import { WSMessage, WSMessageType } from './WebsocketApps/const';
-import { sendStamp, WSStamp } from './WebsocketApps/Stamp';
-import { sendText, WSText } from './WebsocketApps/Text';
+import { saveFile, RecievingStatus, SendingStatus } from './WebsocketApps/FileTransfer';
+import {  WSMessageType } from './WebsocketApps/const';
+import {  WSStamp } from './WebsocketApps/Stamp';
+import { WSText } from './WebsocketApps/Text';
 import { sendStampBySignal } from './WebsocketApps/StampBySignal';
 import { sendDrawingBySignal, DrawingType, WSDrawing } from './WebsocketApps/DrawingBySignal'
+import { WebsocketApps } from './WebsocketApps/WebsocketApps'
+import { LocalVideoEffectors } from './LocalVideoEffectors/LocalVideoEffectors';
 
 /**
  * 
@@ -107,10 +104,6 @@ export const removeDataMessageConsumers = (consumer:any) =>{
     dataMessageConsumers = dataMessageConsumers.filter(n => n !== consumer)
 }
 
-
-
-
-
 /**
  * 
  */
@@ -118,9 +111,10 @@ export interface Attendee {
     attendeeId: string
     name: string | null
     active: boolean
-    volume: number | null
-    muted: boolean | null
-    signalStrength: number | null
+    volume: number
+    muted: boolean
+    paused: boolean
+    signalStrength: number
 }
 
 export interface CurrentSettings {
@@ -131,7 +125,6 @@ export interface CurrentSettings {
     selectedInputVideoDevice: string
     selectedInputVideoResolution: string
     selectedOutputAudioDevice: string
-    virtualBackgroundPath: string
     focuseAttendeeId: string
     globalStamps: (WSStamp|WSText)[]
 
@@ -145,26 +138,14 @@ export interface CurrentSettings {
 export interface AppState {
     videoTileStates: { [id: number]: VideoTileState }
     roster: { [attendeeId: string]: Attendee }
-    bodyPix: bodyPix.BodyPix | null
-    messagingSocket: ReconnectingPromisedWebSocket | null,
+
+    messagingSocket: WebsocketApps | null,
     stamps: { [key: string]: HTMLImageElement },
-    messagingConsumer: (()=>{})[]
-
     outputAudioElement: HTMLAudioElement | null,
-
-    inputVideoStream: MediaStream | null,
-    inputVideoElement: HTMLVideoElement,
-    inputVideoCanvas: HTMLCanvasElement,
-    inputMaskCanvas: HTMLCanvasElement,
-    virtualBGImage: HTMLImageElement,
-    virtualBGCanvas: HTMLCanvasElement,
-    inputVideoCanvas2: HTMLCanvasElement,
-
     shareVideoElement: HTMLVideoElement,
-
-
-    currentSettings: CurrentSettings
-
+    
+    currentSettings: CurrentSettings,
+    localVideoEffectors: LocalVideoEffectors,
 }
 
 /**
@@ -175,18 +156,8 @@ class App extends React.Component {
     state: AppState = {
         videoTileStates: {},
         roster: {},
-        bodyPix: null,
         messagingSocket: null,
         stamps: {},
-        messagingConsumer: [],
-
-        inputVideoStream: null,
-        inputVideoElement: document.createElement("video"),
-        inputVideoCanvas: document.createElement("canvas"),
-        inputMaskCanvas: document.createElement("canvas"),
-        virtualBGImage: document.createElement("img"),
-        virtualBGCanvas: document.createElement("canvas"),
-        inputVideoCanvas2: document.createElement("canvas"),
         outputAudioElement: document.createElement("audio"),
 
         shareVideoElement: document.createElement("video"),
@@ -198,15 +169,15 @@ class App extends React.Component {
             speakerEnable: true,
             selectedInputAudioDevice: NO_DEVICE_SELECTED,
             selectedInputVideoDevice: NO_DEVICE_SELECTED,
-            selectedInputVideoResolution: NO_DEVICE_SELECTED,
+//            selectedInputVideoResolution: "vc720p",
+            selectedInputVideoResolution: "vc180p3",
             selectedOutputAudioDevice: NO_DEVICE_SELECTED,
-            virtualBackgroundPath: "/resources/vbg/pic0.jpg",
             focuseAttendeeId: "",
             globalStamps: [],
 
             selectedInputVideoDevice2: NO_DEVICE_SELECTED,
-
         },
+        localVideoEffectors : new LocalVideoEffectors()
     }
 
 
@@ -224,11 +195,14 @@ class App extends React.Component {
         if (needUpdate) {
             this.setState({videoTileStates:videoTileStates})
         }
+        console.log("updateVideoTileState ", state.tileId!)
         console.log("updateVideoTileState", this.state.videoTileStates)
     }
     removeVideoTileState = (tileId: number) => {
         delete this.state.videoTileStates[tileId]
         this.setState({})
+        console.log("removeVideoTileState ", tileId)
+
     }
     /***************************
     *  Callback for attendee change
@@ -239,19 +213,19 @@ class App extends React.Component {
         this.setState({})
     }
     changeAttendeeStatus = (attendeeId: string, volume: number | null, muted: boolean | null, signalStrength: number | null) => {
-        console.log("changeAttendeeStatus", attendeeId)
+        // console.log("changeAttendeeStatus", attendeeId)
         const props = this.props as any
         const gs = this.props as GlobalState
-        //props.changeAttendeeStatus(attendeeId, volume, muted, signalStrength, gs.baseURL, gs.roomID)
         const roster = this.state.roster
         if ((attendeeId in roster) === false) {
             roster[attendeeId] = {
                 attendeeId: attendeeId,
                 name: null,
                 active: false,
-                volume: null,
-                muted: null,
-                signalStrength: null
+                volume: 0,
+                muted: false,
+                paused: false,
+                signalStrength: 0
             }
         }
         
@@ -343,44 +317,38 @@ class App extends React.Component {
 
     // For Camera
     toggleVideo = () => {
+        const gs = this.props as GlobalState
         const videoEnable = !this.state.currentSettings.videoEnable
         const currentSettings = this.state.currentSettings
         currentSettings.videoEnable = videoEnable
-        this.setState({ currentSettings: currentSettings })
+        const localVideoEffectors = this.state.localVideoEffectors
+        localVideoEffectors.cameraEnabled=videoEnable
+        this.setState({ currentSettings: currentSettings, localVideoEffectors:localVideoEffectors})
         if (videoEnable) {
-            //gs.meetingSession!.audioVideo.startLocalVideoTile()
-            this.selectInputVideoDevice(currentSettings.selectedInputVideoResolution)
+            this.selectInputVideoDevice(currentSettings.selectedInputVideoDevice)
         } else {
-            this.state.inputVideoStream?.getVideoTracks()[0].stop()
-            //gs.meetingSession!.audioVideo.stopLocalVideoTile()
+            //gs.meetingSession!.audioVideo.chooseVideoInputDevice(null)
+            this.state.localVideoEffectors.stopInputMediaStream()
+            gs.meetingSession?.audioVideo.stopLocalVideoTile()
         }
     }
 
     selectInputVideoDevice = (deviceId: string) => {
-
         console.log("SELECT INPUTDEVICE", deviceId)
-        getVideoDevice(deviceId).then(stream => {
-            if (stream !== null) {
-                const inputVideoElement = this.state.inputVideoElement!
-                inputVideoElement.srcObject = stream;
-                inputVideoElement.play()
-                this.setState({inputVideoStream:stream})
-                return new Promise((resolve, reject) => {
-                    this.state.inputVideoElement!.onloadedmetadata = () => {
-                        resolve();
-                    };
-                });
-            }
-        }).catch((e) => {
-            console.log("DEVICE:error:", e)
-        });
+        const gs = this.props as GlobalState
+        const videoInputPromise = gs.meetingSession?.audioVideo.chooseVideoInputDevice(null)
+        const localVideoEffectorsPromise = this.state.localVideoEffectors.selectInputVideoDevice(deviceId)
 
+        Promise.all([videoInputPromise, localVideoEffectorsPromise]).then(()=>{
+            const mediaStream = this.state.localVideoEffectors.getMediaStream()
+            gs.meetingSession?.audioVideo.chooseVideoInputDevice(mediaStream).then(()=>{
+                gs.meetingSession!.audioVideo.startLocalVideoTile()
+            })
+        })
         const currentSettings = this.state.currentSettings
         currentSettings.selectedInputVideoDevice = deviceId
         this.setState({ currentSettings: currentSettings })
     }
-
-
 
     selectInputVideoDevice2 = (deviceId: string) => {
         const currentSettings = this.state.currentSettings
@@ -474,23 +442,78 @@ class App extends React.Component {
 
     // For Config
     setVirtualBackground = (imgPath: string) => {
-        console.log("SetVirtual", imgPath)
-        const currentSettings = this.state.currentSettings
-        currentSettings.virtualBackgroundPath = imgPath
-        this.setState({ currentSettings: currentSettings })        
+        console.log("SetVirtual", imgPath) 
+        const localVideoEffectors = this.state.localVideoEffectors
+        localVideoEffectors.virtualBackgroundImagePath = imgPath
+        if(imgPath === "/resources/vbg/pic0.jpg"){
+            localVideoEffectors.virtualBackgroundEnabled   = false
+        }else{
+            localVideoEffectors.virtualBackgroundEnabled   = true
+        }
+        this.setState({ localVideoEffectors:localVideoEffectors })
     }
 
+    selectInputVideoResolution = (value: string) =>{
+        const gs = this.props as GlobalState
+
+        const videoConfig = LocalVideoConfigs[value]
+        //console.log(videoConfig)
+        gs.meetingSession!.audioVideo.chooseVideoInputQuality(videoConfig.width, videoConfig.height, videoConfig.frameRate, videoConfig.maxBandwidthKbps);
+
+        const currentSettings = this.state.currentSettings
+        currentSettings.selectedInputVideoResolution = value
+        const localVideoEffectors = this.state.localVideoEffectors
+        localVideoEffectors.outputResolutionKey = value
+        this.setState({ currentSettings: currentSettings, localVideoEffectors:localVideoEffectors })
+
+        const videoEnable = this.state.currentSettings.videoEnable
+        if (videoEnable) {
+            this.selectInputVideoDevice(currentSettings.selectedInputVideoDevice)
+        }         
+    }
+
+    // For TileView Control
     setFocusedAttendee = (attendeeId: string) => {
+        const gs = this.props as GlobalState
         console.log("focus:", this.state.currentSettings.focuseAttendeeId)
+        if(attendeeId === gs.joinInfo?.Attendee.AttendeeId && this.state.currentSettings.videoEnable === false){
+            console.log("local video is off")
+            return
+        }
         const currentSettings = this.state.currentSettings
         currentSettings.focuseAttendeeId = attendeeId
         this.setState({ currentSettings: currentSettings })
     }
     
-    // For Messaging
+    pauseVideoTile = (attendeeId:string) =>{
+        const gs = this.props as GlobalState
+        const tileId = getTileId(attendeeId, this.state.videoTileStates)
+        if(tileId >= 0){
+            gs.meetingSession!.audioVideo.pauseVideoTile(tileId)
+            const roster = this.state.roster
+            roster[attendeeId].paused = true
+            this.setState({roster:roster})
+        }else{
+            console.log("There is no tile: ", tileId, attendeeId)
+        }
+    }
+    unpauseVideoTile = (attendeeId:string) =>{
+        const gs = this.props as GlobalState
+        const tileId = getTileId(attendeeId, this.state.videoTileStates)
+        if(tileId >= 0){
+            gs.meetingSession!.audioVideo.unpauseVideoTile(tileId)
+            const roster = this.state.roster
+            roster[attendeeId].paused = false
+            this.setState({roster:roster})
+        }else{
+            console.log("There is no tile: ", tileId, attendeeId)
+        }
+    }
 
+
+    // For Messaging
     sendStamp = (targetId: string, imgPath: string) => {
-        sendStamp(this.state.messagingSocket!, targetId, imgPath, false)
+        this.state.messagingSocket!.sendStamp(targetId, imgPath)
     }
 
     sendStampBySignal = (targetId: string, imgPath: string) => {
@@ -499,26 +522,18 @@ class App extends React.Component {
     }
 
     sendText = (targetId: string, text: string) => {
-        sendText(this.state.messagingSocket!, targetId, text, false)
+        this.state.messagingSocket!.sendText(targetId, text)
     }
-
 
     sendDrawingBySignal = (targetId: string, mode:string, startXR:number, startYR:number, endXR:number, endYR:number, stroke:string, lineWidth:number)=>{
         const gs = this.props as GlobalState
         sendDrawingBySignal(gs.meetingSession!.audioVideo, targetId, mode, startXR, startYR, endXR, endYR, stroke, lineWidth, false)
     }
 
-
     // For File Share
     sharedFileSelected = (targetId:string, e: any) => {
-        const id = uuid()
-        loadFile(e.target.files[0], id, e.target.files[0].name, ()=>{
-            sendFilePart(this.state.messagingSocket!, id, targetId)
-        })
+        this.state.messagingSocket!.startFileTransfer(targetId, e)
     }
-
-
-
 
     callbacks: { [key: string]: any } = {
         toggleMute: this.toggleMute,
@@ -527,6 +542,7 @@ class App extends React.Component {
         selectInputVideoDevice: this.selectInputVideoDevice,
         toggleSpeaker: this.toggleSpeaker,
         selectOutputAudioDevice: this.selectOutputAudioDevice,
+        selectInputVideoResolution: this.selectInputVideoResolution,
         sharedVideoSelected: this.sharedVideoSelected,
         playSharedVideo: this.playSharedVideo,
         pauseSharedVideo: this.pauseSharedVideo,
@@ -535,6 +551,8 @@ class App extends React.Component {
         stopSharedDisplay: this.stopSharedDisplay,
         setVirtualBackground: this.setVirtualBackground,
         setFocusedAttendee: this.setFocusedAttendee,
+        pauseVideoTile: this.pauseVideoTile,
+        unpauseVideoTile: this.unpauseVideoTile,
         sendStamp: this.sendStamp,
         sendText: this.sendText,
 
@@ -548,106 +566,14 @@ class App extends React.Component {
 
     componentDidMount() {
         requestAnimationFrame(() => this.drawVideoCanvas())
-        // requestAnimationFrame(() => this.drawOverlayCanvas())
     }
 
 
     drawVideoCanvas = () => {
-        const bodyPixNet: bodyPix.BodyPix = this.state.bodyPix!
-
-        const updateInterval = 100
-        if (this.state.currentSettings.videoEnable === false) {
-            const ctx = this.state.inputVideoCanvas2.getContext("2d")!
-            const inputVideoCanvas2 = this.state.inputVideoCanvas2
-            inputVideoCanvas2.width = 6
-            inputVideoCanvas2.height = 4
-            ctx.fillStyle = "grey"
-            ctx.fillRect(0, 0, this.state.inputVideoCanvas2.width, this.state.inputVideoCanvas2.height)
-            setTimeout(this.drawVideoCanvas, updateInterval);
-        } else if (this.state.currentSettings.virtualBackgroundPath === "/resources/vbg/pic0.jpg") {
-            const ctx = this.state.inputVideoCanvas2.getContext("2d")!
-            const inputVideoCanvas2 = this.state.inputVideoCanvas2
-            inputVideoCanvas2.width = this.state.inputVideoStream?.getTracks()[0].getSettings().width!
-            inputVideoCanvas2.height = this.state.inputVideoStream?.getTracks()[0].getSettings().height!
-            ctx.drawImage(this.state.inputVideoElement, 0, 0, this.state.inputVideoCanvas2.width, this.state.inputVideoCanvas2.height)
-            requestAnimationFrame(() => this.drawVideoCanvas())
-        } else {
-
-            //// (1) Generate input image for segmentation.
-            // To avoid to be slow performace, resolution is limited when using virtual background
-            const inputVideoCanvas = this.state.inputVideoCanvas
-            inputVideoCanvas.width = 640
-            inputVideoCanvas.height = (this.state.inputVideoCanvas.width / 16) * 9
-            const canvas = document.createElement("canvas")
-            canvas.width  = 640
-            canvas.height =  (this.state.inputVideoCanvas.width / 16) * 9
-            const ctx = canvas.getContext("2d")!
-            ctx.drawImage(this.state.inputVideoElement, 0, 0, canvas.width, canvas.height)
-
-            //// (2) Segmentation & Mask
-            //// (2-1) Segmentation.
-            bodyPixNet.segmentPerson(canvas).then((segmentation) => {
-                //// (2-2) Generate mask
-                const foregroundColor = { r: 0, g: 0, b: 0, a: 0 };
-                const backgroundColor = { r: 255, g: 255, b: 255, a: 255 };
-                const backgroundMask = bodyPix.toMask(segmentation, foregroundColor, backgroundColor);
-                const opacity = 1.0;
-                const maskBlurAmount = 2;
-                const flipHorizontal = false;
-                bodyPix.drawMask(this.state.inputMaskCanvas, canvas, backgroundMask, opacity, maskBlurAmount, flipHorizontal);
-                const maskedImage = this.state.inputMaskCanvas.getContext("2d")!.getImageData(0, 0, this.state.inputMaskCanvas.width, this.state.inputMaskCanvas.height)
-
-                //// (2-3) Generate background
-                const virtualBGImage = this.state.virtualBGImage
-                virtualBGImage.src = this.state.currentSettings.virtualBackgroundPath
-                const virtualBGCanvas = this.state.virtualBGCanvas
-                virtualBGCanvas.width = maskedImage.width
-                virtualBGCanvas.height = maskedImage.height
-                const ctx = this.state.virtualBGCanvas.getContext("2d")!
-                ctx.drawImage(this.state.virtualBGImage, 0, 0, this.state.virtualBGCanvas.width, this.state.virtualBGCanvas.height)
-                const bgImageData = ctx.getImageData(0, 0, this.state.virtualBGCanvas.width, this.state.virtualBGCanvas.height)
-
-                //// (2-4) merge background and mask
-                const pixelData = new Uint8ClampedArray(maskedImage.width * maskedImage.height * 4)
-                for (let rowIndex = 0; rowIndex < maskedImage.height; rowIndex++) {
-                    for (let colIndex = 0; colIndex < maskedImage.width; colIndex++) {
-                        const pix_offset = ((rowIndex * maskedImage.width) + colIndex) * 4
-                        if (maskedImage.data[pix_offset] === 255 &&
-                            maskedImage.data[pix_offset + 1] === 255 &&
-                            maskedImage.data[pix_offset + 2] === 255 &&
-                            maskedImage.data[pix_offset + 3] === 255
-                        ) {
-                            pixelData[pix_offset] = bgImageData.data[pix_offset]
-                            pixelData[pix_offset + 1] = bgImageData.data[pix_offset + 1]
-                            pixelData[pix_offset + 2] = bgImageData.data[pix_offset + 2]
-                            pixelData[pix_offset + 3] = bgImageData.data[pix_offset + 3]
-                        } else {
-                            pixelData[pix_offset] = maskedImage.data[pix_offset]
-                            pixelData[pix_offset + 1] = maskedImage.data[pix_offset + 1]
-                            pixelData[pix_offset + 2] = maskedImage.data[pix_offset + 2]
-                            pixelData[pix_offset + 3] = maskedImage.data[pix_offset + 3]
-                        }
-                    }
-                }
-                const imageData = new ImageData(pixelData, maskedImage.width, maskedImage.height);
-
-                //// (2-5) output
-                const inputVideoCanvas2 = this.state.inputVideoCanvas2
-                inputVideoCanvas2.width = imageData.width
-                inputVideoCanvas2.height = imageData.height
-                inputVideoCanvas2.getContext("2d")!.putImageData(imageData, 0, 0)
-
-            })
-            requestAnimationFrame(() => this.drawVideoCanvas())
-        }
+        this.state.localVideoEffectors.doEffect()
+        requestAnimationFrame(() => this.drawVideoCanvas())
     }
 
-
-
-    drawOverlayCanvas = () => {
-
-        requestAnimationFrame(() => this.drawOverlayCanvas())
-    }
 
 
 
@@ -699,7 +625,7 @@ class App extends React.Component {
         if (gs.status === AppStatus.IN_LOBBY) {
             if (gs.lobbyStatus === AppLobbyStatus.WILL_PREPARE) {
                 const deviceListPromise = getDeviceLists()
-                const netPromise = bodyPix.load();
+//                const netPromise = bodyPix.load();
 
                 // Load Stamps
                 const RS_STAMPS_sorted = RS_STAMPS.sort()
@@ -714,37 +640,19 @@ class App extends React.Component {
                 }
 
 
-                Promise.all([deviceListPromise, netPromise]).then(([deviceList, bodyPix]) => {
+                Promise.all([deviceListPromise]).then(([deviceList]) => {
                     const audioInputDevices = deviceList['audioinput']
                     const videoInputDevices = deviceList['videoinput']
                     const audioOutputDevices = deviceList['audiooutput']
-                    const inputVideoResolutions = ["360p", "540p", "720p"]
-                    this.setState({bodyPix:bodyPix})
+                    this.setState({stamps:stamps})
 
                     const currentSettings = this.state.currentSettings
                     currentSettings.selectedInputAudioDevice = audioInputDevices![0] ? audioInputDevices![0]['deviceId'] : NO_DEVICE_SELECTED
                     currentSettings.selectedInputVideoDevice = videoInputDevices![0] ? videoInputDevices![0]['deviceId'] : NO_DEVICE_SELECTED
-                    currentSettings.selectedInputVideoResolution = inputVideoResolutions![0] ? inputVideoResolutions![0] : NO_DEVICE_SELECTED
                     currentSettings.selectedOutputAudioDevice = audioOutputDevices![0] ? audioOutputDevices![0]['deviceId'] : NO_DEVICE_SELECTED
                     props.lobbyPrepared(audioInputDevices, videoInputDevices, audioOutputDevices)
                     props.refreshRoomList()
-
-                    getVideoDevice(currentSettings.selectedInputVideoDevice).then(stream => {
-                        if (stream !== null) {
-                            this.state.inputVideoElement!.srcObject = stream
-                            this.state.inputVideoElement!.play()
-                            this.setState({
-                                inputVideoStream: stream,
-                                stamps: stamps,
-                                currentSettings: currentSettings
-                            })
-                            return new Promise((resolve, reject) => {
-                                this.state.inputVideoElement!.onloadedmetadata = () => {
-                                    resolve();
-                                };
-                            });
-                        }
-                    })
+                    this.state.localVideoEffectors.selectInputVideoDevice(currentSettings.selectedInputVideoDevice)
                 })
                 return (
                     <div />
@@ -772,29 +680,23 @@ class App extends React.Component {
                 // url.searchParams.set('m', gs.roomTitle);
                 // window.history.replaceState({}, `${gs.roomTitle}`, url.toString());
 
-                // Messaging Websocket
-                const messagingURLWithQuery = `${MESSAGING_URL}?joinToken=${defaultMeetingSession.configuration.credentials!.joinToken}&meetingId=${defaultMeetingSession.configuration.meetingId}&attendeeId=${defaultMeetingSession.configuration.credentials!.attendeeId}`
-                console.log("MESSAGEING_URL", messagingURLWithQuery)
-                const messagingSocket = new ReconnectingPromisedWebSocket(
-                    messagingURLWithQuery,
-                    [],
-                    'arraybuffer',
-                    new DefaultPromisedWebSocketFactory(new DefaultDOMWebSocketFactory()),
-                    new FullJitterBackoff(1000, 0, 10000)
-                );
-                const messagingSocketPromise = messagingSocket.open(20 * 1000);
+                const messagingSocket = new WebsocketApps(
+                    defaultMeetingSession.configuration.meetingId!,
+                    defaultMeetingSession.configuration.credentials!.attendeeId!,
+                    defaultMeetingSession.configuration.credentials!.joinToken!
+                )
+                const messagingSocketPromise = messagingSocket.open()
 
 
 
-
-                // @ts-ignore
-                const mediaStream = this.state.inputVideoCanvas2.captureStream()
+                const mediaStream = this.state.localVideoEffectors.getMediaStream()
                 console.log("MS", mediaStream)
-                const auidoInputPromise = defaultMeetingSession.audioVideo.chooseAudioInputDevice(this.state.currentSettings.selectedInputAudioDevice)
+                const auidoInputPromise  = defaultMeetingSession.audioVideo.chooseAudioInputDevice(this.state.currentSettings.selectedInputAudioDevice)
                 const auidooutputPromise = defaultMeetingSession.audioVideo.chooseAudioOutputDevice(this.state.currentSettings.selectedOutputAudioDevice)
-                const videoInputPromise = defaultMeetingSession.audioVideo.chooseVideoInputDevice(mediaStream)
+                const videoInputPromise  = defaultMeetingSession.audioVideo.chooseVideoInputDevice(mediaStream)
 
                 Promise.all([auidoInputPromise, auidooutputPromise, videoInputPromise, messagingSocketPromise]).then(() => {
+                    // Initializing for meeting
                     defaultMeetingSession.audioVideo.bindAudioElement(this.state.outputAudioElement!)
                     defaultMeetingSession.audioVideo.start()
                     if (this.state.currentSettings.mute) {
@@ -807,70 +709,26 @@ class App extends React.Component {
                     } else {
                         defaultMeetingSession.audioVideo.unbindAudioElement();
                     }
-                    console.log("start local video1")
                     defaultMeetingSession.audioVideo.startLocalVideoTile()
-                    console.log("start local video2")
                     props.meetingPrepared(meetingSessionConf, defaultMeetingSession)
 
-
-                    messagingSocket.addEventListener('message', (e: Event) => {
-                        //console.log("MESSAGE!!!!!!",e)
-                        const data = JSON.parse((e as MessageEvent).data) as WSMessage;
-                        //console.log("data: ",data)
-                        if(data.cmd === WSMessageType.File){
-                            const filePart = data.content as WSFile
-                            if(data.done === false){
-                                // reciever
-                                const res = addFilePart(filePart)
-                                if(res.available===true){
-                                    saveFile(filePart.uuid)
-                                }
-                                console.log(`File Recieving...: ${res.recievedIndex}/${res.partNum}`)
-                            }else{
-                                // sender
-                                const res = sendFilePart(this.state.messagingSocket!, filePart.uuid, data.targetId)
-                                console.log(`File Transfering...: ${res.transferredIndex}/${res.partNum}`)
-                            }
-                        }else if(data.cmd === WSMessageType.Text){
-                            const text  = data.content as WSText
-                            this.state.currentSettings.globalStamps.push(text)
-                        }else if(data.cmd === WSMessageType.Stamp){
-                            const stamp = data.content as WSStamp
-                            this.state.currentSettings.globalStamps.push(stamp)
+                    // Set WebsocketApps Event
+                    messagingSocket.addFileRecievingEventListener((e:RecievingStatus)=>{
+                        if(e.available===true){
+                            saveFile(e.uuid)
                         }
-
-                        // console.log("Messaging!", data)
-                        // if(data.cmd === MessageType.Message || data.cmd === MessageType.Stamp){
-                        //     const message: Message = {
-                        //         type: data.cmd,
-                        //         startTime: data.startTime,
-                        //         targetId: data.targetId,
-                        //         imgSrc: data.imgPath ? data.imgPath : undefined,
-                        //         message: data.message ? data.message : undefined,
-                        //     }
-                        //     this.state.currentSettings.globalMessages.push(message)
-                        // }else if(data.cmd === MessageType.File){
-                        // //     const filePart:FilePart = {
-                        // //         uuid : data.uuid,
-                        // //         partNum  : data.partNum,
-                        // //         index: data.index,
-                        // //         content: data.content,
-                        // //         md5sum: data.md5sum,
-                        // //     }
-                        // //     addFilePart(filePart)
-                        // //     if(fileReceiveComplete(data.uuid)){
-                        // //         saveFile(data.uuid)
-                        // //     }
-                        // // }else if(data.cmd < 0){
-                        // //     this.sendNextFilePart()
-                        // }else{
-                        //     console.log("Unknown Message Type: " + data.cmd)
-                        // }
+                        console.log(`File Recieving...: ${e.recievedIndex}/${e.partNum}`)
+                    })
+                    messagingSocket.addFileSendingEventListener((e:SendingStatus)=>{
+                        console.log(`File Transfering...: ${e.transferredIndex}/${e.partNum}`)
+                    })
+                    messagingSocket.addStampEventListener((e:WSStamp)=>{
+                        this.state.currentSettings.globalStamps.push(e)
+                    })
+                    messagingSocket.addTextEventListener((e:WSText)=>{
+                        this.state.currentSettings.globalStamps.push(e)
                     })
 
-                    messagingSocket.addEventListener('error', (e: Event) => {
-                        console.log("Error", e)
-                    })
                     this.setState({messagingSocket: messagingSocket})
                 })
                 return <div />
@@ -901,7 +759,6 @@ class App extends React.Component {
             return (
                 <div>
                     <Lobby  {...props} appState={this.state} />
-
                 </div>
             )
         }
