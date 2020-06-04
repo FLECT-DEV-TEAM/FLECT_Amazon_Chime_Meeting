@@ -30,26 +30,20 @@ class VideoShareControl extends React.Component {
                     Video Share
                 </Accordion.Title>
                 <Accordion.Content active={this.state.open}>
-                    <div>
-                        {/* <Button compact basic 
-                            content="select file."
-                            labelPosition="left"
-                            icon="folder"
-                            onClick={() => this.fileInputRef.current!.click()}
-                        /> */}
-                        <input
-                            ref={this.fileInputRef}
-                            type="file"
-                            hidden
-                            onChange={(e) => props.sharedVideoSelected(e)}
-                        />
-
+                    <div style={{paddingLeft:"10px"}}>
                         <List link>
                             <List.Item as='a' active onClick={() => this.fileInputRef.current!.click()}>
                                 <Icon name="folder"  active />Choose file.
                             </List.Item>
                         </List>
                     </div>
+                    <input
+                            ref={this.fileInputRef}
+                            type="file"
+                            hidden
+                            onChange={(e) => props.sharedVideoSelected(e)}
+                        />
+
                     <div style={{paddingLeft:"10px"}}>
                         <Icon basic link name="play" 
                             onClick={() => { props.playSharedVideo() }}
