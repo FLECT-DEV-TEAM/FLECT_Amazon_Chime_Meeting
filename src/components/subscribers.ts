@@ -24,7 +24,6 @@ export const setRealtimeSubscribeToAttendeeIdPresence= (app:App, audioVideo:Audi
     audioVideo.realtimeSubscribeToAttendeeIdPresence(handler);
 }
 
-
 export const setSubscribeToActiveSpeakerDetector = (app:App, audioVideo:AudioVideoFacade) => {
     const activeSpeakerHandler = (attendeeIds: string[]): void => {
         //console.log("active1", attendeeIds)
@@ -41,9 +40,6 @@ export const setSubscribeToActiveSpeakerDetector = (app:App, audioVideo:AudioVid
         100 //this.showActiveSpeakerScores ? 100 : 0, TODO
     );
 }
-
-
-
 
 // DataMessage
 export const setRealtimeSubscribeToReceiveDataMessage = (app:App, audioVideo:AudioVideoFacade, topic:string) =>{

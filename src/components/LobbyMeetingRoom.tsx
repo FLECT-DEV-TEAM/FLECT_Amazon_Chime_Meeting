@@ -67,6 +67,8 @@ class MainScreen extends React.Component{
         const focusedTileId = getTileId(thisAttendeeId, appState.videoTileStates)
         if(focusedTileId > 0 && this.mainOverlayVideoRef.current !== null){
             gs.meetingSession?.audioVideo.bindVideoElement(focusedTileId, this.mainOverlayVideoRef.current.getVideoRef().current!)
+        }else{
+            console.log("not focusedid", focusedTileId, this.mainOverlayVideoRef.current)
         }
 
         return(
@@ -221,7 +223,10 @@ class LobbyMeetingRoom extends React.Component {
             this.cells.push(cell)
         }
 
-
+        const mainScreen = this.state.showMainScreen===true ? 
+            (<MainScreen {...props} thisAttendeeId={appState.currentSettings.focuseAttendeeId}/>)
+            :
+            (<div />)
         return (
             <div>
 
@@ -244,11 +249,12 @@ class LobbyMeetingRoom extends React.Component {
                 <Grid>
                     <Grid.Row>
                         <Grid.Column>
-                            {this.state.showMainScreen?
+                            {mainScreen}
+                            {/* {this.state.showMainScreen?
                             (<MainScreen {...props} thisAttendeeId={appState.currentSettings.focuseAttendeeId}/>)
                             :
                             (<div/>)
-                            }
+                            } */}
                             
                         </Grid.Column>
                     </Grid.Row>

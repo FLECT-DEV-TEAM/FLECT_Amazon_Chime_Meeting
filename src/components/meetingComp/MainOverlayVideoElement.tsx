@@ -127,7 +127,7 @@ class MainOverlayVideoElement extends React.Component{
         // console.log("putStamp", dstAttendeeId, thisAttendeeId)
         // console.log("putStamp", props)
         // console.log("putStamp", image)
-        console.log("STARTTIME:",startTime)
+        console.log("STARTTIME:", startTime, image)
         ctx.drawImage(image, this.canvasRef.current!.width - ((startTime % 5) * 20 + width+10), this.canvasRef.current!.height -  this.canvasRef.current!.height * (elapsed / 3000), width, width)
     }
 
@@ -185,8 +185,6 @@ class MainOverlayVideoElement extends React.Component{
                 newCanvas.style.height=`${this.videoRef.current!.scrollHeight}px`
                 newCanvas.width = this.videoRef.current!.scrollWidth
                 newCanvas.height = this.videoRef.current!.scrollHeight
-                console.log("WIDTH1:", this.videoRef.current!.scrollHeight)
-                console.log("WIDTH2:", newCanvas.height)
     
                 if(this.drawingCanvas){
                     newCanvas.getContext("2d")!.drawImage(this.drawingCanvas,0,0,newCanvas.width,newCanvas.height)
@@ -249,6 +247,7 @@ class MainOverlayVideoElement extends React.Component{
                     const stamp = message as WSStamp
                     const image = appState.stamps[stamp.imgPath]
                     const targetAttendeeId = stamp.targetId
+                    console.log(stamp.imgPath, image, appState.stamps)
                     this.putStamp(targetAttendeeId, image, message.startTime, elapsed)
                 } else if ((message as any).text) {
                     const text = message as WSText
