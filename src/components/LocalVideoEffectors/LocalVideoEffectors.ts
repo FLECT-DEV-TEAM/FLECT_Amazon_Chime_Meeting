@@ -2,7 +2,7 @@ import { getVideoDevice } from "../utils"
 import * as BodyPix from '@tensorflow-models/body-pix';
 //import { LocalVideoConfigs } from "../../const";
 
-export class LocalVideoEffectors{
+export class LocalVideoEffectors2{
     private deviceId:string=""
     private inputVideoStream:MediaStream | null = null
     private inputVideoElement = document.createElement("video")

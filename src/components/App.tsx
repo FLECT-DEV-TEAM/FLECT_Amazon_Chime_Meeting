@@ -31,8 +31,8 @@ import { WSText } from './WebsocketApps/Text';
 import { sendStampBySignal } from './WebsocketApps/StampBySignal';
 import { sendDrawingBySignal, DrawingType, WSDrawing } from './WebsocketApps/DrawingBySignal'
 import { WebsocketApps } from './WebsocketApps/WebsocketApps'
-import { LocalVideoEffectors } from './LocalVideoEffectors/LocalVideoEffectors';
-
+// import { LocalVideoEffectors } from './LocalVideoEffectors/LocalVideoEffectors';
+import { LocalVideoEffectors } from 'local-video-effectors'
 /**
  * 
  * @param meetingSessionConf 
@@ -76,7 +76,6 @@ const registerHandlers = (app: App, props: any, meetingSession: DefaultMeetingSe
             return stream;
         }
     );
-
     meetingSession.audioVideo.realtimeSubscribeToMuteAndUnmuteLocalAudio((isMuted: boolean): void => {
         console.log(`muted = ${isMuted}`);
     })
