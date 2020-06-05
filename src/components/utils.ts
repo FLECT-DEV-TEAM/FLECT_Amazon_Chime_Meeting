@@ -41,7 +41,6 @@ export const getVideoDevice = async (deviceId:string): Promise<MediaStream|null>
     const webCamPromise = navigator.mediaDevices.getUserMedia({
         audio: false,
         video: { deviceId: deviceId,
-            // video: { deviceId: target?.deviceId,
             width: { ideal: 1280 },
             height: { ideal: 720 }
         }
@@ -51,11 +50,9 @@ export const getVideoDevice = async (deviceId:string): Promise<MediaStream|null>
 
 
 export const getTileId = (attendeeId: string, videoTileState: { [id: number]: VideoTileState }): number => {
-    // console.log("GETTIELE", videoTileState)
     for (let tileId in videoTileState) {
         const key = Number(tileId)
         const tile = videoTileState[key]
-        // console.log("GETTIELE", key, tile.boundAttendeeId,  attendeeId)
         if (tile === undefined) { continue }
         if (tile.boundAttendeeId === attendeeId) {
             return key

@@ -462,9 +462,7 @@ class App extends React.Component {
 
         const currentSettings = this.state.currentSettings
         currentSettings.selectedInputVideoResolution = value
-        const localVideoEffectors = this.state.localVideoEffectors
-        localVideoEffectors.outputResolutionKey = value
-        this.setState({ currentSettings: currentSettings, localVideoEffectors:localVideoEffectors })
+        this.setState({ currentSettings: currentSettings })
 
         const videoEnable = this.state.currentSettings.videoEnable
         if (videoEnable) {
@@ -570,7 +568,9 @@ class App extends React.Component {
 
 
     drawVideoCanvas = () => {
-        this.state.localVideoEffectors.doEffect()
+        this.state.localVideoEffectors.doEffect(
+            LocalVideoConfigs[this.state.currentSettings.selectedInputVideoResolution].width,
+            LocalVideoConfigs[this.state.currentSettings.selectedInputVideoResolution].height)
         requestAnimationFrame(() => this.drawVideoCanvas())
     }
 

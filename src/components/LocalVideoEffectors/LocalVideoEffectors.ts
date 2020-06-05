@@ -1,6 +1,6 @@
 import { getVideoDevice } from "../utils"
 import * as BodyPix from '@tensorflow-models/body-pix';
-import { LocalVideoConfigs } from "../../const";
+//import { LocalVideoConfigs } from "../../const";
 
 export class LocalVideoEffectors{
     deviceId:string=""
@@ -12,17 +12,20 @@ export class LocalVideoEffectors{
     
     inputVideoCanvas2 = document.createElement("canvas")
 
-    cameraEnabled:boolean            = true
-    virtualBackgroundEnabled:boolean = false
-    virtualBackgroundImagePath       = "/resources/vbg/pic0.jpg"
-    bodyPix:BodyPix.BodyPix|null     = null
-    outputResolutionKey              = "vc180p3"
+    private _cameraEnabled:boolean   = true
+    private _virtualBackgroundEnabled:boolean = false
+    private _virtualBackgroundImagePath       = "/resources/vbg/pic0.jpg"
+    private bodyPix:BodyPix.BodyPix|null     = null
+    set cameraEnabled(val:boolean){this._cameraEnabled=val}
+    set virtualBackgroundEnabled(val:boolean){this._virtualBackgroundEnabled=val}
+    set virtualBackgroundImagePath(val:string){this._virtualBackgroundImagePath=val}
 
     constructor(){
         BodyPix.load().then((bodyPix)=>{
             this.bodyPix = bodyPix
         })
     }
+
 
     selectInputVideoDevice = async(deviceId:string) =>{
         this.deviceId=deviceId
@@ -42,42 +45,38 @@ export class LocalVideoEffectors{
         });
     }
 
-
-
-
-
     stopInputMediaStream = () =>{
         this.inputVideoStream?.getVideoTracks()[0].stop()
     } 
-
-
 
     getMediaStream = ():MediaStream =>{
         // @ts-ignore
         return this.inputVideoCanvas2.captureStream()
     }
 
-    doEffect = () =>{
-        if (this.cameraEnabled === false) {
+    doEffect = (width:number, height:number) =>{
+        if (this._cameraEnabled === false) {
             const ctx = this.inputVideoCanvas2.getContext("2d")!
             this.inputVideoCanvas2.width = 6
             this.inputVideoCanvas2.height = 4
             ctx.fillStyle = "grey"
             ctx.fillRect(0, 0, this.inputVideoCanvas2.width, this.inputVideoCanvas2.height)
-        } else if (this.inputVideoStream !== null && this.virtualBackgroundEnabled === false) {
+        } else if (this.inputVideoStream !== null && this._virtualBackgroundEnabled === false) {
             const ctx = this.inputVideoCanvas2.getContext("2d")!
             const inputVideoCanvas2 = this.inputVideoCanvas2
             const outputWidth = this.inputVideoStream?.getTracks()[0].getSettings().width!
             const outputHeight = this.inputVideoStream?.getTracks()[0].getSettings().height!
-            inputVideoCanvas2.width  = LocalVideoConfigs[this.outputResolutionKey].width
+            // inputVideoCanvas2.width  = LocalVideoConfigs[this.outputResolutionKey].width
+            inputVideoCanvas2.width  = width
             inputVideoCanvas2.height = (inputVideoCanvas2.width/outputWidth) * outputHeight
             ctx.drawImage(this.inputVideoElement, 0, 0, inputVideoCanvas2.width, inputVideoCanvas2.height)
-        } else if (this.inputVideoStream !== null && this.virtualBackgroundEnabled === true && this.bodyPix !== null){
+        } else if (this.inputVideoStream !== null && this._virtualBackgroundEnabled === true && this.bodyPix !== null){
             //// (1) Generate input image for segmentation.
             const outputWidth       = this.inputVideoStream?.getTracks()[0].getSettings().width!
             const outputHeight      = this.inputVideoStream?.getTracks()[0].getSettings().height!
             const canvas            = document.createElement("canvas")
-            canvas.width            = LocalVideoConfigs[this.outputResolutionKey].width
+            canvas.width            = width
+//            canvas.width            = LocalVideoConfigs[this.outputResolutionKey].width
             canvas.height           = (canvas.width/outputWidth) * outputHeight
             const ctx = canvas.getContext("2d")!
             ctx.drawImage(this.inputVideoElement, 0, 0, canvas.width, canvas.height)
@@ -97,7 +96,7 @@ export class LocalVideoEffectors{
 
                 //// (2-3) Generate background
                 const virtualBGImage   = this.virtualBGImage
-                virtualBGImage.src     = this.virtualBackgroundImagePath
+                virtualBGImage.src     = this._virtualBackgroundImagePath
                 const virtualBGCanvas  = this.virtualBGCanvas
                 virtualBGCanvas.width  = maskedImage.width
                 virtualBGCanvas.height = maskedImage.height
