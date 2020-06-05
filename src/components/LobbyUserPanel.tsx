@@ -39,15 +39,17 @@ class PreviewPanel extends React.Component {
        const appState = props.appState as AppState
 
         if(this.previewCanvasRef.current !== null){
-            if(appState.localVideoEffectors.inputVideoCanvas2.width !== 0 && appState.localVideoEffectors.inputVideoCanvas2.height !== 0){
-                const orgWidth  = appState.localVideoEffectors.inputVideoStream?.getVideoTracks()[0].getSettings().width!
-                const orgHeight = appState.localVideoEffectors.inputVideoStream?.getVideoTracks()[0].getSettings().height!
+            if(appState.localVideoEffectors.outputWidth !== 0 && appState.localVideoEffectors.outputHeight !== 0){
+                // const orgWidth  = appState.localVideoEffectors.inputVideoStream?.getVideoTracks()[0].getSettings().width!
+                // const orgHeight = appState.localVideoEffectors.inputVideoStream?.getVideoTracks()[0].getSettings().height!
 
+                // this.previewCanvasRef.current!.width  = this.previewCanvasRef.current!.scrollWidth
+                // this.previewCanvasRef.current!.height = (this.previewCanvasRef.current!.width/orgWidth) * orgHeight
+                
                 this.previewCanvasRef.current!.width  = this.previewCanvasRef.current!.scrollWidth
-                this.previewCanvasRef.current!.height = (this.previewCanvasRef.current!.width/orgWidth) * orgHeight
-
+                this.previewCanvasRef.current!.height = (this.previewCanvasRef.current!.width/appState.localVideoEffectors.outputWidth) * appState.localVideoEffectors.outputHeight
                 const ctx = this.previewCanvasRef.current!.getContext("2d")!
-                ctx.drawImage(appState.localVideoEffectors.inputVideoCanvas2, 0, 0, this.previewCanvasRef.current!.width, this.previewCanvasRef.current!.height)
+                ctx.drawImage(appState.localVideoEffectors.outputCanvas, 0, 0, this.previewCanvasRef.current!.width, this.previewCanvasRef.current!.height)
             }
         }
         requestAnimationFrame(() => this.drawPreviewCanvas())

@@ -3,14 +3,14 @@ import * as BodyPix from '@tensorflow-models/body-pix';
 //import { LocalVideoConfigs } from "../../const";
 
 export class LocalVideoEffectors{
-    deviceId:string=""
-    inputVideoStream:MediaStream | null = null
-    inputVideoElement = document.createElement("video")
-    inputMaskCanvas   = document.createElement("canvas")
-    virtualBGImage    = document.createElement("img")
-    virtualBGCanvas   = document.createElement("canvas")
+    private deviceId:string=""
+    private inputVideoStream:MediaStream | null = null
+    private inputVideoElement = document.createElement("video")
+    private inputMaskCanvas   = document.createElement("canvas")
+    private virtualBGImage    = document.createElement("img")
+    private virtualBGCanvas   = document.createElement("canvas")
     
-    inputVideoCanvas2 = document.createElement("canvas")
+    private inputVideoCanvas2 = document.createElement("canvas")
 
     private _cameraEnabled:boolean   = true
     private _virtualBackgroundEnabled:boolean = false
@@ -19,13 +19,15 @@ export class LocalVideoEffectors{
     set cameraEnabled(val:boolean){this._cameraEnabled=val}
     set virtualBackgroundEnabled(val:boolean){this._virtualBackgroundEnabled=val}
     set virtualBackgroundImagePath(val:string){this._virtualBackgroundImagePath=val}
+    get outputWidth():number{return this.inputVideoCanvas2.width}
+    get outputHeight():number{return this.inputVideoCanvas2.height}
+    get outputCanvas():HTMLCanvasElement{return this.inputVideoCanvas2}
 
     constructor(){
         BodyPix.load().then((bodyPix)=>{
             this.bodyPix = bodyPix
         })
     }
-
 
     selectInputVideoDevice = async(deviceId:string) =>{
         this.deviceId=deviceId
