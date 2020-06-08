@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { GlobalState } from '../reducers';
 import { AppStatus, LOGGER_BATCH_SIZE, LOGGER_INTERVAL_MS, AppEntranceStatus, AppMeetingStatus, AppLobbyStatus, NO_DEVICE_SELECTED, LocalVideoConfigs } from '../const';
-import * as bodyPix from '@tensorflow-models/body-pix';
 
 import {
     ConsoleLogger,
@@ -31,7 +30,8 @@ import { WSText } from './WebsocketApps/Text';
 import { sendStampBySignal } from './WebsocketApps/StampBySignal';
 import { sendDrawingBySignal, DrawingType, WSDrawing } from './WebsocketApps/DrawingBySignal'
 import { WebsocketApps } from './WebsocketApps/WebsocketApps'
-import { LocalVideoEffectors } from './LocalVideoEffectors/LocalVideoEffectors';
+import { LocalVideoEffectors } from 'local-video-effector'
+
 
 /**
  * 
@@ -76,7 +76,6 @@ const registerHandlers = (app: App, props: any, meetingSession: DefaultMeetingSe
             return stream;
         }
     );
-
     meetingSession.audioVideo.realtimeSubscribeToMuteAndUnmuteLocalAudio((isMuted: boolean): void => {
         console.log(`muted = ${isMuted}`);
     })
@@ -462,9 +461,7 @@ class App extends React.Component {
 
         const currentSettings = this.state.currentSettings
         currentSettings.selectedInputVideoResolution = value
-        const localVideoEffectors = this.state.localVideoEffectors
-        localVideoEffectors.outputResolutionKey = value
-        this.setState({ currentSettings: currentSettings, localVideoEffectors:localVideoEffectors })
+        this.setState({ currentSettings: currentSettings })
 
         const videoEnable = this.state.currentSettings.videoEnable
         if (videoEnable) {
@@ -570,7 +567,9 @@ class App extends React.Component {
 
 
     drawVideoCanvas = () => {
-        this.state.localVideoEffectors.doEffect()
+        this.state.localVideoEffectors.doEffect(
+            LocalVideoConfigs[this.state.currentSettings.selectedInputVideoResolution].width,
+            LocalVideoConfigs[this.state.currentSettings.selectedInputVideoResolution].height)
         requestAnimationFrame(() => this.drawVideoCanvas())
     }
 

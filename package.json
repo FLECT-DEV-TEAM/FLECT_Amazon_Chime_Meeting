@@ -18,6 +18,7 @@
     "@types/uuid": "^8.0.0",
     "amazon-chime-sdk-js": "^1.7.0",
     "aws-sdk": "^2.684.0",
+    "local-video-effectors": "^1.0.0",
     "md5": "^2.2.1",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
@@ -32,13 +33,13 @@
     "typescript": "^3.9.3",
     "wscat": "^4.0.0"
   },
-    "scripts": {
+  "scripts": {
     "start": "node server.js",
     "build": "python3 script/list_resource.py;react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "build_all": "npm run build;sls deploy -v",
-    "build_sync": "npm run build;aws s3 sync build/ s3://flect-chime-sdk-web/"
+    "build_sync": "npm run build;aws s3 sync build/ s3://xxxchime-sdk-web/"
   },
   "eslintConfig": {
     "extends": "react-app"
