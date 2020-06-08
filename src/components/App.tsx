@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { GlobalState } from '../reducers';
 import { AppStatus, LOGGER_BATCH_SIZE, LOGGER_INTERVAL_MS, AppEntranceStatus, AppMeetingStatus, AppLobbyStatus, NO_DEVICE_SELECTED, LocalVideoConfigs } from '../const';
-import * as bodyPix from '@tensorflow-models/body-pix';
 
 import {
     ConsoleLogger,
@@ -31,8 +30,9 @@ import { WSText } from './WebsocketApps/Text';
 import { sendStampBySignal } from './WebsocketApps/StampBySignal';
 import { sendDrawingBySignal, DrawingType, WSDrawing } from './WebsocketApps/DrawingBySignal'
 import { WebsocketApps } from './WebsocketApps/WebsocketApps'
-// import { LocalVideoEffectors } from './LocalVideoEffectors/LocalVideoEffectors';
-import { LocalVideoEffectors } from 'local-video-effectors'
+import { LocalVideoEffectors } from 'local-video-effector'
+
+
 /**
  * 
  * @param meetingSessionConf 

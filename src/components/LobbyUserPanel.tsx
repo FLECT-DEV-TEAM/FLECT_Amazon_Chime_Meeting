@@ -40,7 +40,6 @@ class PreviewPanel extends React.Component {
 
         if(this.previewCanvasRef.current !== null){
             if(appState.localVideoEffectors.outputWidth !== 0 && appState.localVideoEffectors.outputHeight !== 0){
-                
                 this.previewCanvasRef.current!.width  = this.previewCanvasRef.current!.scrollWidth
                 this.previewCanvasRef.current!.height = (this.previewCanvasRef.current!.width/appState.localVideoEffectors.outputWidth) * appState.localVideoEffectors.outputHeight
                 const ctx = this.previewCanvasRef.current!.getContext("2d")!
