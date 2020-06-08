@@ -19,7 +19,7 @@ import DeviceChangeObserverImpl from './DeviceChangeObserverImpl';
 import AudioVideoObserverImpl from './AudioVideoObserverImpl';
 import ContentShareObserverImpl from './ContentShareObserverImpl';
 import { setRealtimeSubscribeToAttendeeIdPresence, setSubscribeToActiveSpeakerDetector, setRealtimeSubscribeToReceiveDataMessage } from './subscribers';
-import { getDeviceLists, getTileId } from './utils'
+import { getDeviceLists, getTileId, getVideoDevice, getAudioDevice } from './utils'
 import { API_BASE_URL } from '../config';
 import { RS_STAMPS } from './resources';
 import ErrorPortal from './meetingComp/ErrorPortal';
@@ -176,7 +176,7 @@ class App extends React.Component {
 
             selectedInputVideoDevice2: NO_DEVICE_SELECTED,
         },
-        localVideoEffectors : new LocalVideoEffectors()
+        localVideoEffectors : new LocalVideoEffectors(null)
     }
 
 
@@ -623,7 +623,6 @@ class App extends React.Component {
          */
         if (gs.status === AppStatus.IN_LOBBY) {
             if (gs.lobbyStatus === AppLobbyStatus.WILL_PREPARE) {
-                const deviceListPromise = getDeviceLists()
 //                const netPromise = bodyPix.load();
 
                 // Load Stamps
@@ -638,20 +637,24 @@ class App extends React.Component {
                     }
                 }
 
-
-                Promise.all([deviceListPromise]).then(([deviceList]) => {
-                    const audioInputDevices = deviceList['audioinput']
-                    const videoInputDevices = deviceList['videoinput']
-                    const audioOutputDevices = deviceList['audiooutput']
-                    this.setState({stamps:stamps})
-
-                    const currentSettings = this.state.currentSettings
-                    currentSettings.selectedInputAudioDevice = audioInputDevices![0] ? audioInputDevices![0]['deviceId'] : NO_DEVICE_SELECTED
-                    currentSettings.selectedInputVideoDevice = videoInputDevices![0] ? videoInputDevices![0]['deviceId'] : NO_DEVICE_SELECTED
-                    currentSettings.selectedOutputAudioDevice = audioOutputDevices![0] ? audioOutputDevices![0]['deviceId'] : NO_DEVICE_SELECTED
-                    props.lobbyPrepared(audioInputDevices, videoInputDevices, audioOutputDevices)
-                    props.refreshRoomList()
-                    this.state.localVideoEffectors.selectInputVideoDevice(currentSettings.selectedInputVideoDevice)
+                const videoPromise = getVideoDevice ("")
+                const audioPromise = getAudioDevice("")
+                Promise.all([videoPromise, audioPromise]).then(()=>{
+                    const deviceListPromise = getDeviceLists()
+                    Promise.all([deviceListPromise]).then(([deviceList]) => {
+                        const audioInputDevices = deviceList['audioinput']
+                        const videoInputDevices = deviceList['videoinput']
+                        const audioOutputDevices = deviceList['audiooutput']
+                        this.setState({stamps:stamps})
+    
+                        const currentSettings = this.state.currentSettings
+                        currentSettings.selectedInputAudioDevice = audioInputDevices![0] ? audioInputDevices![0]['deviceId'] : NO_DEVICE_SELECTED
+                        currentSettings.selectedInputVideoDevice = videoInputDevices![0] ? videoInputDevices![0]['deviceId'] : NO_DEVICE_SELECTED
+                        currentSettings.selectedOutputAudioDevice = audioOutputDevices![0] ? audioOutputDevices![0]['deviceId'] : NO_DEVICE_SELECTED
+                        props.lobbyPrepared(audioInputDevices, videoInputDevices, audioOutputDevices)
+                        props.refreshRoomList()
+                        this.state.localVideoEffectors.selectInputVideoDevice(currentSettings.selectedInputVideoDevice)
+                    })
                 })
                 return (
                     <div />

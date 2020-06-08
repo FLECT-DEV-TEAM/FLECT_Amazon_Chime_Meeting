@@ -33,19 +33,20 @@ export const getDeviceLists = async () =>{
 }
 
 export const getVideoDevice = async (deviceId:string): Promise<MediaStream|null>=>{
-
-    if(deviceId === NO_DEVICE_SELECTED){
-        return null
-    }
-
     const webCamPromise = navigator.mediaDevices.getUserMedia({
-        audio: false,
         video: { deviceId: deviceId,
             width: { ideal: 1280 },
             height: { ideal: 720 }
         }
     })
     return webCamPromise
+}
+
+export const getAudioDevice = async (deviceId:string): Promise<MediaStream|null>=>{
+    const audioPromise = navigator.mediaDevices.getUserMedia({
+        audio: true,
+    })
+    return audioPromise
 }
 
 
