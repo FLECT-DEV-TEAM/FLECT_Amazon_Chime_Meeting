@@ -12,6 +12,7 @@ Inspired by https://github.com/aws/amazon-chime-sdk-js/tree/master/demos/browser
 - Send Stamp
 - Send Message
 - White board
+- File Transfer
 
 ### Virtual BG/ Stamp
 <p align="center">
@@ -31,6 +32,10 @@ Inspired by https://github.com/aws/amazon-chime-sdk-js/tree/master/demos/browser
 </p>
 
 
+### File Transfer
+<p align="center">
+<img src="./doc/file_transfer.gif" width="600" />
+</p>
 
 
 
