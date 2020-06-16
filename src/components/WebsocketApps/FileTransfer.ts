@@ -40,6 +40,42 @@ const recievedFiles:{[uuid:string]:WSFile}                 = {}
 const sendingStatus:{[uuid_targetId:string]:SendingStatus} = {}
 // const recievingStatus:{[uuid:string]:RecievingStatus}      = {}
 
+export const getRecievingStatus = ():RecievingStatus[] =>{
+    const recievingStatuses:RecievingStatus[] = []
+    for(const i in recievedFiles){
+        const file = recievedFiles[i]
+        const status:RecievingStatus ={
+            uuid             : file.uuid,
+            filename         : file.filename,
+            recievedIndex    : file.fileParts.length - 1,
+            partNum          : file.partNum,
+            available        : file.fileParts.length === file.partNum,
+            startTime        : Date.now()
+        }
+        recievingStatuses.push(status)
+    }
+    return recievingStatuses
+}
+
+export const getSendingStatus = ():SendingStatus[] =>{
+    const sendingStatusStatuses:SendingStatus[] = []
+    for(const i in sendingStatus){
+        const file = sendingStatus[i]
+        const status:SendingStatus ={
+            uuid             : file.uuid,
+            targetId         : file.targetId,
+            filename         : file.filename,
+            transferredIndex : file.transferredIndex,
+            partNum          : file.partNum,
+            done             : file.done
+        }
+        sendingStatusStatuses.push(status)
+    }
+    return sendingStatusStatuses
+}
+
+
+
 //////////////////
 // For Sender   //
 //////////////////

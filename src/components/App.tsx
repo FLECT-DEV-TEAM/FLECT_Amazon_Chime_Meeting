@@ -23,7 +23,7 @@ import { getDeviceLists, getTileId, getVideoDevice, getAudioDevice } from './uti
 import { API_BASE_URL } from '../config';
 import { RS_STAMPS } from './resources';
 import ErrorPortal from './meetingComp/ErrorPortal';
-import { saveFile, RecievingStatus, SendingStatus } from './WebsocketApps/FileTransfer';
+import { saveFile, RecievingStatus, SendingStatus, getSendingStatus, getRecievingStatus } from './WebsocketApps/FileTransfer';
 import {  WSMessageType } from './WebsocketApps/const';
 import {  WSStamp } from './WebsocketApps/Stamp';
 import { WSText } from './WebsocketApps/Text';
@@ -116,6 +116,12 @@ export interface Attendee {
     signalStrength: number
 }
 
+export interface FileTransferStatus{
+    sendingStatusStatuses  : SendingStatus[]
+    recievingStatuses      :RecievingStatus[] 
+
+}
+
 export interface CurrentSettings {
     mute: boolean,
     videoEnable: boolean,
@@ -128,7 +134,7 @@ export interface CurrentSettings {
     globalStamps: (WSStamp|WSText)[]
 
     selectedInputVideoDevice2: string
-
+    fileTransferStatus       : FileTransferStatus
 }
 
 /**
@@ -175,6 +181,11 @@ class App extends React.Component {
             globalStamps: [],
 
             selectedInputVideoDevice2: NO_DEVICE_SELECTED,
+
+            fileTransferStatus: {
+                sendingStatusStatuses: [],
+                recievingStatuses    : [],
+            },
         },
         localVideoEffectors : new LocalVideoEffectors(null)
     }
@@ -668,7 +679,6 @@ class App extends React.Component {
             }
         }
 
-
         /**
          * Meeting Setup
          */
@@ -688,8 +698,6 @@ class App extends React.Component {
                     defaultMeetingSession.configuration.credentials!.joinToken!
                 )
                 const messagingSocketPromise = messagingSocket.open()
-
-
 
                 const mediaStream = this.state.localVideoEffectors.getMediaStream()
                 console.log("MS", mediaStream)
@@ -716,13 +724,20 @@ class App extends React.Component {
 
                     // Set WebsocketApps Event
                     messagingSocket.addFileRecievingEventListener((e:RecievingStatus)=>{
+                        const currentSettings = this.state.currentSettings
+                        currentSettings.fileTransferStatus.recievingStatuses = getRecievingStatus()
+                        this.setState({ currentSettings: currentSettings })
                         if(e.available===true){
                             saveFile(e.uuid)
                         }
                         console.log(`File Recieving...: ${e.recievedIndex}/${e.partNum}`)
+
                     })
                     messagingSocket.addFileSendingEventListener((e:SendingStatus)=>{
                         console.log(`File Transfering...: ${e.transferredIndex}/${e.partNum}`)
+                        const currentSettings = this.state.currentSettings
+                        currentSettings.fileTransferStatus.sendingStatusStatuses = getSendingStatus()
+                        this.setState({ currentSettings: currentSettings })
                     })
                     messagingSocket.addStampEventListener((e:WSStamp)=>{
                         this.state.currentSettings.globalStamps.push(e)
