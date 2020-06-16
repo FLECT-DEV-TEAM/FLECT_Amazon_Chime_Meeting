@@ -1,12 +1,12 @@
 import * as React from 'react';
-import { Icon, Accordion, List } from 'semantic-ui-react';
+import { Icon, Accordion, List, Progress } from 'semantic-ui-react';
 import { AppState } from '../App';
+
 
 
 interface FileShareControlState{
     open             : boolean
 }
-
 
 class FileShareControl extends React.Component {
     state: FileShareControlState = {
@@ -17,6 +17,47 @@ class FileShareControl extends React.Component {
     }
     fileInputRef = React.createRef<HTMLInputElement>()
 
+    sendingStatus = () =>{
+        const props = this.props as any
+        const appState = props.appState as AppState
+        const statuses = appState.currentSettings.fileTransferStatus.sendingStatusStatuses.map(s =>{
+            const allNum   = s.partNum
+            const num      = s.transferredIndex
+            const percent  = Math.ceil((num / allNum) * 100)
+            const filename = s.filename
+            if (s.done){
+                return(<div/>)
+            }
+            return(
+                <div>
+                    Sending({filename}) <Progress percent={percent} indicating />
+                </div>
+            )
+        })
+        return statuses
+    }
+
+    receivingStatus = () =>{
+        const props = this.props as any
+        const appState = props.appState as AppState
+        const statuses = appState.currentSettings.fileTransferStatus.recievingStatuses.map(s =>{
+            const allNum   = s.partNum
+            const num      = s.recievedIndex
+            const percent  = Math.ceil((num / allNum) * 100)
+            const filename = s.filename
+            if (s.available){
+                return(<div/>)
+            }
+            return(
+                <div>
+                    Receiving({filename}) <Progress percent={percent} indicating />
+                </div>
+            )
+        })
+        return statuses
+    }
+
+    
     generateAccordion = () =>{
         const props = this.props as any
         const appState = props.appState as AppState
@@ -45,6 +86,9 @@ class FileShareControl extends React.Component {
                             hidden
                             onChange={(e) => props.sharedFileSelected(appState.currentSettings.focuseAttendeeId, e)}
                         />
+                    {this.sendingStatus()}
+                    {this.receivingStatus()}
+
                 </Accordion.Content>
             </Accordion>
         )
