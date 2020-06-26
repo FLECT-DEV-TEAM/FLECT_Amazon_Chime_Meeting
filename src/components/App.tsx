@@ -334,10 +334,10 @@ class App extends React.Component {
         const localVideoEffectors = this.state.localVideoEffectors
         localVideoEffectors.cameraEnabled=videoEnable
         this.setState({ currentSettings: currentSettings, localVideoEffectors:localVideoEffectors})
-        if (videoEnable) {
+        if (videoEnable && currentSettings.selectedInputVideoDevice !== NO_DEVICE_SELECTED) {
             this.selectInputVideoDevice(currentSettings.selectedInputVideoDevice)
         } else {
-            //gs.meetingSession!.audioVideo.chooseVideoInputDevice(null)
+            gs.meetingSession!.audioVideo.chooseVideoInputDevice(null)
             this.state.localVideoEffectors.stopInputMediaStream()
             gs.meetingSession?.audioVideo.stopLocalVideoTile()
         }
@@ -635,7 +635,6 @@ class App extends React.Component {
         if (gs.status === AppStatus.IN_LOBBY) {
             if (gs.lobbyStatus === AppLobbyStatus.WILL_PREPARE) {
 //                const netPromise = bodyPix.load();
-
                 // Load Stamps
                 const RS_STAMPS_sorted = RS_STAMPS.sort()
                 const stamps: { [key: string]: HTMLImageElement } ={}
@@ -647,12 +646,14 @@ class App extends React.Component {
                         stamps[imgPath] = image
                     }
                 }
-
-                const videoPromise = getVideoDevice ("")
+//                const videoPromise = getVideoDevice("") // 
                 const audioPromise = getAudioDevice("")
-                Promise.all([videoPromise, audioPromise]).then(()=>{
+//                Promise.all([videoPromise, audioPromise]).then(()=>{
+                Promise.all([audioPromise]).then(()=>{
                     const deviceListPromise = getDeviceLists()
+
                     Promise.all([deviceListPromise]).then(([deviceList]) => {
+
                         const audioInputDevices = deviceList['audioinput']
                         const videoInputDevices = deviceList['videoinput']
                         const audioOutputDevices = deviceList['audiooutput']
@@ -662,15 +663,24 @@ class App extends React.Component {
                         currentSettings.selectedInputAudioDevice = audioInputDevices![0] ? audioInputDevices![0]['deviceId'] : NO_DEVICE_SELECTED
                         currentSettings.selectedInputVideoDevice = videoInputDevices![0] ? videoInputDevices![0]['deviceId'] : NO_DEVICE_SELECTED
                         currentSettings.selectedOutputAudioDevice = audioOutputDevices![0] ? audioOutputDevices![0]['deviceId'] : NO_DEVICE_SELECTED
+
+                        currentSettings.videoEnable = currentSettings.selectedInputVideoDevice===NO_DEVICE_SELECTED ? false:true
+
+                        this.setState({currentSettings:currentSettings})
+                        try{
+                            this.state.localVideoEffectors.selectInputVideoDevice(currentSettings.selectedInputVideoDevice)
+                        }catch(e){
+                            console.log("error: ", e)
+                        }
                         props.lobbyPrepared(audioInputDevices, videoInputDevices, audioOutputDevices)
                         props.refreshRoomList()
-                        this.state.localVideoEffectors.selectInputVideoDevice(currentSettings.selectedInputVideoDevice)
                     })
                 })
                 return (
                     <div />
                 )
             } else {
+                console.log("lobby!!??")
                 return (
                     <div>
                         <Lobby  {...props} appState={this.state} />
@@ -703,7 +713,12 @@ class App extends React.Component {
                 console.log("MS", mediaStream)
                 const auidoInputPromise  = defaultMeetingSession.audioVideo.chooseAudioInputDevice(this.state.currentSettings.selectedInputAudioDevice)
                 const auidooutputPromise = defaultMeetingSession.audioVideo.chooseAudioOutputDevice(this.state.currentSettings.selectedOutputAudioDevice)
-                const videoInputPromise  = defaultMeetingSession.audioVideo.chooseVideoInputDevice(mediaStream)
+                let videoInputPromise = null
+                if(this.state.currentSettings.videoEnable){
+                    videoInputPromise  = defaultMeetingSession.audioVideo.chooseVideoInputDevice(mediaStream)
+                }else{
+                    videoInputPromise  = defaultMeetingSession.audioVideo.chooseVideoInputDevice(null)
+                }
 
                 Promise.all([auidoInputPromise, auidooutputPromise, videoInputPromise, messagingSocketPromise]).then(() => {
                     // Initializing for meeting
