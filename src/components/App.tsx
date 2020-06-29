@@ -366,6 +366,36 @@ class App extends React.Component {
         this.setState({ currentSettings: currentSettings })
     }    
 
+    // For mediastream
+    dummyVideoElement = document.createElement("video")
+    setSelectedVideo = (e:any) =>{
+        const gs = this.props as GlobalState
+        const videoInputPromise = gs.meetingSession?.audioVideo.chooseVideoInputDevice(null)
+        const blob = e.target.files[0] as Blob
+        const obj_url = URL.createObjectURL(blob);
+
+        this.dummyVideoElement.width=100
+        this.dummyVideoElement.height=100
+        
+        this.dummyVideoElement.loop=true
+        this.dummyVideoElement.autoplay=true
+        this.dummyVideoElement.src = obj_url
+        this.dummyVideoElement.play()
+        // @ts-ignore
+        const mediaStream = this.dummyVideoElement.captureStream() as MediaStream
+        console.log(mediaStream)
+        const localVideoEffectorsPromise = this.state.localVideoEffectors.setMediaStream(mediaStream)
+
+        Promise.all([videoInputPromise, localVideoEffectorsPromise]).then(()=>{
+            const mediaStream = this.state.localVideoEffectors.getMediaStream()
+            gs.meetingSession?.audioVideo.chooseVideoInputDevice(mediaStream).then(()=>{
+                gs.meetingSession!.audioVideo.startLocalVideoTile()
+            })
+        })
+        const currentSettings = this.state.currentSettings
+        this.setState({ currentSettings: currentSettings })
+    }
+
     // For Speaker
     toggleSpeaker = () => {
         const gs = this.props as GlobalState
@@ -551,6 +581,8 @@ class App extends React.Component {
         toggleSpeaker: this.toggleSpeaker,
         selectOutputAudioDevice: this.selectOutputAudioDevice,
         selectInputVideoResolution: this.selectInputVideoResolution,
+        setSelectedVideo: this.setSelectedVideo,
+
         sharedVideoSelected: this.sharedVideoSelected,
         playSharedVideo: this.playSharedVideo,
         pauseSharedVideo: this.pauseSharedVideo,
@@ -650,6 +682,9 @@ class App extends React.Component {
                 const audioPromise = getAudioDevice("")
 //                Promise.all([videoPromise, audioPromise]).then(()=>{
                 Promise.all([audioPromise]).then(()=>{
+                }).catch(err=>{
+                    console.log(err)
+                }).finally(()=>{
                     const deviceListPromise = getDeviceLists()
 
                     Promise.all([deviceListPromise]).then(([deviceList]) => {
@@ -664,6 +699,7 @@ class App extends React.Component {
                         currentSettings.selectedInputVideoDevice = videoInputDevices![0] ? videoInputDevices![0]['deviceId'] : NO_DEVICE_SELECTED
                         currentSettings.selectedOutputAudioDevice = audioOutputDevices![0] ? audioOutputDevices![0]['deviceId'] : NO_DEVICE_SELECTED
 
+                        console.log("device list", deviceList)
                         currentSettings.videoEnable = currentSettings.selectedInputVideoDevice===NO_DEVICE_SELECTED ? false:true
 
                         this.setState({currentSettings:currentSettings})
@@ -675,6 +711,7 @@ class App extends React.Component {
                         props.lobbyPrepared(audioInputDevices, videoInputDevices, audioOutputDevices)
                         props.refreshRoomList()
                     })
+
                 })
                 return (
                     <div />

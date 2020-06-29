@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Icon, Dropdown, Grid, Popup } from 'semantic-ui-react';
+import { Icon, Dropdown, Grid, Popup, List } from 'semantic-ui-react';
 import { AppState } from '../App';
 import { GlobalState } from '../../reducers';
 
@@ -11,7 +11,7 @@ const trigger = (
 
 
 class VideoControl extends React.Component {
-
+    fileInputRef = React.createRef<HTMLInputElement>()
     render() {
         const props = this.props as any
         const gs = this.props as GlobalState
@@ -39,6 +39,7 @@ class VideoControl extends React.Component {
             content="enable."
         />
         )
+        
         return (
             <Grid>
                 <Grid.Row>
@@ -58,6 +59,23 @@ class VideoControl extends React.Component {
                         </List>  */}
                     </Grid.Column>
                 </Grid.Row>
+                <Grid.Row>
+                    <Grid.Column>
+                        <List link>
+                            <List.Item as='a' active onClick={() => this.fileInputRef.current!.click()}>
+                                <Icon name="folder"  active />dummy mov.
+                            </List.Item>
+                        </List>
+                        <input
+                            ref={this.fileInputRef}
+                            type="file"
+                            hidden
+                            onChange={(e) => props.setSelectedVideo(e)}
+                        />
+
+                    </Grid.Column>
+                </Grid.Row>
+
 
             </Grid>
 
