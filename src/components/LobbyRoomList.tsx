@@ -40,7 +40,7 @@ class LobbyRoomList extends React.Component {
                     <Button basic color="red" floated='right'
                         onClick={()=>{
                                 console.log("CLICK LEAVE", meeting.meetingId)
-                                props.leaveMeeting(meeting.meetingId, gs.joinInfo?.Attendee.AttendeeId)
+                                props._leaveMeeting(meeting.meetingId, gs.joinInfo?.Attendee.AttendeeId)
                             }}                    
                     >
                         leave
@@ -52,7 +52,7 @@ class LobbyRoomList extends React.Component {
                     <Button basic color="teal" floated='right'
                         onClick={()=>{
                                 console.log("CLICK JOIN", meeting.meetingId)
-                                props.joinMeeting(meeting.meetingId, gs)
+                                props._joinMeeting(meeting.meetingId, gs)
                             }}>                    
                         join
                         <Icon name='chevron right' />

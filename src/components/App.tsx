@@ -573,6 +573,17 @@ class App extends React.Component {
         this.state.messagingSocket!.startFileTransfer(targetId, e)
     }
 
+    // For Lobby
+    joinMeeting = (meetingId:string, gs:GlobalState) =>{
+        const props = this.props as any
+        props.joinMeeting(meetingId, gs)
+    }
+    leaveMeeting = (meetingId:string, attendeeId:string) =>{
+        const props = this.props as any
+        props.leaveMeeting(meetingId, attendeeId)
+    }
+
+
     callbacks: { [key: string]: any } = {
         toggleMute: this.toggleMute,
         selectInputAudioDevice: this.selectInputAudioDevice,
@@ -601,6 +612,10 @@ class App extends React.Component {
         sendStampBySignal: this.sendStampBySignal,
         sendDrawingBySignal: this.sendDrawingBySignal,
         sharedFileSelected: this.sharedFileSelected,
+        
+        _joinMeeting:  this.joinMeeting,
+        _leaveMeeting: this.leaveMeeting,
+
     }
 
 
@@ -717,7 +732,6 @@ class App extends React.Component {
                     <div />
                 )
             } else {
-                console.log("lobby!!??")
                 return (
                     <div>
                         <Lobby  {...props} appState={this.state} />
