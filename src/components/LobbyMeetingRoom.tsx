@@ -6,6 +6,7 @@ import MainOverlayVideoElement from './meetingComp/MainOverlayVideoElement';
 import { getTileId } from './utils';
 import { AppState } from './App';
 import OverlayVideoElement from './meetingComp/OverlayVideoElement';
+import { getSendingStatus } from './WebsocketApps/FileTransfer';
 
 
 
@@ -53,11 +54,15 @@ class MainScreen extends React.Component{
     render(){
         const props = this.props as any
         const appState = props.appState as AppState
+        const gs = this.props as GlobalState
+        
         const thisAttendeeId = props.thisAttendeeId as string
         const thisMeetingId  = props.thisMeetingId as string
         const attendeeInfo = appState.joinedMeetings[thisMeetingId].roster[thisAttendeeId]
         let attendeeName = "no focused"
-        let meetingShortId = thisMeetingId.substr(0,5)
+        //let meetingShortId = thisMeetingId.substr(0,5)
+        const meetingName = gs.meetings.filter((x)=>{return x.meetingId === thisMeetingId})[0].meetingName
+        
 
         let muted = <div/>
         if(attendeeInfo === undefined){
@@ -83,7 +88,7 @@ class MainScreen extends React.Component{
                         </div>
                         <span>
                             {muted}
-                            {attendeeName} @ {meetingShortId}
+                            {attendeeName} @ {meetingName}
                         </span>
                         <span style={{paddingLeft:"30px"}}>
                             <Icon name="pencil" color={this.state.enableDrawing? "red":"grey"}
@@ -130,11 +135,14 @@ class TileScreenTile extends React.Component{
     render(){
         const props = this.props as any
         const appState = props.appState as AppState
+        const gs = this.props as GlobalState
+
         const thisAttendeeId = props.thisAttendeeId as string
         const thisMeetingId  = props.thisMeetingId as string
         const attendeeInfo = appState.joinedMeetings[thisMeetingId].roster[thisAttendeeId]
         let attendeeName = "loading...."
-        let meetingShortId = thisMeetingId.substr(0,5)
+        //let meetingShortId = thisMeetingId.substr(0,5)
+        const meetingName = gs.meetings.filter((x)=>{return x.meetingId === thisMeetingId})[0].meetingName
         let muted = <span/>
         let paused = <span/>
         let focusIcon = <span/>
@@ -173,7 +181,7 @@ class TileScreenTile extends React.Component{
                 {paused}
                 </span>
                 {focusIcon}
-                {attendeeName} @ {meetingShortId}
+                {attendeeName} @ {meetingName}
             </Grid.Column>
         )
     }

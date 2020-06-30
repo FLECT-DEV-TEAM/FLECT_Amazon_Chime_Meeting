@@ -229,7 +229,7 @@ const reducer = (state: GlobalState = initialState, action: any) => {
             const meetingId  = action.payload[0]
             const attendeeId = action.payload[1]
             const baseAttendeeId = action.payload[2]
-            const name = action.payload[2]
+            const name = action.payload[3]
             if(gs.storeRosters[meetingId]===undefined){
                 gs.storeRosters[meetingId] = {}
             }
