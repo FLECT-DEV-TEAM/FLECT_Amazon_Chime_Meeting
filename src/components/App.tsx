@@ -284,6 +284,7 @@ class App extends React.Component {
     *  Callback for DataMessage
     ****************************/
     receivedDataMessage = (meetingId:string, dataMessage: DataMessage) =>{
+        console.log("recieving data!!!!!")
         if(dataMessage.topic === WSMessageType.Text){
 
         }else if(dataMessage.topic === WSMessageType.Stamp){
@@ -605,7 +606,7 @@ class App extends React.Component {
         this.state.joinedMeetings[meetingId].messagingSocket!.sendText(targetId, text)
     }
 
-    sendDrawingBySignal = (targetId: string, mode:string, startXR:number, startYR:number, endXR:number, endYR:number, stroke:string, lineWidth:number)=>{
+    sendDrawingBySignal = (meetingId:string, targetId: string, mode:string, startXR:number, startYR:number, endXR:number, endYR:number, stroke:string, lineWidth:number)=>{
         Object.keys(this.state.joinedMeetings).map((x:string)=>{
             sendDrawingBySignal(this.state.joinedMeetings[x].meetingSession!.audioVideo, targetId, mode, startXR, startYR, endXR, endYR, stroke, lineWidth, false)
         })
