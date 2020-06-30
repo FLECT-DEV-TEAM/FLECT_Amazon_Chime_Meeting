@@ -1,6 +1,8 @@
 import * as React from 'react';
 import { Button, Form, Modal, Segment, Header, Item, Divider, Checkbox, CheckboxProps, Icon, List } from 'semantic-ui-react'
 import { GlobalState, MeetingInfo } from '../reducers';
+import { AppState } from './App';
+
 class LobbyRoomList extends React.Component {
     roomNameRef        = React.createRef<HTMLInputElement>()
     roomSecretCheckRef = React.createRef<React.Component<CheckboxProps, any, any>>()
@@ -27,42 +29,35 @@ class LobbyRoomList extends React.Component {
     render() {
         const gs = this.props as GlobalState
         const props = this.props as any
+        const appState = props.appState as AppState
+
+        const joinedMeetingIds = Object.keys(appState.joinedMeetings)
+
 
         const meetings = gs.meetings.map((meeting:MeetingInfo)=>{
             let joinButton
-            let currentMeetingId
 
-            currentMeetingId = gs.joinInfo?.Meeting.MeetingId ? gs.joinInfo.Meeting.MeetingId : null
+            const currentMeetingId = meeting.meetingId
 
-
-            if(currentMeetingId === meeting.meetingId){
+            if(joinedMeetingIds.includes(currentMeetingId)){
                 joinButton = (
                     <Button basic color="red" floated='right'
                         onClick={()=>{
                                 console.log("CLICK LEAVE", meeting.meetingId)
-                                props._leaveMeeting(meeting.meetingId, gs.joinInfo?.Attendee.AttendeeId)
+                                props._leaveMeeting(meeting.meetingId, appState.joinedMeetings[currentMeetingId].meetingSession.configuration.credentials!.attendeeId)
                             }}                    
                     >
                         leave
                         <Icon name='chevron left' />
                     </Button>
                 )
-            }else if(currentMeetingId === null){
+            }else{
                 joinButton = (
                     <Button basic color="teal" floated='right'
                         onClick={()=>{
                                 console.log("CLICK JOIN", meeting.meetingId)
                                 props._joinMeeting(meeting.meetingId, gs)
                             }}>                    
-                        join
-                        <Icon name='chevron right' />
-                    </Button>
-
-                )
-            }else{
-                // in other meetings, so join is disabled
-                joinButton = (
-                    <Button basic color="grey" floated='right' disabled>
                         join
                         <Icon name='chevron right' />
                     </Button>

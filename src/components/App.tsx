@@ -158,7 +158,6 @@ export interface AppState {
     joinedMeetings : {[id:string]:JoinedMeeting},
     focusedMeeting : string,
 
-
     stamps: { [key: string]: HTMLImageElement },
     outputAudioElement: HTMLAudioElement | null,
     shareVideoElement: HTMLVideoElement,
@@ -202,23 +201,26 @@ class App extends React.Component {
     ****************************/
     updateVideoTileState = (meetingId:string, state: VideoTileState) => {
         let needUpdate = false
-        const videoTileStates = this.state.joinedMeetings[meetingId].videoTileStates
-        if (videoTileStates[state.tileId!]) {
-        } else {
-            needUpdate = true
+        if(this.state.joinedMeetings[meetingId]!==undefined){
+            const videoTileStates = this.state.joinedMeetings[meetingId].videoTileStates
+            if (videoTileStates[state.tileId!]) {
+            } else {
+                needUpdate = true
+            }
+            videoTileStates[state.tileId!] = state
+            if (needUpdate) {
+                this.setState({videoTileStates:videoTileStates})
+            }
+            console.log("updateVideoTileState ", state.tileId!)
+            console.log("updateVideoTileState ", this.state.joinedMeetings[meetingId].videoTileStates)
         }
-        videoTileStates[state.tileId!] = state
-        if (needUpdate) {
-            this.setState({videoTileStates:videoTileStates})
-        }
-        console.log("updateVideoTileState ", state.tileId!)
-        console.log("updateVideoTileState ", this.state.joinedMeetings[meetingId].videoTileStates)
     }
     removeVideoTileState = (meetingId:string, tileId: number) => {
-        delete this.state.joinedMeetings[meetingId].videoTileStates[tileId]
-        this.setState({})
-        console.log("removeVideoTileState ", tileId)
-
+        if(this.state.joinedMeetings[meetingId]!==undefined){
+            delete this.state.joinedMeetings[meetingId].videoTileStates[tileId]
+            this.setState({})
+            console.log("removeVideoTileState ", tileId)
+        }
     }
     /***************************
     *  Callback for attendee change
@@ -262,7 +264,7 @@ class App extends React.Component {
                 roster[attendeeId].signalStrength = signalStrength
             }
             if (this.state.joinedMeetings[meetingId].roster[attendeeId].name === null || this.state.joinedMeetings[meetingId].roster[attendeeId].name === "Unknown") { // ChimeがUnknownで返すときがある
-                props.getAttendeeInformation(gs.joinInfo?.Meeting.MeetingId, attendeeId)
+                props.getAttendeeInformation(meetingId, attendeeId)
             }
             this.setState({joinedMeetings:joinedMeetings})
         }
@@ -550,10 +552,10 @@ class App extends React.Component {
     setFocusedAttendee = (meetingId:string, attendeeId: string) => {
         const gs = this.props as GlobalState
         console.log("focus:", this.state.joinedMeetings[meetingId].focusAttendeeId)
-        if(attendeeId === gs.joinInfo?.Attendee.AttendeeId && this.state.currentSettings.videoEnable === false){
-            console.log("local video is off")
-            return
-        }
+        // if(attendeeId === gs.joinInfo?.Attendee.AttendeeId && this.state.currentSettings.videoEnable === false){
+        //     console.log("local video is off")
+        //     return
+        // }
         const joinedMeetings = this.state.joinedMeetings
         joinedMeetings[meetingId].focusAttendeeId = attendeeId        
         this.setState({ 
@@ -617,7 +619,11 @@ class App extends React.Component {
     // For Lobby
     joinMeeting = (meetingId:string, gs:GlobalState) =>{
         const props = this.props as any
-        props.joinMeeting(meetingId, gs)
+        if(this.state.joinedMeetings[meetingId]===undefined){
+            props.joinMeeting(meetingId, gs)
+        }else{
+            console.log("Already joined!")
+        }
     }
 
     leaveMeeting = (meetingId:string, attendeeId:string) =>{
@@ -636,10 +642,10 @@ class App extends React.Component {
                 this.setState({focusedMeeting: NO_FOCUSED})
             }
             const joinedMeetings = this.state.joinedMeetings
-            //delete joinedMeetings[meetingId]
+            delete joinedMeetings[meetingId]
             this.setState({joinedMeetings:joinedMeetings})
         }
-        props.clearedMeetingSession()
+        props.clearedMeetingSession(meetingId)
     }
 
 
@@ -804,9 +810,9 @@ class App extends React.Component {
          * Meeting Setup
          */
         if (gs.status === AppStatus.IN_MEETING) {
-            if (gs.meetingStatus === AppMeetingStatus.WILL_PREPARE && this.state.joinedMeetings[gs.joinInfo!.Meeting.MeetingId!]===undefined) {
+            if (gs.meetingStatus === AppMeetingStatus.WILL_PREPARE && this.state.joinedMeetings[gs.preparingMeetingId!]===undefined) {
                 // If session exist already, it'll be initialized.
-                const meetingSessionConf = new MeetingSessionConfiguration(gs.joinInfo!.Meeting, gs.joinInfo!.Attendee)
+                const meetingSessionConf = new MeetingSessionConfiguration(gs.joinInfos[gs.preparingMeetingId!].Meeting, gs.joinInfos[gs.preparingMeetingId!].Attendee)
                 const defaultMeetingSession = initializeMeetingSession(gs, meetingSessionConf)
                 const meetingId = defaultMeetingSession.configuration.meetingId!
                 registerHandlers(this, props, defaultMeetingSession)
@@ -896,11 +902,6 @@ class App extends React.Component {
             if (gs.meetingStatus !== AppMeetingStatus.WILL_PREPARE){
                 Object.keys(this.state.joinedMeetings).map((meetingId:string)=>{
                     Object.keys(this.state.joinedMeetings[meetingId].roster).map((attendeeId:string)=>{
-                        console.log(">>>>>1 ", meetingId)
-                        console.log(">>>>>2 ", gs)
-                        console.log(">>>>>2.5 ", gs.storeRosters)
-                        console.log(">>>>>2.8 ", gs.storeRosters[meetingId])
-                        console.log(">>>>>3 ", this.state)
                         if(gs.storeRosters[meetingId] !== undefined &&attendeeId in gs.storeRosters[meetingId]){
                             const attendee = this.state.joinedMeetings[meetingId].roster[attendeeId]
                             attendee.name = gs.storeRosters[meetingId][attendeeId].name

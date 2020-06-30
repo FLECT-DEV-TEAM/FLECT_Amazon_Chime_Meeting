@@ -32,7 +32,7 @@ function mapDispatchToProps(dispatch: Dispatch) {
                       {dispatch(Actions.leaveMeeting(meetingId, gs))},
 
     meetingPrepared: () => {dispatch(Actions.meetingPrepared())},
-    clearedMeetingSession: () =>{dispatch(Actions.clearedMeetingSession())},
+    clearedMeetingSession: (meetingId:string) =>{dispatch(Actions.clearedMeetingSession(meetingId))},
 
 
     closeError: () => {dispatch(Actions.closeError())},

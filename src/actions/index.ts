@@ -19,7 +19,7 @@ export const Actions = createActions(
         'JOINED_MEETING'                : (...args) => (args),
         'LEAVE_MEETING'                 : (...args) => (args),
         'LEFT_MEETING'                  : (...args) => (args),
-        'CLEARED_MEETING_SESSION'       : (args)    => (args),
+        'CLEARED_MEETING_SESSION'       : (...args) => (args),
 
         'SHOW_ERROR'                    : (...args) => (args),
         'CLOSE_ERROR'                   : (...args) => (args),

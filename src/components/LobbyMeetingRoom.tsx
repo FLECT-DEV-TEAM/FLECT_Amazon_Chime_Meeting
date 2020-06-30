@@ -77,6 +77,7 @@ class MainScreen extends React.Component{
             <Grid>
                 <Grid.Row>
                     <Grid.Column>
+                        
                         <div>
                             <MainOverlayVideoElement {...props} ref={this.mainOverlayVideoRef}/>
                         </div>
@@ -253,10 +254,10 @@ class LobbyMeetingRoom extends React.Component {
             <div>
 
                 <Menu stackable  secondary>
-                    <Menu.Item as="h2"
+                    {/* <Menu.Item as="h2"
                         name={gs.joinInfo?.MeetingName}
                     >
-                    </Menu.Item>
+                    </Menu.Item> */}
                     <Menu.Menu position='right'>
                         <Menu.Item color="teal" onClick={(e)=>{this.toggleShowMainScreen()}} active={this.state.showMainScreen}>
                             <Icon name="square full" />

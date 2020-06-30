@@ -61,7 +61,8 @@ export interface GlobalState {
 
     windowConfig                      : WindowConfig
     meetings                          : MeetingInfo[] // meeting list in the server, not joined meeting only
-    joinInfo                          : JoinInfo | null
+    joinInfos                         : {[meetingId:string]:JoinInfo}
+    preparingMeetingId                : string|null,
 
     inputAudioDevices                 : MediaDeviceInfo[]  | null
     inputVideoDevices                 : MediaDeviceInfo[]  | null
@@ -96,7 +97,8 @@ export const initialState:GlobalState = {
     meetings                            : [],
 
 
-    joinInfo                            : null,
+    joinInfos                           : {},
+    preparingMeetingId                  : null,
     // meetingSessionConf                  : null,
     // meetingSession                      : null,
 
@@ -176,7 +178,9 @@ const reducer = (state: GlobalState = initialState, action: any) => {
         case 'JOINED_MEETING':
             gs.status        = AppStatus.IN_MEETING
             gs.meetingStatus = AppMeetingStatus.WILL_PREPARE
-            gs.joinInfo      = action.payload[0] as JoinInfo
+            const joininfo   = action.payload[0] as JoinInfo
+            gs.joinInfos[joininfo.Meeting.MeetingId] = joininfo
+            gs.preparingMeetingId = joininfo.Meeting.MeetingId
             break
 
         // case 'LEFT_MEETING':
@@ -189,15 +193,18 @@ const reducer = (state: GlobalState = initialState, action: any) => {
 
         case 'MEETING_PREPARED':
             gs.status        = AppStatus.IN_MEETING
-            gs.meetingStatus      = AppMeetingStatus.DONE_PREPARE
+            gs.meetingStatus = AppMeetingStatus.DONE_PREPARE
+            gs.preparingMeetingId = null
             break
 
         case 'CLEARED_MEETING_SESSION':
-            gs.status        = AppStatus.IN_LOBBY
             gs.meetingStatus = AppMeetingStatus.NONE
-            gs.joinInfo = null
+            const cleardMeetingId = action.payload[0] as string
+            delete gs.joinInfos[cleardMeetingId]
+            if(Object.keys(gs.joinInfos).length === 0 ){
+                gs.status        = AppStatus.IN_LOBBY
+            }
             break
-
 
         case 'SHOW_ERROR':
             gs.showError    = true
@@ -231,7 +238,6 @@ const reducer = (state: GlobalState = initialState, action: any) => {
                 baseAttendeeId :baseAttendeeId,
                 name:name
             }
-            console.log(">>>> reduc:::",gs.storeRosters)
             break
 
 
