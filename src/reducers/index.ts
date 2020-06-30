@@ -1,6 +1,4 @@
 import { AppStatus, AppEntranceStatus, AppMeetingStatus, AppLobbyStatus, LocalVideoConfigs } from "../const"
-import { MeetingSessionConfiguration, DefaultMeetingSession } from "amazon-chime-sdk-js"
-
 
 interface StoreRoster{
     attendeeId     : string,
@@ -65,16 +63,12 @@ export interface GlobalState {
     meetings                          : MeetingInfo[] // meeting list in the server, not joined meeting only
     joinInfo                          : JoinInfo | null
 
-
-    // meetingSessionConf                : MeetingSessionConfiguration | null
-    // meetingSession                    : DefaultMeetingSession | null
-
     inputAudioDevices                 : MediaDeviceInfo[]  | null
     inputVideoDevices                 : MediaDeviceInfo[]  | null
     inputVideoResolutions             : string[]
     outputAudioDevices                : MediaDeviceInfo[] | null
 
-    storeRoster                       : {[attendeeId:string]:StoreRoster}
+    storeRosters                      : {[meetingId:string]:{[attendeeId:string]:StoreRoster}} 
 
     status                            : AppStatus
     entranceStatus                    : AppEntranceStatus
@@ -112,7 +106,7 @@ export const initialState:GlobalState = {
     outputAudioDevices                  : null,
 
 
-    storeRoster                         : {},
+    storeRosters                         : {},
 
     status                              : AppStatus.STARTED,
     entranceStatus                             : AppEntranceStatus.NONE,
@@ -225,14 +219,19 @@ const reducer = (state: GlobalState = initialState, action: any) => {
             break
 
         case 'UPDATE_ATTENDEE_INFORMATION':
-            const attendeeId = action.payload[0]
-            const baseAttendeeId = action.payload[1]
+            const meetingId  = action.payload[0]
+            const attendeeId = action.payload[1]
+            const baseAttendeeId = action.payload[2]
             const name = action.payload[2]
-            gs.storeRoster[attendeeId] = {
+            if(gs.storeRosters[meetingId]===undefined){
+                gs.storeRosters[meetingId] = {}
+            }
+            gs.storeRosters[meetingId][attendeeId] = {
                 attendeeId : attendeeId,
                 baseAttendeeId :baseAttendeeId,
                 name:name
             }
+            console.log(">>>> reduc:::",gs.storeRosters)
             break
 
 

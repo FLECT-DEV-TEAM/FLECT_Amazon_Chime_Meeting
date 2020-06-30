@@ -31,11 +31,8 @@ class SecondaryCameraAccordion extends React.Component {
   }
 
   setSecondaryCamera = (selectedCameraDeviceId:string) =>{
-    const gs = this.props as GlobalState
     const props = this.props as any
     const appState = props.appState as AppState
-    const thisAttendeeId = props.thisAttendeeId as string
-    const thisMeetingId  = props.thisMeetingId as string
 
     console.log(selectedCameraDeviceId)
     if(selectedCameraDeviceId !== "none" &&  this.secondaryVideoRef.current!==null){
@@ -44,7 +41,7 @@ class SecondaryCameraAccordion extends React.Component {
             this.secondaryVideoRef.current!.srcObject = stream
             this.secondaryVideoRef.current!.play()
         }
-        Object.keys(appState.joinedMeetings).map((meetingId:string)=>{
+        Object.keys(appState.joinedMeetings).forEach((meetingId:string)=>{
           // @ts-ignore
           appState.joinedMeetings[meetingId].meetingSession?.audioVideo.startContentShare(this.secondaryVideoRef.current!.captureStream())
         })
@@ -54,7 +51,7 @@ class SecondaryCameraAccordion extends React.Component {
       });
     }else if(this.secondaryVideoRef.current!==null){
       this.secondaryVideoRef.current!.srcObject = null
-      Object.keys(appState.joinedMeetings).map((meetingId:string)=>{
+      Object.keys(appState.joinedMeetings).forEach((meetingId:string)=>{
         // @ts-ignore
         appState.joinedMeetings[meetingId].meetingSession?.audioVideo.stopContentShare()
       })

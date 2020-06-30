@@ -215,7 +215,7 @@ function* handleGetAttendeeInfomation(){
                 .catch(error => {throw error})
             }, url);
             console.log("UPDATE_ATTENDEE_INFO", data)
-            yield put(Actions.updateAttendeeInformation(attendeeId, baseAttendeeId, decodeURIComponent(data.AttendeeInfo.UserName)));
+            yield put(Actions.updateAttendeeInformation(meetingId, attendeeId, baseAttendeeId, decodeURIComponent(data.AttendeeInfo.UserName)));
         }catch(e){
             console.log('failed:'+e)
         }

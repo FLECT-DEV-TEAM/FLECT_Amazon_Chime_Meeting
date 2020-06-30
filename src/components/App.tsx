@@ -13,7 +13,6 @@ import {
     VideoTileState,
     DataMessage,
     MeetingSession,
-    DevicePermission
 } from 'amazon-chime-sdk-js';
 import Entrance from './Entrance';
 import Lobby from './Lobby';
@@ -21,7 +20,7 @@ import DeviceChangeObserverImpl from './DeviceChangeObserverImpl';
 import AudioVideoObserverImpl from './AudioVideoObserverImpl';
 import ContentShareObserverImpl from './ContentShareObserverImpl';
 import { setRealtimeSubscribeToAttendeeIdPresence, setSubscribeToActiveSpeakerDetector, setRealtimeSubscribeToReceiveDataMessage } from './subscribers';
-import { getDeviceLists, getTileId, getVideoDevice, getAudioDevice } from './utils'
+import { getDeviceLists, getTileId, getAudioDevice } from './utils'
 import { API_BASE_URL } from '../config';
 import { RS_STAMPS } from './resources';
 import ErrorPortal from './meetingComp/ErrorPortal';
@@ -33,7 +32,6 @@ import { sendStampBySignal } from './WebsocketApps/StampBySignal';
 import { sendDrawingBySignal, DrawingType, WSDrawing } from './WebsocketApps/DrawingBySignal'
 import { WebsocketApps } from './WebsocketApps/WebsocketApps'
 import { LocalVideoEffectors } from 'local-video-effector'
-import { computeOutShape } from '@tensorflow/tfjs-core/dist/ops/slice_util';
 
 
 /**
@@ -596,7 +594,6 @@ class App extends React.Component {
     }
 
     sendStampBySignal = (meetingId:string, targetId: string, imgPath: string) => {
-        const gs = this.props as GlobalState
         Object.keys(this.state.joinedMeetings).map((x:string)=>{
             sendStampBySignal(this.state.joinedMeetings[x].meetingSession!.audioVideo, targetId, imgPath, false)
         })
@@ -607,7 +604,6 @@ class App extends React.Component {
     }
 
     sendDrawingBySignal = (targetId: string, mode:string, startXR:number, startYR:number, endXR:number, endYR:number, stroke:string, lineWidth:number)=>{
-        const gs = this.props as GlobalState
         Object.keys(this.state.joinedMeetings).map((x:string)=>{
             sendDrawingBySignal(this.state.joinedMeetings[x].meetingSession!.audioVideo, targetId, mode, startXR, startYR, endXR, endYR, stroke, lineWidth, false)
         })
@@ -626,7 +622,6 @@ class App extends React.Component {
 
     leaveMeeting = (meetingId:string, attendeeId:string) =>{
         const props = this.props as any
-        const gs = this.props as GlobalState
         props.leaveMeeting(meetingId, attendeeId)
 
         // Just left meeting. post process
@@ -899,11 +894,16 @@ class App extends React.Component {
             }
 
             if (gs.meetingStatus !== AppMeetingStatus.WILL_PREPARE){
-                Object.keys(this.state.joinedMeetings).map((key:string)=>{
-                    Object.keys(this.state.joinedMeetings[key].roster).map((attendeeId:string)=>{
-                        if(attendeeId in gs.storeRoster){
-                            const attendee = this.state.joinedMeetings[key].roster[attendeeId]
-                            attendee.name = gs.storeRoster[attendeeId].name
+                Object.keys(this.state.joinedMeetings).map((meetingId:string)=>{
+                    Object.keys(this.state.joinedMeetings[meetingId].roster).map((attendeeId:string)=>{
+                        console.log(">>>>>1 ", meetingId)
+                        console.log(">>>>>2 ", gs)
+                        console.log(">>>>>2.5 ", gs.storeRosters)
+                        console.log(">>>>>2.8 ", gs.storeRosters[meetingId])
+                        console.log(">>>>>3 ", this.state)
+                        if(gs.storeRosters[meetingId] !== undefined &&attendeeId in gs.storeRosters[meetingId]){
+                            const attendee = this.state.joinedMeetings[meetingId].roster[attendeeId]
+                            attendee.name = gs.storeRosters[meetingId][attendeeId].name
                         }
                     })
                 })

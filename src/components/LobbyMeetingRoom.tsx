@@ -53,7 +53,6 @@ class MainScreen extends React.Component{
     render(){
         const props = this.props as any
         const appState = props.appState as AppState
-        const gs = this.props as GlobalState
         const thisAttendeeId = props.thisAttendeeId as string
         const thisMeetingId  = props.thisMeetingId as string
         const attendeeInfo = appState.joinedMeetings[thisMeetingId].roster[thisAttendeeId]
@@ -130,7 +129,6 @@ class TileScreenTile extends React.Component{
     render(){
         const props = this.props as any
         const appState = props.appState as AppState
-        const gs = this.props as GlobalState
         const thisAttendeeId = props.thisAttendeeId as string
         const thisMeetingId  = props.thisMeetingId as string
         const attendeeInfo = appState.joinedMeetings[thisMeetingId].roster[thisAttendeeId]

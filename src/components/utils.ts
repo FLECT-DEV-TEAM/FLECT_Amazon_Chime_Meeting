@@ -1,4 +1,3 @@
-import { NO_DEVICE_SELECTED } from "../const"
 import { VideoTileState } from "amazon-chime-sdk-js"
 
 
