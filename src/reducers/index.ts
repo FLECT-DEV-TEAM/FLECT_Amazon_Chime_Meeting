@@ -185,11 +185,11 @@ const reducer = (state: GlobalState = initialState, action: any) => {
             gs.joinInfo      = action.payload[0] as JoinInfo
             break
 
-        case 'LEFT_MEETING':
-            gs.status        = AppStatus.IN_MEETING
-            gs.meetingStatus = AppMeetingStatus.WILL_CLEAR
-            // gs.joinInfo      = 
-            break
+        // case 'LEFT_MEETING':
+        //     gs.status        = AppStatus.IN_MEETING
+        //     gs.meetingStatus = AppMeetingStatus.WILL_CLEAR
+        //     // gs.joinInfo      = 
+        //     break
     
 
 

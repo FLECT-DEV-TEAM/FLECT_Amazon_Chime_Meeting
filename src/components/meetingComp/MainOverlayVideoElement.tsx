@@ -53,10 +53,10 @@ class MainOverlayVideoElement extends React.Component{
             const endYR   = offsetY  / this.drawingCanvas.height!
             if(this.state.erasing){
                 this.erase(startXR, startYR, endXR, endYR)
-                props.sendDrawingBySignal("", DrawingType.Erase, startXR, startYR, endXR, endYR, this.state.drawingStroke, this.state.drawingLineWidth )
+                props.sendDrawingBySignal("", "", DrawingType.Erase, startXR, startYR, endXR, endYR, this.state.drawingStroke, this.state.drawingLineWidth )
             }else{
                 this.draw(startXR, startYR, endXR, endYR, this.state.drawingStroke, this.state.drawingLineWidth)
-                props.sendDrawingBySignal("", DrawingType.Draw, startXR, startYR, endXR, endYR, this.state.drawingStroke, this.state.drawingLineWidth )
+                props.sendDrawingBySignal("", "", DrawingType.Draw, startXR, startYR, endXR, endYR, this.state.drawingStroke, this.state.drawingLineWidth )
             }
 
         }
@@ -235,12 +235,13 @@ class MainOverlayVideoElement extends React.Component{
         const props = this.props as any
         const appState = props.appState as AppState
         const thisAttendeeId = props.thisAttendeeId
+        const thisMeetingId  = props.thisMeetingId as string
         this.fitSize()
         const now = Date.now()
         this.clearCanvas()
 
-        for (const i in appState.currentSettings.globalStamps ) {
-            const message = appState.currentSettings.globalStamps[i]
+        for (const i in appState.joinedMeetings[thisMeetingId].globalStamps ) {
+            const message = appState.joinedMeetings[thisMeetingId].globalStamps[i]
             const elapsed = now - message.startTime
             if (elapsed < 3000) {
                 if ( (message as any).imgPath !== undefined) {
@@ -257,7 +258,7 @@ class MainOverlayVideoElement extends React.Component{
             }
         }
 
-        if(appState.roster[thisAttendeeId] && appState.roster[thisAttendeeId].paused){
+        if(appState.joinedMeetings[thisMeetingId].roster[thisAttendeeId] && appState.joinedMeetings[thisMeetingId].roster[thisAttendeeId].paused){
             const canvasHeight = this.statusCanvasRef.current!.height
             const fontSize     = Math.ceil(canvasHeight / 12)
             const ctx = this.statusCanvasRef.current!.getContext("2d")!

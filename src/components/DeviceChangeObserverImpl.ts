@@ -4,9 +4,11 @@ import App from "./App";
 class DeviceChangeObserverImpl implements DeviceChangeObserver{
     app:App
     props:any    
-    constructor(app:App, props:any){
+    meetingId:string
+    constructor(meetingId:string, app:App, props:any){
         this.app = app
         this.props = props
+        this.meetingId=meetingId
     }
 
     audioInputsChanged(_freshAudioInputDeviceList: MediaDeviceInfo[]): void {
