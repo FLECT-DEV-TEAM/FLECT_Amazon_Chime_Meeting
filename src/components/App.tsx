@@ -31,6 +31,7 @@ import { sendStampBySignal } from './WebsocketApps/StampBySignal';
 import { sendDrawingBySignal, DrawingType, WSDrawing } from './WebsocketApps/DrawingBySignal'
 import { WebsocketApps } from './WebsocketApps/WebsocketApps'
 import { LocalVideoEffectors } from 'local-video-effector'
+import { computeOutShape } from '@tensorflow/tfjs-core/dist/ops/slice_util';
 
 
 /**
@@ -141,7 +142,7 @@ export interface JoinedMeeting{
     videoTileStates: { [id: number]: VideoTileState }
     fileTransferStatus       : FileTransferStatus
     globalStamps: (WSStamp|WSText)[]
-    focuseAttendeeId: string
+    focusAttendeeId: string
     messagingSocket: WebsocketApps | null,
 }
 
@@ -515,14 +516,17 @@ class App extends React.Component {
     // For TileView Control
     setFocusedAttendee = (meetingId:string, attendeeId: string) => {
         const gs = this.props as GlobalState
-        console.log("focus:", this.state.joinedMeetings[meetingId].focuseAttendeeId)
+        console.log("focus:", this.state.joinedMeetings[meetingId].focusAttendeeId)
         if(attendeeId === gs.joinInfo?.Attendee.AttendeeId && this.state.currentSettings.videoEnable === false){
             console.log("local video is off")
             return
         }
         const joinedMeetings = this.state.joinedMeetings
-        joinedMeetings[meetingId].focuseAttendeeId = attendeeId
-        this.setState({ joinedMeetings: joinedMeetings })
+        joinedMeetings[meetingId].focusAttendeeId = attendeeId        
+        this.setState({ 
+            focusedMeeting: meetingId,
+            joinedMeetings: joinedMeetings 
+        })
     }
     
     pauseVideoTile = (meetingId:string, attendeeId:string) =>{
@@ -553,6 +557,8 @@ class App extends React.Component {
 
     // For Messaging
     sendStamp = (meetingId:string, targetId: string, imgPath: string) => {
+        console.log("sendstamp1 ", meetingId)
+        console.log("sendstamp2 ", this.state.joinedMeetings)
         this.state.joinedMeetings[meetingId].messagingSocket!.sendStamp(targetId, imgPath)
     }
 
@@ -845,7 +851,7 @@ class App extends React.Component {
                             recievingStatuses      : [],
                         },
                         globalStamps: [],
-                        focuseAttendeeId: NO_FOCUSED,
+                        focusAttendeeId: NO_FOCUSED,
                         messagingSocket: messagingSocket
                     }
                     this.setState({joinedMeetings:joinedMeetings})

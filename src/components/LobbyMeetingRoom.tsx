@@ -152,7 +152,7 @@ class TileScreenTile extends React.Component{
              (<Icon name="pause circle outline" link onClick={()=>{
                 props.pauseVideoTile(thisAttendeeId)
                 }} />)
-            focusIcon = thisAttendeeId === appState.joinedMeetings[thisMeetingId].focuseAttendeeId ? (<Icon name="eye"  color="red" />) : (<span />)
+            focusIcon = thisAttendeeId === appState.joinedMeetings[thisMeetingId].focusAttendeeId ? (<Icon name="eye"  color="red" />) : (<span />)
 
         }
 
@@ -227,7 +227,7 @@ class LobbyMeetingRoom extends React.Component {
         const mainScreens:JSX.Element[]=[]
         if(this.state.showMainScreen===true){
             for(let key in appState.joinedMeetings){
-                const focusAttendeeId = appState.joinedMeetings[key].focuseAttendeeId
+                const focusAttendeeId = appState.joinedMeetings[key].focusAttendeeId
                 const meetingId = key
                 mainScreens.push(
                     <MainScreen {...props} thisAttendeeId={focusAttendeeId} thisMeetingId={meetingId} />

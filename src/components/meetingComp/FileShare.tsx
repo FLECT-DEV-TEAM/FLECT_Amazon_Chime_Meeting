@@ -90,7 +90,7 @@ class FileShareControl extends React.Component {
                             ref={this.fileInputRef}
                             type="file"
                             hidden
-                            onChange={(e) => props.sharedFileSelected(appState.focusedMeeting, appState.joinedMeetings[appState.focusedMeeting].focuseAttendeeId, e)}
+                            onChange={(e) => props.sharedFileSelected(appState.focusedMeeting, appState.joinedMeetings[appState.focusedMeeting].focusAttendeeId, e)}
                         />
                     {this.sendingStatus()}
                     {this.receivingStatus()}
