@@ -62,12 +62,12 @@ export interface GlobalState {
     code                              : string
 
     windowConfig                      : WindowConfig
-    meetings                          : MeetingInfo[]
+    meetings                          : MeetingInfo[] // meeting list in the server, not joined meeting only
     joinInfo                          : JoinInfo | null
 
 
-    meetingSessionConf                : MeetingSessionConfiguration | null
-    meetingSession                    : DefaultMeetingSession | null
+    // meetingSessionConf                : MeetingSessionConfiguration | null
+    // meetingSession                    : DefaultMeetingSession | null
 
     inputAudioDevices                 : MediaDeviceInfo[]  | null
     inputVideoDevices                 : MediaDeviceInfo[]  | null
@@ -103,8 +103,8 @@ export const initialState:GlobalState = {
 
 
     joinInfo                            : null,
-    meetingSessionConf                  : null,
-    meetingSession                      : null,
+    // meetingSessionConf                  : null,
+    // meetingSession                      : null,
 
     inputAudioDevices                   : null,
     inputVideoDevices                   : null,
@@ -196,15 +196,11 @@ const reducer = (state: GlobalState = initialState, action: any) => {
         case 'MEETING_PREPARED':
             gs.status        = AppStatus.IN_MEETING
             gs.meetingStatus      = AppMeetingStatus.DONE_PREPARE
-            gs.meetingSessionConf = action.payload[0]
-            gs.meetingSession     = action.payload[1]
             break
 
         case 'CLEARED_MEETING_SESSION':
             gs.status        = AppStatus.IN_LOBBY
             gs.meetingStatus = AppMeetingStatus.NONE
-            gs.meetingSessionConf = null
-            gs.meetingSession     = null
             gs.joinInfo = null
             break
 

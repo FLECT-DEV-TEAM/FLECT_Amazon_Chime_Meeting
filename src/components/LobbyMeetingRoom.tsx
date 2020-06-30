@@ -69,7 +69,7 @@ class MainScreen extends React.Component{
 
         const focusedTileId = getTileId(thisAttendeeId, appState.joinedMeetings[thisMeetingId].videoTileStates)
         if(focusedTileId > 0 && this.mainOverlayVideoRef.current !== null){
-            gs.meetingSession?.audioVideo.bindVideoElement(focusedTileId, this.mainOverlayVideoRef.current.getVideoRef().current!)
+            appState.joinedMeetings[thisMeetingId].meetingSession.audioVideo.bindVideoElement(focusedTileId, this.mainOverlayVideoRef.current.getVideoRef().current!)
         }else{
             console.log("not focusedid", focusedTileId, this.mainOverlayVideoRef.current)
         }
@@ -159,7 +159,7 @@ class TileScreenTile extends React.Component{
 
         const thisTileId = getTileId(thisAttendeeId, appState.joinedMeetings[thisMeetingId].videoTileStates)
         if(thisTileId > 0 && this.tileOverlayVideoRef.current !== null){
-            gs.meetingSession?.audioVideo.bindVideoElement(thisTileId, this.tileOverlayVideoRef.current.getVideoRef().current!)
+            appState.joinedMeetings[thisMeetingId].meetingSession?.audioVideo.bindVideoElement(thisTileId, this.tileOverlayVideoRef.current.getVideoRef().current!)
         }
 
         return(

@@ -32,8 +32,7 @@ function mapDispatchToProps(dispatch: Dispatch) {
     leaveMeeting:    (meetingId:string, gs:GlobalState) =>
                       {dispatch(Actions.leaveMeeting(meetingId, gs))},
 
-    meetingPrepared: (meetingSessionConf:MeetingSessionConfiguration, defaultMeetingSession:DefaultMeetingSession) =>
-                      {dispatch(Actions.meetingPrepared(meetingSessionConf, defaultMeetingSession))},
+    meetingPrepared: () => {dispatch(Actions.meetingPrepared())},
     clearedMeetingSession: () =>{dispatch(Actions.clearedMeetingSession())},
 
 
