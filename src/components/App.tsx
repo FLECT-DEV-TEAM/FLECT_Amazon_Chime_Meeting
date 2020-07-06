@@ -832,6 +832,9 @@ class App extends React.Component {
                 console.log("MS", mediaStream)
                 const auidoInputPromise  = defaultMeetingSession.audioVideo.chooseAudioInputDevice(this.state.currentSettings.selectedInputAudioDevice)
                 const auidooutputPromise = defaultMeetingSession.audioVideo.chooseAudioOutputDevice(this.state.currentSettings.selectedOutputAudioDevice)
+                const videoConfig = LocalVideoConfigs[this.state.currentSettings.selectedInputVideoResolution]
+                defaultMeetingSession.audioVideo.chooseVideoInputQuality(videoConfig.width, videoConfig.height, videoConfig.frameRate, videoConfig.maxBandwidthKbps);
+
                 let videoInputPromise = null
                 if(this.state.currentSettings.videoEnable){
                     videoInputPromise  = defaultMeetingSession.audioVideo.chooseVideoInputDevice(mediaStream)
