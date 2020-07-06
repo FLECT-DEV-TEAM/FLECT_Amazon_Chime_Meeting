@@ -48,7 +48,7 @@ class StampAccordion extends React.Component {
       const imgPath = RS_STAMPS[i]
 
       stamps.push(
-            <img src={imgPath} width="10%" alt="" onClick={(e) => { props.sendStamp(appState.currentSettings.focuseAttendeeId, imgPath) }} />
+            <img src={imgPath} width="10%" alt="" onClick={(e) => { props.sendStamp(appState.focusedMeeting, appState.joinedMeetings[appState.focusedMeeting].focusAttendeeId, imgPath) }} />
       )
     }
     return (

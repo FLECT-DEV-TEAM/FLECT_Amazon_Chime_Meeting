@@ -49,7 +49,7 @@ class StampAccordionBySignal extends React.Component {
 
       stamps.push(
             <img src={imgPath} width="10%" alt="" onClick={(e) => { 
-              props.sendStampBySignal(appState.currentSettings.focuseAttendeeId, imgPath)
+              props.sendStampBySignal(appState.focusedMeeting, appState.joinedMeetings[appState.focusedMeeting].focusAttendeeId, imgPath)
             }} />
       )
     }

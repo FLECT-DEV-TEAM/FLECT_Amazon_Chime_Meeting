@@ -2,6 +2,7 @@ import * as React from 'react';
 import { Accordion, Icon, Dropdown } from 'semantic-ui-react';
 import { GlobalState } from '../../reducers';
 import { getVideoDevice } from '../utils';
+import { AppState } from '../App';
 
 
 const trigger = (
@@ -30,7 +31,9 @@ class SecondaryCameraAccordion extends React.Component {
   }
 
   setSecondaryCamera = (selectedCameraDeviceId:string) =>{
-    const gs = this.props as GlobalState
+    const props = this.props as any
+    const appState = props.appState as AppState
+
     console.log(selectedCameraDeviceId)
     if(selectedCameraDeviceId !== "none" &&  this.secondaryVideoRef.current!==null){
       getVideoDevice(selectedCameraDeviceId).then(stream => {
@@ -38,18 +41,20 @@ class SecondaryCameraAccordion extends React.Component {
             this.secondaryVideoRef.current!.srcObject = stream
             this.secondaryVideoRef.current!.play()
         }
-        if(gs.meetingSession !== null){
+        Object.keys(appState.joinedMeetings).forEach((meetingId:string)=>{
           // @ts-ignore
-          gs.meetingSession?.audioVideo.startContentShare(this.secondaryVideoRef.current!.captureStream())
-        }
+          appState.joinedMeetings[meetingId].meetingSession?.audioVideo.startContentShare(this.secondaryVideoRef.current!.captureStream())
+        })
+
       }).catch((e) => {
           console.log("DEVICE:error:", e)
       });
     }else if(this.secondaryVideoRef.current!==null){
       this.secondaryVideoRef.current!.srcObject = null
-      if(gs.meetingSession !== null){
-        gs.meetingSession?.audioVideo.stopContentShare()
-      }
+      Object.keys(appState.joinedMeetings).forEach((meetingId:string)=>{
+        // @ts-ignore
+        appState.joinedMeetings[meetingId].meetingSession?.audioVideo.stopContentShare()
+      })
     }
     this.setState({selectedCameraDeviceId: selectedCameraDeviceId})
 

@@ -1,4 +1,3 @@
-import { NO_DEVICE_SELECTED } from "../const"
 import { VideoTileState } from "amazon-chime-sdk-js"
 
 
@@ -32,7 +31,7 @@ export const getDeviceLists = async () =>{
     }
 }
 
-export const getVideoDevice = async (deviceId:string): Promise<MediaStream|null>=>{
+export const getVideoDevice = async (deviceId:string): Promise<MediaStream|null>=>{    
     const webCamPromise = navigator.mediaDevices.getUserMedia({
         video: { deviceId: deviceId,
             width: { ideal: 1280 },
@@ -43,9 +42,11 @@ export const getVideoDevice = async (deviceId:string): Promise<MediaStream|null>
 }
 
 export const getAudioDevice = async (deviceId:string): Promise<MediaStream|null>=>{
+    console.log("AUDIO 1")
     const audioPromise = navigator.mediaDevices.getUserMedia({
         audio: true,
     })
+    console.log("AUDIO 2", audioPromise)
     return audioPromise
 }
 

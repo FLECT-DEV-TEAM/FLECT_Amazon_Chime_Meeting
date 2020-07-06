@@ -36,7 +36,7 @@ class PreviewPanel extends React.Component {
 
     drawPreviewCanvas =() => {
         const props = this.props as any
-       const appState = props.appState as AppState
+        const appState = props.appState as AppState
 
         if(this.previewCanvasRef.current !== null){
             if(appState.localVideoEffectors.outputWidth !== 0 && appState.localVideoEffectors.outputHeight !== 0){

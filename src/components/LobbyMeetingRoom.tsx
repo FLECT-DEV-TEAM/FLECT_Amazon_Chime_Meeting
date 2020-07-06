@@ -6,6 +6,7 @@ import MainOverlayVideoElement from './meetingComp/MainOverlayVideoElement';
 import { getTileId } from './utils';
 import { AppState } from './App';
 import OverlayVideoElement from './meetingComp/OverlayVideoElement';
+import { getSendingStatus } from './WebsocketApps/FileTransfer';
 
 
 
@@ -49,14 +50,20 @@ class MainScreen extends React.Component{
             } />
           ))}
         </span>
-      )
+    )
     render(){
         const props = this.props as any
         const appState = props.appState as AppState
         const gs = this.props as GlobalState
-        const thisAttendeeId = props.thisAttendeeId 
-        const attendeeInfo = appState.roster[thisAttendeeId]
+        
+        const thisAttendeeId = props.thisAttendeeId as string
+        const thisMeetingId  = props.thisMeetingId as string
+        const attendeeInfo = appState.joinedMeetings[thisMeetingId].roster[thisAttendeeId]
         let attendeeName = "no focused"
+        //let meetingShortId = thisMeetingId.substr(0,5)
+        const meetingName = gs.meetings.filter((x)=>{return x.meetingId === thisMeetingId})[0].meetingName
+        
+
         let muted = <div/>
         if(attendeeInfo === undefined){
         }else{
@@ -64,9 +71,9 @@ class MainScreen extends React.Component{
             muted = attendeeInfo.muted ? (<Icon name="mute"  color="red" />) : (<Icon name="unmute"/>)
         }
 
-        const focusedTileId = getTileId(thisAttendeeId, appState.videoTileStates)
+        const focusedTileId = getTileId(thisAttendeeId, appState.joinedMeetings[thisMeetingId].videoTileStates)
         if(focusedTileId > 0 && this.mainOverlayVideoRef.current !== null){
-            gs.meetingSession?.audioVideo.bindVideoElement(focusedTileId, this.mainOverlayVideoRef.current.getVideoRef().current!)
+            appState.joinedMeetings[thisMeetingId].meetingSession.audioVideo.bindVideoElement(focusedTileId, this.mainOverlayVideoRef.current.getVideoRef().current!)
         }else{
             console.log("not focusedid", focusedTileId, this.mainOverlayVideoRef.current)
         }
@@ -75,12 +82,13 @@ class MainScreen extends React.Component{
             <Grid>
                 <Grid.Row>
                     <Grid.Column>
+                        
                         <div>
                             <MainOverlayVideoElement {...props} ref={this.mainOverlayVideoRef}/>
                         </div>
                         <span>
                             {muted}
-                            {attendeeName}
+                            {attendeeName} @ {meetingName}
                         </span>
                         <span style={{paddingLeft:"30px"}}>
                             <Icon name="pencil" color={this.state.enableDrawing? "red":"grey"}
@@ -128,9 +136,13 @@ class TileScreenTile extends React.Component{
         const props = this.props as any
         const appState = props.appState as AppState
         const gs = this.props as GlobalState
-        const thisAttendeeId = props.thisAttendeeId 
-        const attendeeInfo = appState.roster[thisAttendeeId]
+
+        const thisAttendeeId = props.thisAttendeeId as string
+        const thisMeetingId  = props.thisMeetingId as string
+        const attendeeInfo = appState.joinedMeetings[thisMeetingId].roster[thisAttendeeId]
         let attendeeName = "loading...."
+        //let meetingShortId = thisMeetingId.substr(0,5)
+        const meetingName = gs.meetings.filter((x)=>{return x.meetingId === thisMeetingId})[0].meetingName
         let muted = <span/>
         let paused = <span/>
         let focusIcon = <span/>
@@ -139,7 +151,6 @@ class TileScreenTile extends React.Component{
         }else{
             attendeeName = (attendeeInfo.name !== undefined && attendeeInfo.name !== null)? attendeeInfo.name!.substring(0,20) : "unknown"
             muted = attendeeInfo.muted ? (<Icon name="mute"  color="red" />) : (<Icon name="unmute"/>)
-            
             paused = attendeeInfo.paused ?
              (<Icon name="pause circle outline" color="red" link onClick={()=>{
                 props.unpauseVideoTile(thisAttendeeId)
@@ -148,14 +159,14 @@ class TileScreenTile extends React.Component{
              (<Icon name="pause circle outline" link onClick={()=>{
                 props.pauseVideoTile(thisAttendeeId)
                 }} />)
-            focusIcon = thisAttendeeId === appState.currentSettings.focuseAttendeeId ? (<Icon name="eye"  color="red" />) : (<span />)
+            focusIcon = thisAttendeeId === appState.joinedMeetings[thisMeetingId].focusAttendeeId ? (<Icon name="eye"  color="red" />) : (<span />)
 
         }
 
 
-        const thisTileId = getTileId(thisAttendeeId, appState.videoTileStates)
+        const thisTileId = getTileId(thisAttendeeId, appState.joinedMeetings[thisMeetingId].videoTileStates)
         if(thisTileId > 0 && this.tileOverlayVideoRef.current !== null){
-            gs.meetingSession?.audioVideo.bindVideoElement(thisTileId, this.tileOverlayVideoRef.current.getVideoRef().current!)
+            appState.joinedMeetings[thisMeetingId].meetingSession?.audioVideo.bindVideoElement(thisTileId, this.tileOverlayVideoRef.current.getVideoRef().current!)
         }
 
         return(
@@ -170,8 +181,7 @@ class TileScreenTile extends React.Component{
                 {paused}
                 </span>
                 {focusIcon}
-                {attendeeName}
-                
+                {attendeeName} @ {meetingName}
             </Grid.Column>
         )
     }
@@ -196,14 +206,12 @@ class LobbyMeetingRoom extends React.Component {
     ovrefs: React.RefObject<MainOverlayVideoElement>[]= []
 
     id2ref:{[key:number]:React.RefObject<MainOverlayVideoElement>} = {}
-    cells:JSX.Element[] = []
 
     message = () => {
         console.log("message cunsume!")
     }
 
     render() {
-        this.cells = []
         this.id2ref = {}
         const gs = this.props as GlobalState
         const props = this.props as any
@@ -212,29 +220,52 @@ class LobbyMeetingRoom extends React.Component {
             return(<div />)
         }
 
-        for(let key in appState.videoTileStates){
-            const attendeeId = appState.videoTileStates[key].boundAttendeeId
-            const tileId = appState.videoTileStates[key].tileId
-            const tmpRef = React.createRef<MainOverlayVideoElement>()
-            this.id2ref[tileId!] = tmpRef
-            const cell = (
-                <TileScreenTile {...props} thisAttendeeId={attendeeId}/>
-            )
-            this.cells.push(cell)
+        // for(let key in appState.videoTileStates){
+        //     const attendeeId = appState.videoTileStates[key].boundAttendeeId
+        //     const tileId = appState.videoTileStates[key].tileId
+        //     const tmpRef = React.createRef<MainOverlayVideoElement>()
+        //     this.id2ref[tileId!] = tmpRef
+        //     const cell = (
+        //         <TileScreenTile {...props} thisAttendeeId={attendeeId}/>
+        //     )
+        //     this.cells.push(cell)
+        // }
+
+        const mainScreens:JSX.Element[]=[]
+        if(this.state.showMainScreen===true){
+            for(let key in appState.joinedMeetings){
+                const focusAttendeeId = appState.joinedMeetings[key].focusAttendeeId
+                const meetingId = key
+                mainScreens.push(
+                    <MainScreen {...props} thisAttendeeId={focusAttendeeId} thisMeetingId={meetingId} />
+                )
+            }
         }
 
-        const mainScreen = this.state.showMainScreen===true ? 
-            (<MainScreen {...props} thisAttendeeId={appState.currentSettings.focuseAttendeeId}/>)
-            :
-            (<div />)
+        const tiles:JSX.Element[]=[]
+        if(this.state.showTileScreen === true){
+            for(let meetingId in appState.joinedMeetings){
+                const tileStates = appState.joinedMeetings[meetingId].videoTileStates
+                for(let tileId in tileStates){
+                    const attendeeId = tileStates[tileId].boundAttendeeId
+                    const tmpRef = React.createRef<MainOverlayVideoElement>()
+                    this.id2ref[tileId] = tmpRef
+                    const cell = (
+                        <TileScreenTile {...props} thisAttendeeId={attendeeId} thisMeetingId={meetingId} />
+                    )
+                    tiles.push(cell)
+                }
+            }
+        }
+
         return (
             <div>
 
                 <Menu stackable  secondary>
-                    <Menu.Item as="h2"
+                    {/* <Menu.Item as="h2"
                         name={gs.joinInfo?.MeetingName}
                     >
-                    </Menu.Item>
+                    </Menu.Item> */}
                     <Menu.Menu position='right'>
                         <Menu.Item color="teal" onClick={(e)=>{this.toggleShowMainScreen()}} active={this.state.showMainScreen}>
                             <Icon name="square full" />
@@ -249,21 +280,11 @@ class LobbyMeetingRoom extends React.Component {
                 <Grid>
                     <Grid.Row>
                         <Grid.Column>
-                            {mainScreen}
-                            {/* {this.state.showMainScreen?
-                            (<MainScreen {...props} thisAttendeeId={appState.currentSettings.focuseAttendeeId}/>)
-                            :
-                            (<div/>)
-                            } */}
-                            
+                            {mainScreens}
                         </Grid.Column>
                     </Grid.Row>
                     <Grid.Row >
-                        {this.state.showTileScreen?
-                            this.cells
-                            :
-                            (<div/>)
-                            }                        
+                            {tiles}
                     </Grid.Row>
                 </Grid>
             </div>

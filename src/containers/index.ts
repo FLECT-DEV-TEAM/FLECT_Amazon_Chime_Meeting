@@ -4,7 +4,6 @@ import { connect } from 'react-redux'
 import { Actions } from '../actions'
 import App from '../components/App'
 import { GlobalState } from '../reducers';
-import { MeetingSessionConfiguration, DefaultMeetingSession } from 'amazon-chime-sdk-js';
 
 export interface Props {
 }
@@ -32,9 +31,8 @@ function mapDispatchToProps(dispatch: Dispatch) {
     leaveMeeting:    (meetingId:string, gs:GlobalState) =>
                       {dispatch(Actions.leaveMeeting(meetingId, gs))},
 
-    meetingPrepared: (meetingSessionConf:MeetingSessionConfiguration, defaultMeetingSession:DefaultMeetingSession) =>
-                      {dispatch(Actions.meetingPrepared(meetingSessionConf, defaultMeetingSession))},
-    clearedMeetingSession: () =>{dispatch(Actions.clearedMeetingSession())},
+    meetingPrepared: () => {dispatch(Actions.meetingPrepared())},
+    clearedMeetingSession: (meetingId:string) =>{dispatch(Actions.clearedMeetingSession(meetingId))},
 
 
     closeError: () => {dispatch(Actions.closeError())},

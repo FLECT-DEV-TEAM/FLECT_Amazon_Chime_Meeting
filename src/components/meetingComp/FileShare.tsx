@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Icon, Accordion, List, Progress } from 'semantic-ui-react';
 import { AppState } from '../App';
+import { NO_FOCUSED } from '../../const';
 
 
 
@@ -20,41 +21,46 @@ class FileShareControl extends React.Component {
     sendingStatus = () =>{
         const props = this.props as any
         const appState = props.appState as AppState
-        const statuses = appState.currentSettings.fileTransferStatus.sendingStatusStatuses.map(s =>{
-            const allNum   = s.partNum
-            const num      = s.transferredIndex
-            const percent  = Math.ceil((num / allNum) * 100)
-            const filename = s.filename
-            if (s.done){
-                return(<div/>)
-            }
-            return(
-                <div>
-                    Sending({filename}) <Progress percent={percent} indicating />
-                </div>
-            )
-        })
-        return statuses
+        if(appState.focusedMeeting !== NO_FOCUSED){
+            const statuses = appState.joinedMeetings[appState.focusedMeeting].fileTransferStatus.sendingStatusStatuses.map(s =>{
+                const allNum   = s.partNum
+                const num      = s.transferredIndex
+                const percent  = Math.ceil((num / allNum) * 100)
+                const filename = s.filename
+                if (s.done){
+                    return(<div/>)
+                }
+                return(
+                    <div>
+                        Sending({filename}) <Progress percent={percent} indicating />
+                    </div>
+                )
+            })
+            return statuses
+        }
     }
 
     receivingStatus = () =>{
         const props = this.props as any
         const appState = props.appState as AppState
-        const statuses = appState.currentSettings.fileTransferStatus.recievingStatuses.map(s =>{
-            const allNum   = s.partNum
-            const num      = s.recievedIndex
-            const percent  = Math.ceil((num / allNum) * 100)
-            const filename = s.filename
-            if (s.available){
-                return(<div/>)
-            }
-            return(
-                <div>
-                    Receiving({filename}) <Progress percent={percent} indicating />
-                </div>
-            )
-        })
-        return statuses
+        if(appState.focusedMeeting !== NO_FOCUSED){
+
+            const statuses = appState.joinedMeetings[appState.focusedMeeting].fileTransferStatus.recievingStatuses.map(s =>{
+                const allNum   = s.partNum
+                const num      = s.recievedIndex
+                const percent  = Math.ceil((num / allNum) * 100)
+                const filename = s.filename
+                if (s.available){
+                    return(<div/>)
+                }
+                return(
+                    <div>
+                        Receiving({filename}) <Progress percent={percent} indicating />
+                    </div>
+                )
+            })
+            return statuses
+        }
     }
 
     
@@ -84,7 +90,7 @@ class FileShareControl extends React.Component {
                             ref={this.fileInputRef}
                             type="file"
                             hidden
-                            onChange={(e) => props.sharedFileSelected(appState.currentSettings.focuseAttendeeId, e)}
+                            onChange={(e) => props.sharedFileSelected(appState.focusedMeeting, appState.joinedMeetings[appState.focusedMeeting].focusAttendeeId, e)}
                         />
                     {this.sendingStatus()}
                     {this.receivingStatus()}

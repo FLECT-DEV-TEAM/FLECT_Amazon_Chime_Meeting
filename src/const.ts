@@ -2,6 +2,7 @@
 /// Do not chnage from here
 ///////////////////////////////////////////////////
 export const NO_DEVICE_SELECTED = "none"
+export const NO_FOCUSED = "none"
 
 // export const AppStatus = {
 //     LOGIN: "LOGIN",

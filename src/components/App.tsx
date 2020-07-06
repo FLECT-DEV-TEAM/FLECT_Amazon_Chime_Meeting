@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { GlobalState } from '../reducers';
-import { AppStatus, LOGGER_BATCH_SIZE, LOGGER_INTERVAL_MS, AppEntranceStatus, AppMeetingStatus, AppLobbyStatus, NO_DEVICE_SELECTED, LocalVideoConfigs } from '../const';
+import { AppStatus, LOGGER_BATCH_SIZE, LOGGER_INTERVAL_MS, AppEntranceStatus, AppMeetingStatus, AppLobbyStatus, NO_DEVICE_SELECTED, LocalVideoConfigs, NO_FOCUSED } from '../const';
 
 import {
     ConsoleLogger,
@@ -11,7 +11,8 @@ import {
     Logger,
     MeetingSessionPOSTLogger,
     VideoTileState,
-    DataMessage
+    DataMessage,
+    MeetingSession,
 } from 'amazon-chime-sdk-js';
 import Entrance from './Entrance';
 import Lobby from './Lobby';
@@ -19,7 +20,7 @@ import DeviceChangeObserverImpl from './DeviceChangeObserverImpl';
 import AudioVideoObserverImpl from './AudioVideoObserverImpl';
 import ContentShareObserverImpl from './ContentShareObserverImpl';
 import { setRealtimeSubscribeToAttendeeIdPresence, setSubscribeToActiveSpeakerDetector, setRealtimeSubscribeToReceiveDataMessage } from './subscribers';
-import { getDeviceLists, getTileId, getVideoDevice, getAudioDevice } from './utils'
+import { getDeviceLists, getTileId, getAudioDevice } from './utils'
 import { API_BASE_URL } from '../config';
 import { RS_STAMPS } from './resources';
 import ErrorPortal from './meetingComp/ErrorPortal';
@@ -68,7 +69,8 @@ const initializeMeetingSession = (gs: GlobalState, meetingSessionConf: MeetingSe
  * @param meetingSession 
  */
 const registerHandlers = (app: App, props: any, meetingSession: DefaultMeetingSession) => {
-    meetingSession.audioVideo.addDeviceChangeObserver(new DeviceChangeObserverImpl(app, props));
+    const meetingId = meetingSession.configuration.meetingId
+    meetingSession.audioVideo.addDeviceChangeObserver(new DeviceChangeObserverImpl(meetingId!, app, props));
     meetingSession.audioVideo.setDeviceLabelTrigger(
         async (): Promise<MediaStream> => {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
@@ -84,14 +86,14 @@ const registerHandlers = (app: App, props: any, meetingSession: DefaultMeetingSe
         console.log(`canUnmute = ${canUnmute}`);
     })
 
-    meetingSession.audioVideo.addObserver(new AudioVideoObserverImpl(app));
-    meetingSession.audioVideo.addContentShareObserver(new ContentShareObserverImpl(app, props));
+    meetingSession.audioVideo.addObserver(new AudioVideoObserverImpl(meetingId!, app));
+    meetingSession.audioVideo.addContentShareObserver(new ContentShareObserverImpl(meetingId!, app, props));
 
-    setRealtimeSubscribeToAttendeeIdPresence(app, meetingSession.audioVideo)
-    setSubscribeToActiveSpeakerDetector(app, meetingSession.audioVideo)
-    setRealtimeSubscribeToReceiveDataMessage(app, meetingSession.audioVideo, WSMessageType.Drawing)
-    setRealtimeSubscribeToReceiveDataMessage(app, meetingSession.audioVideo, WSMessageType.Stamp)
-    setRealtimeSubscribeToReceiveDataMessage(app, meetingSession.audioVideo, WSMessageType.Text)
+    setRealtimeSubscribeToAttendeeIdPresence(meetingId!, app, meetingSession.audioVideo)
+    setSubscribeToActiveSpeakerDetector(meetingId!, app, meetingSession.audioVideo)
+    setRealtimeSubscribeToReceiveDataMessage(meetingId!, app, meetingSession.audioVideo, WSMessageType.Drawing)
+    setRealtimeSubscribeToReceiveDataMessage(meetingId!, app, meetingSession.audioVideo, WSMessageType.Stamp)
+    setRealtimeSubscribeToReceiveDataMessage(meetingId!, app, meetingSession.audioVideo, WSMessageType.Text)
 
 }
 
@@ -118,7 +120,7 @@ export interface Attendee {
 
 export interface FileTransferStatus{
     sendingStatusStatuses  : SendingStatus[]
-    recievingStatuses      :RecievingStatus[] 
+    recievingStatuses      : RecievingStatus[] 
 
 }
 
@@ -130,21 +132,32 @@ export interface CurrentSettings {
     selectedInputVideoDevice: string
     selectedInputVideoResolution: string
     selectedOutputAudioDevice: string
-    focuseAttendeeId: string
-    globalStamps: (WSStamp|WSText)[]
 
     selectedInputVideoDevice2: string
-    fileTransferStatus       : FileTransferStatus
 }
+
+
+export interface JoinedMeeting{
+    roster: { [attendeeId: string]: Attendee }
+    videoTileStates: { [id: number]: VideoTileState }
+    fileTransferStatus       : FileTransferStatus
+    globalStamps: (WSStamp|WSText)[]
+    focusAttendeeId: string
+    messagingSocket: WebsocketApps,
+    meetingSessionConfiguration: MeetingSessionConfiguration,
+    meetingSession: MeetingSession,
+
+}
+
+
 
 /**
  * 
  */
 export interface AppState {
-    videoTileStates: { [id: number]: VideoTileState }
-    roster: { [attendeeId: string]: Attendee }
+    joinedMeetings : {[id:string]:JoinedMeeting},
+    focusedMeeting : string,
 
-    messagingSocket: WebsocketApps | null,
     stamps: { [key: string]: HTMLImageElement },
     outputAudioElement: HTMLAudioElement | null,
     shareVideoElement: HTMLVideoElement,
@@ -159,9 +172,8 @@ export interface AppState {
 class App extends React.Component {
 
     state: AppState = {
-        videoTileStates: {},
-        roster: {},
-        messagingSocket: null,
+        joinedMeetings: {},
+        focusedMeeting: NO_FOCUSED,
         stamps: {},
         outputAudioElement: document.createElement("audio"),
 
@@ -177,15 +189,8 @@ class App extends React.Component {
 //            selectedInputVideoResolution: "vc720p",
             selectedInputVideoResolution: "vc180p3",
             selectedOutputAudioDevice: NO_DEVICE_SELECTED,
-            focuseAttendeeId: "",
-            globalStamps: [],
 
             selectedInputVideoDevice2: NO_DEVICE_SELECTED,
-
-            fileTransferStatus: {
-                sendingStatusStatuses: [],
-                recievingStatuses    : [],
-            },
         },
         localVideoEffectors : new LocalVideoEffectors(null)
     }
@@ -194,72 +199,83 @@ class App extends React.Component {
     /***************************
     *  Callback for tile change
     ****************************/
-    updateVideoTileState = (state: VideoTileState) => {
+    updateVideoTileState = (meetingId:string, state: VideoTileState) => {
         let needUpdate = false
-        const videoTileStates = this.state.videoTileStates
-        if (videoTileStates[state.tileId!]) {
-        } else {
-            needUpdate = true
+        if(this.state.joinedMeetings[meetingId]!==undefined){
+            const videoTileStates = this.state.joinedMeetings[meetingId].videoTileStates
+            if (videoTileStates[state.tileId!]) {
+            } else {
+                needUpdate = true
+            }
+            videoTileStates[state.tileId!] = state
+            if (needUpdate) {
+                this.setState({videoTileStates:videoTileStates})
+            }
+            console.log("updateVideoTileState ", state.tileId!)
+            console.log("updateVideoTileState ", this.state.joinedMeetings[meetingId].videoTileStates)
         }
-        videoTileStates[state.tileId!] = state
-        if (needUpdate) {
-            this.setState({videoTileStates:videoTileStates})
-        }
-        console.log("updateVideoTileState ", state.tileId!)
-        console.log("updateVideoTileState", this.state.videoTileStates)
     }
-    removeVideoTileState = (tileId: number) => {
-        delete this.state.videoTileStates[tileId]
-        this.setState({})
-        console.log("removeVideoTileState ", tileId)
-
+    removeVideoTileState = (meetingId:string, tileId: number) => {
+        if(this.state.joinedMeetings[meetingId]!==undefined){
+            delete this.state.joinedMeetings[meetingId].videoTileStates[tileId]
+            this.setState({})
+            console.log("removeVideoTileState ", tileId)
+        }
     }
     /***************************
     *  Callback for attendee change
     ****************************/
-    deleteAttendee = (attendeeId: string) => {
+    deleteAttendee = (meetingId:string, attendeeId: string) => {
         console.log("deleteAttendee")
-        delete this.state.roster[attendeeId]
-        this.setState({})
+        if(this.state.joinedMeetings[meetingId] !== undefined){
+            const joinedMeetings = this.state.joinedMeetings
+            delete joinedMeetings[meetingId].roster[attendeeId]
+            this.setState({joinedMeetings:joinedMeetings})
+        }
     }
-    changeAttendeeStatus = (attendeeId: string, volume: number | null, muted: boolean | null, signalStrength: number | null) => {
+
+    changeAttendeeStatus = (meetingId:string, attendeeId: string, volume: number | null, muted: boolean | null, signalStrength: number | null) => {
         // console.log("changeAttendeeStatus", attendeeId)
         const props = this.props as any
         const gs = this.props as GlobalState
-        const roster = this.state.roster
-        if ((attendeeId in roster) === false) {
-            roster[attendeeId] = {
-                attendeeId: attendeeId,
-                name: null,
-                active: false,
-                volume: 0,
-                muted: false,
-                paused: false,
-                signalStrength: 0
+        if(this.state.joinedMeetings[meetingId] !== undefined){
+            const joinedMeetings = this.state.joinedMeetings
+            const roster = joinedMeetings[meetingId].roster
+            if ((attendeeId in roster) === false) {
+                roster[attendeeId] = {
+                    attendeeId: attendeeId,
+                    name: null,
+                    active: false,
+                    volume: 0,
+                    muted: false,
+                    paused: false,
+                    signalStrength: 0
+                }
             }
+            
+    
+            if (volume !== null) {
+                roster[attendeeId].volume = volume
+            }
+            if (muted !== null) {
+                roster[attendeeId].muted = muted
+            }
+            if (signalStrength !== null) {
+                roster[attendeeId].signalStrength = signalStrength
+            }
+            if (this.state.joinedMeetings[meetingId].roster[attendeeId].name === null || this.state.joinedMeetings[meetingId].roster[attendeeId].name === "Unknown") { // ChimeがUnknownで返すときがある
+                props.getAttendeeInformation(meetingId, attendeeId)
+            }
+            this.setState({joinedMeetings:joinedMeetings})
         }
-        
-
-        if (volume !== null) {
-            roster[attendeeId].volume = volume
-        }
-        if (muted !== null) {
-            roster[attendeeId].muted = muted
-        }
-        if (signalStrength !== null) {
-            roster[attendeeId].signalStrength = signalStrength
-        }
-        if (this.state.roster[attendeeId].name === null || this.state.roster[attendeeId].name === "Unknown") { // ChimeがUnknownで返すときがある
-            props.getAttendeeInformation(gs.joinInfo?.Meeting.MeetingId, attendeeId)
-        }
-        this.setState({})
     }
-    changeActiveSpeaker = (attendeeId: string) => {
+
+    changeActiveSpeaker = (meeting:string, attendeeId: string) => {
         //console.log("changeActiveSpeaker")
         // const props = this.props as any
         //props.changeActiveSpeaker(attendeeId)
     }
-    updateActiveScore = (scores: { [attendeeId: string]: number }) => {
+    updateActiveScore = (meeting:string, scores: { [attendeeId: string]: number }) => {
         // const props = this.props as any
         //console.log("updateActiveScore")
         //props.updateActiveScore(scores)
@@ -267,13 +283,14 @@ class App extends React.Component {
     /***************************
     *  Callback for DataMessage
     ****************************/
-    receivedDataMessage = (dataMessage: DataMessage) =>{
+    receivedDataMessage = (meetingId:string, dataMessage: DataMessage) =>{
+        console.log("recieving data!!!!!")
         if(dataMessage.topic === WSMessageType.Text){
 
         }else if(dataMessage.topic === WSMessageType.Stamp){
             const json = JSON.parse(Buffer.from(dataMessage.data).toString())
             const stamp = json.content as WSStamp
-            this.state.currentSettings.globalStamps.push(stamp)
+            this.state.joinedMeetings[meetingId].globalStamps.push(stamp)
 
         }else if(dataMessage.topic === WSMessageType.Drawing){
             const json = JSON.parse(Buffer.from(dataMessage.data).toString())
@@ -299,60 +316,67 @@ class App extends React.Component {
     ///////////////////////////////
     // For Microphone
     toggleMute = () => {
-        const gs = this.props as GlobalState
 
         const mute = !this.state.currentSettings.mute
         const currentSettings = this.state.currentSettings
         currentSettings.mute = mute
-        if (gs.meetingSession !== null) {
-            if (mute) {
-                gs.meetingSession.audioVideo.realtimeMuteLocalAudio();
-            } else {
-                gs.meetingSession.audioVideo.realtimeUnmuteLocalAudio();
-            }
+
+        if(mute){
+            Object.keys(this.state.joinedMeetings).map((x:string)=>{
+                this.state.joinedMeetings[x].meetingSession.audioVideo.realtimeMuteLocalAudio();
+            })
+        }else{
+            Object.keys(this.state.joinedMeetings).map((x:string)=>{
+                this.state.joinedMeetings[x].meetingSession.audioVideo.realtimeUnmuteLocalAudio();
+            })
         }
         this.setState({ currentSettings: currentSettings })
     }
 
     selectInputAudioDevice = (deviceId: string) => {
-        const gs = this.props as GlobalState
         const currentSettings = this.state.currentSettings
         currentSettings.selectedInputAudioDevice = deviceId
 
-        if (gs.meetingSession !== null) {
-            gs.meetingSession.audioVideo.chooseAudioInputDevice(deviceId)
-        }
+        Object.keys(this.state.joinedMeetings).map((x:string)=>{
+            this.state.joinedMeetings[x].meetingSession.audioVideo.chooseAudioInputDevice(deviceId);
+        })
         this.setState({ currentSettings: currentSettings })
     }
 
     // For Camera
     toggleVideo = () => {
-        const gs = this.props as GlobalState
         const videoEnable = !this.state.currentSettings.videoEnable
         const currentSettings = this.state.currentSettings
         currentSettings.videoEnable = videoEnable
         const localVideoEffectors = this.state.localVideoEffectors
         localVideoEffectors.cameraEnabled=videoEnable
         this.setState({ currentSettings: currentSettings, localVideoEffectors:localVideoEffectors})
-        if (videoEnable) {
+        if (videoEnable && currentSettings.selectedInputVideoDevice !== NO_DEVICE_SELECTED) {
             this.selectInputVideoDevice(currentSettings.selectedInputVideoDevice)
         } else {
-            //gs.meetingSession!.audioVideo.chooseVideoInputDevice(null)
+            Object.keys(this.state.joinedMeetings).map((x:string)=>{
+                this.state.joinedMeetings[x].meetingSession.audioVideo.chooseVideoInputDevice(null)
+                this.state.joinedMeetings[x].meetingSession.audioVideo.stopLocalVideoTile()
+            })
             this.state.localVideoEffectors.stopInputMediaStream()
-            gs.meetingSession?.audioVideo.stopLocalVideoTile()
         }
     }
 
     selectInputVideoDevice = (deviceId: string) => {
         console.log("SELECT INPUTDEVICE", deviceId)
-        const gs = this.props as GlobalState
-        const videoInputPromise = gs.meetingSession?.audioVideo.chooseVideoInputDevice(null)
+        const inputPromises = []
+        Object.keys(this.state.joinedMeetings).map((x:string)=>{
+            inputPromises.push(this.state.joinedMeetings[x].meetingSession.audioVideo.chooseVideoInputDevice(null))
+        })
         const localVideoEffectorsPromise = this.state.localVideoEffectors.selectInputVideoDevice(deviceId)
+        inputPromises.push(localVideoEffectorsPromise)
 
-        Promise.all([videoInputPromise, localVideoEffectorsPromise]).then(()=>{
+        Promise.all(inputPromises).then(()=>{
             const mediaStream = this.state.localVideoEffectors.getMediaStream()
-            gs.meetingSession?.audioVideo.chooseVideoInputDevice(mediaStream).then(()=>{
-                gs.meetingSession!.audioVideo.startLocalVideoTile()
+            Object.keys(this.state.joinedMeetings).map((x:string)=>{
+                this.state.joinedMeetings[x].meetingSession.audioVideo.chooseVideoInputDevice(mediaStream).then(()=>{
+                    this.state.joinedMeetings[x].meetingSession.audioVideo.startLocalVideoTile()
+                })
             })
         })
         const currentSettings = this.state.currentSettings
@@ -366,17 +390,55 @@ class App extends React.Component {
         this.setState({ currentSettings: currentSettings })
     }    
 
+    // For mediastream
+    dummyVideoElement = document.createElement("video")
+    setSelectedVideo = (e:any) =>{
+        const videoPromises = []
+        Object.keys(this.state.joinedMeetings).map((x:string)=>{
+            videoPromises.push(this.state.joinedMeetings[x].meetingSession.audioVideo.chooseVideoInputDevice(null))
+        })
+
+        const blob = e.target.files[0] as Blob
+        const obj_url = URL.createObjectURL(blob);
+
+        this.dummyVideoElement.width=100
+        this.dummyVideoElement.height=100
+        
+        this.dummyVideoElement.loop=true
+        this.dummyVideoElement.autoplay=true
+        this.dummyVideoElement.src = obj_url
+        this.dummyVideoElement.play()
+        // @ts-ignore
+        const mediaStream = this.dummyVideoElement.captureStream() as MediaStream
+        console.log(mediaStream)
+        const localVideoEffectorsPromise = this.state.localVideoEffectors.setMediaStream(mediaStream)
+        videoPromises.push(localVideoEffectorsPromise)
+
+        Promise.all(videoPromises).then(()=>{
+            const mediaStream = this.state.localVideoEffectors.getMediaStream()
+            Object.keys(this.state.joinedMeetings).map((x:string)=>{
+                videoPromises.push(this.state.joinedMeetings[x].meetingSession.audioVideo.chooseVideoInputDevice(null))
+                this.state.joinedMeetings[x].meetingSession?.audioVideo.chooseVideoInputDevice(mediaStream).then(()=>{
+                    this.state.joinedMeetings[x].meetingSession!.audioVideo.startLocalVideoTile()
+                })
+            })
+        })
+        const currentSettings = this.state.currentSettings
+        this.setState({ currentSettings: currentSettings })
+    }
+
     // For Speaker
     toggleSpeaker = () => {
-        const gs = this.props as GlobalState
 
         const speakerEnable = !this.state.currentSettings.speakerEnable
-        if (gs.meetingSession !== null) {
-            if (speakerEnable) {
-                gs.meetingSession!.audioVideo.bindAudioElement(this.state.outputAudioElement!)
-            } else {
-                gs.meetingSession!.audioVideo.unbindAudioElement();
-            }
+        if (speakerEnable) {
+            Object.keys(this.state.joinedMeetings).map((x:string)=>{
+                this.state.joinedMeetings[x].meetingSession!.audioVideo.bindAudioElement(this.state.outputAudioElement!)
+            })
+        } else {
+            Object.keys(this.state.joinedMeetings).map((x:string)=>{
+                this.state.joinedMeetings[x].meetingSession!.audioVideo.unbindAudioElement();
+            })
         }
 
         const currentSettings = this.state.currentSettings
@@ -385,10 +447,9 @@ class App extends React.Component {
     }
 
     selectOutputAudioDevice = (deviceId: string) => {
-        const gs = this.props as GlobalState
-        if (gs.meetingSession !== null) {
-            gs.meetingSession!.audioVideo.chooseAudioOutputDevice(deviceId)
-        }
+        Object.keys(this.state.joinedMeetings).map((x:string)=>{
+            this.state.joinedMeetings[x].meetingSession!.audioVideo.chooseAudioOutputDevice(deviceId)
+        })        
         const currentSettings = this.state.currentSettings
         currentSettings.selectedOutputAudioDevice = deviceId
         this.setState({ currentSettings: currentSettings })
@@ -396,13 +457,13 @@ class App extends React.Component {
 
     // For SharedVideo
     sharedVideoSelected = (e: any) => {
-        const gs = this.props as GlobalState
         const path = URL.createObjectURL(e.target.files[0]);
 
         try {
-            gs.meetingSession!.audioVideo.stopContentShare()
+            Object.keys(this.state.joinedMeetings).map((x:string)=>{
+                this.state.joinedMeetings[x].meetingSession!.audioVideo.stopContentShare()
+            })        
             this.state.shareVideoElement.pause()
-
         } catch (e) {
         }
         const videoElement = this.state.shareVideoElement
@@ -413,7 +474,12 @@ class App extends React.Component {
             async () => {
                 // @ts-ignore
                 const mediaStream: MediaStream = await this.state.shareVideoElement.captureStream()
-                await gs.meetingSession!.audioVideo.startContentShare(mediaStream)
+                Object.keys(this.state.joinedMeetings).map(async (x:string)=>{
+                    this.state.joinedMeetings[x].meetingSession!.audioVideo.stopContentShare()
+                    await this.state.joinedMeetings[x].meetingSession!.audioVideo.startContentShare(mediaStream)
+                })
+                    
+                // 要確認。asyncの中に入れたほうがいいか？2020/6/30
                 videoElement.currentTime = 0
                 videoElement.pause()
                 this.setState({shareVideoElement: videoElement})
@@ -428,12 +494,12 @@ class App extends React.Component {
         this.state.shareVideoElement.pause()
     }
     stopSharedVideo = () => {
-        const gs = this.props as GlobalState
-        gs.meetingSession!.audioVideo.stopContentShare()
+        Object.keys(this.state.joinedMeetings).map((x:string)=>{
+            this.state.joinedMeetings[x].meetingSession!.audioVideo.stopContentShare()
+        })      
     }
     // For SharedDisplay
     sharedDisplaySelected = () => {
-        const gs = this.props as GlobalState
         //gs.meetingSession!.audioVideo.startContentShareFromScreenCapture()
         const streamConstraints = {
             frameRate: {
@@ -442,12 +508,15 @@ class App extends React.Component {
         }
         // @ts-ignore https://github.com/microsoft/TypeScript/issues/31821
         navigator.mediaDevices.getDisplayMedia(streamConstraints).then(media => {
-            gs.meetingSession!.audioVideo.startContentShare(media)
+            Object.keys(this.state.joinedMeetings).map((x:string)=>{
+                this.state.joinedMeetings[x].meetingSession!.audioVideo.startContentShare(media)
+            })      
         })
     }
     stopSharedDisplay = () => {
-        const gs = this.props as GlobalState
-        gs.meetingSession!.audioVideo.stopContentShare()
+        Object.keys(this.state.joinedMeetings).map((x:string)=>{
+            this.state.joinedMeetings[x].meetingSession!.audioVideo.stopContentShare()
+        })      
     }
 
     // For Config
@@ -464,12 +533,12 @@ class App extends React.Component {
     }
 
     selectInputVideoResolution = (value: string) =>{
-        const gs = this.props as GlobalState
 
         const videoConfig = LocalVideoConfigs[value]
         //console.log(videoConfig)
-        gs.meetingSession!.audioVideo.chooseVideoInputQuality(videoConfig.width, videoConfig.height, videoConfig.frameRate, videoConfig.maxBandwidthKbps);
-
+        Object.keys(this.state.joinedMeetings).map((x:string)=>{
+            this.state.joinedMeetings[x].meetingSession!.audioVideo.chooseVideoInputQuality(videoConfig.width, videoConfig.height, videoConfig.frameRate, videoConfig.maxBandwidthKbps);
+        })      
         const currentSettings = this.state.currentSettings
         currentSettings.selectedInputVideoResolution = value
         this.setState({ currentSettings: currentSettings })
@@ -481,38 +550,39 @@ class App extends React.Component {
     }
 
     // For TileView Control
-    setFocusedAttendee = (attendeeId: string) => {
+    setFocusedAttendee = (meetingId:string, attendeeId: string) => {
         const gs = this.props as GlobalState
-        console.log("focus:", this.state.currentSettings.focuseAttendeeId)
-        if(attendeeId === gs.joinInfo?.Attendee.AttendeeId && this.state.currentSettings.videoEnable === false){
-            console.log("local video is off")
-            return
-        }
-        const currentSettings = this.state.currentSettings
-        currentSettings.focuseAttendeeId = attendeeId
-        this.setState({ currentSettings: currentSettings })
+        console.log("focus:", this.state.joinedMeetings[meetingId].focusAttendeeId)
+        // if(attendeeId === gs.joinInfo?.Attendee.AttendeeId && this.state.currentSettings.videoEnable === false){
+        //     console.log("local video is off")
+        //     return
+        // }
+        const joinedMeetings = this.state.joinedMeetings
+        joinedMeetings[meetingId].focusAttendeeId = attendeeId        
+        this.setState({ 
+            focusedMeeting: meetingId,
+            joinedMeetings: joinedMeetings 
+        })
     }
     
-    pauseVideoTile = (attendeeId:string) =>{
-        const gs = this.props as GlobalState
-        const tileId = getTileId(attendeeId, this.state.videoTileStates)
+    pauseVideoTile = (meetingId:string, attendeeId:string) =>{
+        const tileId = getTileId(attendeeId, this.state.joinedMeetings[meetingId].videoTileStates)
         if(tileId >= 0){
-            gs.meetingSession!.audioVideo.pauseVideoTile(tileId)
-            const roster = this.state.roster
-            roster[attendeeId].paused = true
-            this.setState({roster:roster})
+            this.state.joinedMeetings[meetingId].meetingSession.audioVideo.pauseVideoTile(tileId)
+            const joinedMeetings = this.state.joinedMeetings
+            joinedMeetings[meetingId].roster[attendeeId].paused = true
+            this.setState({joinedMeetings:joinedMeetings})
         }else{
             console.log("There is no tile: ", tileId, attendeeId)
         }
     }
-    unpauseVideoTile = (attendeeId:string) =>{
-        const gs = this.props as GlobalState
-        const tileId = getTileId(attendeeId, this.state.videoTileStates)
+    unpauseVideoTile = (meetingId:string, attendeeId:string) =>{
+        const tileId = getTileId(attendeeId, this.state.joinedMeetings[meetingId].videoTileStates)
         if(tileId >= 0){
-            gs.meetingSession!.audioVideo.unpauseVideoTile(tileId)
-            const roster = this.state.roster
-            roster[attendeeId].paused = false
-            this.setState({roster:roster})
+            this.state.joinedMeetings[meetingId].meetingSession.audioVideo.unpauseVideoTile(tileId)
+            const joinedMeetings = this.state.joinedMeetings
+            joinedMeetings[meetingId].roster[attendeeId].paused = false
+            this.setState({joinedMeetings:joinedMeetings})
         }else{
             console.log("There is no tile: ", tileId, attendeeId)
         }
@@ -520,28 +590,65 @@ class App extends React.Component {
 
 
     // For Messaging
-    sendStamp = (targetId: string, imgPath: string) => {
-        this.state.messagingSocket!.sendStamp(targetId, imgPath)
+    sendStamp = (meetingId:string, targetId: string, imgPath: string) => {
+        console.log("sendstamp1 ", meetingId)
+        console.log("sendstamp2 ", this.state.joinedMeetings)
+        this.state.joinedMeetings[meetingId].messagingSocket!.sendStamp(targetId, imgPath)
     }
 
-    sendStampBySignal = (targetId: string, imgPath: string) => {
-        const gs = this.props as GlobalState
-        sendStampBySignal(gs.meetingSession!.audioVideo, targetId, imgPath, false)
+    sendStampBySignal = (meetingId:string, targetId: string, imgPath: string) => {
+        Object.keys(this.state.joinedMeetings).map((x:string)=>{
+            sendStampBySignal(this.state.joinedMeetings[x].meetingSession!.audioVideo, targetId, imgPath, false)
+        })
     }
 
-    sendText = (targetId: string, text: string) => {
-        this.state.messagingSocket!.sendText(targetId, text)
+    sendText = (meetingId:string, targetId: string, text: string) => {
+        this.state.joinedMeetings[meetingId].messagingSocket!.sendText(targetId, text)
     }
 
-    sendDrawingBySignal = (targetId: string, mode:string, startXR:number, startYR:number, endXR:number, endYR:number, stroke:string, lineWidth:number)=>{
-        const gs = this.props as GlobalState
-        sendDrawingBySignal(gs.meetingSession!.audioVideo, targetId, mode, startXR, startYR, endXR, endYR, stroke, lineWidth, false)
+    sendDrawingBySignal = (meetingId:string, targetId: string, mode:string, startXR:number, startYR:number, endXR:number, endYR:number, stroke:string, lineWidth:number)=>{
+        Object.keys(this.state.joinedMeetings).map((x:string)=>{
+            sendDrawingBySignal(this.state.joinedMeetings[x].meetingSession!.audioVideo, targetId, mode, startXR, startYR, endXR, endYR, stroke, lineWidth, false)
+        })
     }
 
     // For File Share
-    sharedFileSelected = (targetId:string, e: any) => {
-        this.state.messagingSocket!.startFileTransfer(targetId, e)
+    sharedFileSelected = (meetingId:string, targetId:string, e: any) => {
+        this.state.joinedMeetings[meetingId].messagingSocket!.startFileTransfer(targetId, e)
     }
+
+    // For Lobby
+    joinMeeting = (meetingId:string, gs:GlobalState) =>{
+        const props = this.props as any
+        if(this.state.joinedMeetings[meetingId]===undefined){
+            props.joinMeeting(meetingId, gs)
+        }else{
+            console.log("Already joined!")
+        }
+    }
+
+    leaveMeeting = (meetingId:string, attendeeId:string) =>{
+        const props = this.props as any
+        props.leaveMeeting(meetingId, attendeeId)
+
+        // Just left meeting. post process
+        if(this.state.joinedMeetings[meetingId] !== undefined){
+            this.state.joinedMeetings[meetingId].meetingSession.audioVideo.stopLocalVideoTile()
+            this.state.joinedMeetings[meetingId].meetingSession.audioVideo.unbindAudioElement()
+            for (let key in this.state.joinedMeetings[meetingId].videoTileStates) {
+                this.state.joinedMeetings[meetingId].meetingSession.audioVideo.unbindVideoElement(Number(key))
+            }
+            this.state.joinedMeetings[meetingId].meetingSession.audioVideo.stop()
+            if(this.state.focusedMeeting === meetingId){
+                this.setState({focusedMeeting: NO_FOCUSED})
+            }
+            const joinedMeetings = this.state.joinedMeetings
+            delete joinedMeetings[meetingId]
+            this.setState({joinedMeetings:joinedMeetings})
+        }
+        props.clearedMeetingSession(meetingId)
+    }
+
 
     callbacks: { [key: string]: any } = {
         toggleMute: this.toggleMute,
@@ -551,6 +658,8 @@ class App extends React.Component {
         toggleSpeaker: this.toggleSpeaker,
         selectOutputAudioDevice: this.selectOutputAudioDevice,
         selectInputVideoResolution: this.selectInputVideoResolution,
+        setSelectedVideo: this.setSelectedVideo,
+
         sharedVideoSelected: this.sharedVideoSelected,
         playSharedVideo: this.playSharedVideo,
         pauseSharedVideo: this.pauseSharedVideo,
@@ -569,6 +678,10 @@ class App extends React.Component {
         sendStampBySignal: this.sendStampBySignal,
         sendDrawingBySignal: this.sendDrawingBySignal,
         sharedFileSelected: this.sharedFileSelected,
+        
+        _joinMeeting:  this.joinMeeting,
+        _leaveMeeting: this.leaveMeeting,
+
     }
 
 
@@ -604,10 +717,11 @@ class App extends React.Component {
          */
         if (gs.status === AppStatus.STARTED) {
             const base_url: string = [window.location.protocol, '//', window.location.host, window.location.pathname.replace(/\/*$/, '/').replace('/v2', '')].join('');
-            this.setState({
-                roster          : {},
-                videoTileStates : {},
-            })
+            // this.setState({
+
+            //     roster          : {},
+            //     videoTileStates : {},
+            // })
             props.goEntrance(base_url)
             return <div />
         }
@@ -635,7 +749,6 @@ class App extends React.Component {
         if (gs.status === AppStatus.IN_LOBBY) {
             if (gs.lobbyStatus === AppLobbyStatus.WILL_PREPARE) {
 //                const netPromise = bodyPix.load();
-
                 // Load Stamps
                 const RS_STAMPS_sorted = RS_STAMPS.sort()
                 const stamps: { [key: string]: HTMLImageElement } ={}
@@ -647,12 +760,17 @@ class App extends React.Component {
                         stamps[imgPath] = image
                     }
                 }
-
-                const videoPromise = getVideoDevice ("")
+//                const videoPromise = getVideoDevice("") // 
                 const audioPromise = getAudioDevice("")
-                Promise.all([videoPromise, audioPromise]).then(()=>{
+//                Promise.all([videoPromise, audioPromise]).then(()=>{
+                Promise.all([audioPromise]).then(()=>{
+                }).catch(err=>{
+                    console.log(err)
+                }).finally(()=>{
                     const deviceListPromise = getDeviceLists()
+
                     Promise.all([deviceListPromise]).then(([deviceList]) => {
+
                         const audioInputDevices = deviceList['audioinput']
                         const videoInputDevices = deviceList['videoinput']
                         const audioOutputDevices = deviceList['audiooutput']
@@ -662,10 +780,20 @@ class App extends React.Component {
                         currentSettings.selectedInputAudioDevice = audioInputDevices![0] ? audioInputDevices![0]['deviceId'] : NO_DEVICE_SELECTED
                         currentSettings.selectedInputVideoDevice = videoInputDevices![0] ? videoInputDevices![0]['deviceId'] : NO_DEVICE_SELECTED
                         currentSettings.selectedOutputAudioDevice = audioOutputDevices![0] ? audioOutputDevices![0]['deviceId'] : NO_DEVICE_SELECTED
+
+                        console.log("device list", deviceList)
+                        currentSettings.videoEnable = currentSettings.selectedInputVideoDevice===NO_DEVICE_SELECTED ? false:true
+
+                        this.setState({currentSettings:currentSettings})
+                        try{
+                            this.state.localVideoEffectors.selectInputVideoDevice(currentSettings.selectedInputVideoDevice)
+                        }catch(e){
+                            console.log("error: ", e)
+                        }
                         props.lobbyPrepared(audioInputDevices, videoInputDevices, audioOutputDevices)
                         props.refreshRoomList()
-                        this.state.localVideoEffectors.selectInputVideoDevice(currentSettings.selectedInputVideoDevice)
                     })
+
                 })
                 return (
                     <div />
@@ -683,10 +811,11 @@ class App extends React.Component {
          * Meeting Setup
          */
         if (gs.status === AppStatus.IN_MEETING) {
-            if (gs.meetingStatus === AppMeetingStatus.WILL_PREPARE) {
+            if (gs.meetingStatus === AppMeetingStatus.WILL_PREPARE && this.state.joinedMeetings[gs.preparingMeetingId!]===undefined) {
                 // If session exist already, it'll be initialized.
-                const meetingSessionConf = new MeetingSessionConfiguration(gs.joinInfo!.Meeting, gs.joinInfo!.Attendee)
+                const meetingSessionConf = new MeetingSessionConfiguration(gs.joinInfos[gs.preparingMeetingId!].Meeting, gs.joinInfos[gs.preparingMeetingId!].Attendee)
                 const defaultMeetingSession = initializeMeetingSession(gs, meetingSessionConf)
+                const meetingId = defaultMeetingSession.configuration.meetingId!
                 registerHandlers(this, props, defaultMeetingSession)
                 // const url = new URL(window.location.href);
                 // url.searchParams.set('m', gs.roomTitle);
@@ -703,7 +832,15 @@ class App extends React.Component {
                 console.log("MS", mediaStream)
                 const auidoInputPromise  = defaultMeetingSession.audioVideo.chooseAudioInputDevice(this.state.currentSettings.selectedInputAudioDevice)
                 const auidooutputPromise = defaultMeetingSession.audioVideo.chooseAudioOutputDevice(this.state.currentSettings.selectedOutputAudioDevice)
-                const videoInputPromise  = defaultMeetingSession.audioVideo.chooseVideoInputDevice(mediaStream)
+                const videoConfig = LocalVideoConfigs[this.state.currentSettings.selectedInputVideoResolution]
+                defaultMeetingSession.audioVideo.chooseVideoInputQuality(videoConfig.width, videoConfig.height, videoConfig.frameRate, videoConfig.maxBandwidthKbps);
+
+                let videoInputPromise = null
+                if(this.state.currentSettings.videoEnable){
+                    videoInputPromise  = defaultMeetingSession.audioVideo.chooseVideoInputDevice(mediaStream)
+                }else{
+                    videoInputPromise  = defaultMeetingSession.audioVideo.chooseVideoInputDevice(null)
+                }
 
                 Promise.all([auidoInputPromise, auidooutputPromise, videoInputPromise, messagingSocketPromise]).then(() => {
                     // Initializing for meeting
@@ -720,13 +857,12 @@ class App extends React.Component {
                         defaultMeetingSession.audioVideo.unbindAudioElement();
                     }
                     defaultMeetingSession.audioVideo.startLocalVideoTile()
-                    props.meetingPrepared(meetingSessionConf, defaultMeetingSession)
 
                     // Set WebsocketApps Event
                     messagingSocket.addFileRecievingEventListener((e:RecievingStatus)=>{
-                        const currentSettings = this.state.currentSettings
-                        currentSettings.fileTransferStatus.recievingStatuses = getRecievingStatus()
-                        this.setState({ currentSettings: currentSettings })
+                        const joinedMeetings = this.state.joinedMeetings
+                        joinedMeetings[meetingId].fileTransferStatus.recievingStatuses = getRecievingStatus()
+                        this.setState({ joinedMeetings: joinedMeetings })
                         if(e.available===true){
                             saveFile(e.uuid)
                         }
@@ -735,49 +871,54 @@ class App extends React.Component {
                     })
                     messagingSocket.addFileSendingEventListener((e:SendingStatus)=>{
                         console.log(`File Transfering...: ${e.transferredIndex}/${e.partNum}`)
-                        const currentSettings = this.state.currentSettings
-                        currentSettings.fileTransferStatus.sendingStatusStatuses = getSendingStatus()
-                        this.setState({ currentSettings: currentSettings })
+                        const joinedMeetings = this.state.joinedMeetings
+                        joinedMeetings[meetingId].fileTransferStatus.sendingStatusStatuses = getSendingStatus()
+                        this.setState({ joinedMeetings: joinedMeetings })
                     })
                     messagingSocket.addStampEventListener((e:WSStamp)=>{
-                        this.state.currentSettings.globalStamps.push(e)
+                        this.state.joinedMeetings[meetingId].globalStamps.push(e)
                     })
                     messagingSocket.addTextEventListener((e:WSText)=>{
-                        this.state.currentSettings.globalStamps.push(e)
+                        this.state.joinedMeetings[meetingId].globalStamps.push(e)
                     })
 
-                    this.setState({messagingSocket: messagingSocket})
+                    const joinedMeetings = this.state.joinedMeetings
+                    joinedMeetings[meetingId] = {
+                        roster: {},
+                        videoTileStates: {},
+                        fileTransferStatus: {
+                            sendingStatusStatuses  : [],
+                            recievingStatuses      : [],
+                        },
+                        globalStamps: [],
+                        focusAttendeeId: NO_FOCUSED,
+                        messagingSocket: messagingSocket,
+                        meetingSessionConfiguration: meetingSessionConf,
+                        meetingSession: defaultMeetingSession,
+
+                    }
+                    this.setState({joinedMeetings:joinedMeetings})
+                    props.meetingPrepared()
                 })
                 return <div />
-            } else if (gs.meetingStatus === AppMeetingStatus.WILL_CLEAR) {
-                // Just left meeting. post process
-                if (gs.meetingSession !== null) {
-                    gs.meetingSession.audioVideo.stopLocalVideoTile()
-                    gs.meetingSession.audioVideo.unbindAudioElement()
-                    for (let key in this.state.videoTileStates) {
-                        gs.meetingSession.audioVideo.unbindVideoElement(Number(key))
-                    }
-                    gs.meetingSession.audioVideo.stop()
-                    this.setState({
-                        videoTileStates   : {},
-                        roster            : {},
-                        messagingConsumer : {},
-                    })
-                    props.clearedMeetingSession()
-                }
             }
 
-            for (let attendeeId in this.state.roster) {
-                if (attendeeId in gs.storeRoster) {
-                    const attendee = this.state.roster[attendeeId]
-                    attendee.name = gs.storeRoster[attendeeId].name
-                }
+            if (gs.meetingStatus !== AppMeetingStatus.WILL_PREPARE){
+                Object.keys(this.state.joinedMeetings).map((meetingId:string)=>{
+                    Object.keys(this.state.joinedMeetings[meetingId].roster).map((attendeeId:string)=>{
+                        if(gs.storeRosters[meetingId] !== undefined &&attendeeId in gs.storeRosters[meetingId]){
+                            const attendee = this.state.joinedMeetings[meetingId].roster[attendeeId]
+                            attendee.name = gs.storeRosters[meetingId][attendeeId].name
+                        }
+                    })
+                })
+                return (
+                    <div>
+                        <Lobby  {...props} appState={this.state} />
+                    </div>
+                )
+    
             }
-            return (
-                <div>
-                    <Lobby  {...props} appState={this.state} />
-                </div>
-            )
         }
         return <div />
     }

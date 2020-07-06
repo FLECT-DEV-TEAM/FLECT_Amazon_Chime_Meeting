@@ -1,6 +1,4 @@
 import { AppStatus, AppEntranceStatus, AppMeetingStatus, AppLobbyStatus, LocalVideoConfigs } from "../const"
-import { MeetingSessionConfiguration, DefaultMeetingSession } from "amazon-chime-sdk-js"
-
 
 interface StoreRoster{
     attendeeId     : string,
@@ -62,19 +60,16 @@ export interface GlobalState {
     code                              : string
 
     windowConfig                      : WindowConfig
-    meetings                          : MeetingInfo[]
-    joinInfo                          : JoinInfo | null
-
-
-    meetingSessionConf                : MeetingSessionConfiguration | null
-    meetingSession                    : DefaultMeetingSession | null
+    meetings                          : MeetingInfo[] // meeting list in the server, not joined meeting only
+    joinInfos                         : {[meetingId:string]:JoinInfo}
+    preparingMeetingId                : string|null,
 
     inputAudioDevices                 : MediaDeviceInfo[]  | null
     inputVideoDevices                 : MediaDeviceInfo[]  | null
     inputVideoResolutions             : string[]
     outputAudioDevices                : MediaDeviceInfo[] | null
 
-    storeRoster                       : {[attendeeId:string]:StoreRoster}
+    storeRosters                      : {[meetingId:string]:{[attendeeId:string]:StoreRoster}} 
 
     status                            : AppStatus
     entranceStatus                    : AppEntranceStatus
@@ -102,9 +97,10 @@ export const initialState:GlobalState = {
     meetings                            : [],
 
 
-    joinInfo                            : null,
-    meetingSessionConf                  : null,
-    meetingSession                      : null,
+    joinInfos                           : {},
+    preparingMeetingId                  : null,
+    // meetingSessionConf                  : null,
+    // meetingSession                      : null,
 
     inputAudioDevices                   : null,
     inputVideoDevices                   : null,
@@ -112,7 +108,7 @@ export const initialState:GlobalState = {
     outputAudioDevices                  : null,
 
 
-    storeRoster                         : {},
+    storeRosters                         : {},
 
     status                              : AppStatus.STARTED,
     entranceStatus                             : AppEntranceStatus.NONE,
@@ -182,32 +178,33 @@ const reducer = (state: GlobalState = initialState, action: any) => {
         case 'JOINED_MEETING':
             gs.status        = AppStatus.IN_MEETING
             gs.meetingStatus = AppMeetingStatus.WILL_PREPARE
-            gs.joinInfo      = action.payload[0] as JoinInfo
+            const joininfo   = action.payload[0] as JoinInfo
+            gs.joinInfos[joininfo.Meeting.MeetingId] = joininfo
+            gs.preparingMeetingId = joininfo.Meeting.MeetingId
             break
 
-        case 'LEFT_MEETING':
-            gs.status        = AppStatus.IN_MEETING
-            gs.meetingStatus = AppMeetingStatus.WILL_CLEAR
-            // gs.joinInfo      = 
-            break
+        // case 'LEFT_MEETING':
+        //     gs.status        = AppStatus.IN_MEETING
+        //     gs.meetingStatus = AppMeetingStatus.WILL_CLEAR
+        //     // gs.joinInfo      = 
+        //     break
     
 
 
         case 'MEETING_PREPARED':
             gs.status        = AppStatus.IN_MEETING
-            gs.meetingStatus      = AppMeetingStatus.DONE_PREPARE
-            gs.meetingSessionConf = action.payload[0]
-            gs.meetingSession     = action.payload[1]
+            gs.meetingStatus = AppMeetingStatus.DONE_PREPARE
+            gs.preparingMeetingId = null
             break
 
         case 'CLEARED_MEETING_SESSION':
-            gs.status        = AppStatus.IN_LOBBY
             gs.meetingStatus = AppMeetingStatus.NONE
-            gs.meetingSessionConf = null
-            gs.meetingSession     = null
-            gs.joinInfo = null
+            const cleardMeetingId = action.payload[0] as string
+            delete gs.joinInfos[cleardMeetingId]
+            if(Object.keys(gs.joinInfos).length === 0 ){
+                gs.status        = AppStatus.IN_LOBBY
+            }
             break
-
 
         case 'SHOW_ERROR':
             gs.showError    = true
@@ -229,10 +226,14 @@ const reducer = (state: GlobalState = initialState, action: any) => {
             break
 
         case 'UPDATE_ATTENDEE_INFORMATION':
-            const attendeeId = action.payload[0]
-            const baseAttendeeId = action.payload[1]
-            const name = action.payload[2]
-            gs.storeRoster[attendeeId] = {
+            const meetingId  = action.payload[0]
+            const attendeeId = action.payload[1]
+            const baseAttendeeId = action.payload[2]
+            const name = action.payload[3]
+            if(gs.storeRosters[meetingId]===undefined){
+                gs.storeRosters[meetingId] = {}
+            }
+            gs.storeRosters[meetingId][attendeeId] = {
                 attendeeId : attendeeId,
                 baseAttendeeId :baseAttendeeId,
                 name:name

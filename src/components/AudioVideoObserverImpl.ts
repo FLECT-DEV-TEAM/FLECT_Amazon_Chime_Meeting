@@ -4,8 +4,10 @@ import App from "./App";
 
 class AudioVideoObserverImpl implements AudioVideoObserver{
     app:App
-    constructor(app:App){
+    meetingId:string
+    constructor(meetingId:string, app:App){
         this.app = app
+        this.meetingId=meetingId
     }
     
     audioVideoDidStartConnecting(reconnecting: boolean): void {
@@ -24,12 +26,13 @@ class AudioVideoObserverImpl implements AudioVideoObserver{
     }
 
     videoTileDidUpdate(tileState: VideoTileState): void {
-        this.app.updateVideoTileState(tileState)
+        console.log("videotiledid", this.meetingId)
+        this.app.updateVideoTileState(this.meetingId, tileState)
     }
 
     videoTileWasRemoved(tileId: number): void {
         //console.log(`video tile removed: ${tileId}`);
-        this.app.removeVideoTileState(tileId)
+        this.app.removeVideoTileState(this.meetingId, tileId)
         // this.hideTile(this.gs.tileOrganizer!.releaseTileIndex(tileId));
     }
     videoAvailabilityDidChange(availability: MeetingSessionVideoAvailability): void {
