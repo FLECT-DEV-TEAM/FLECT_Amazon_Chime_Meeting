@@ -6,7 +6,6 @@ import MainOverlayVideoElement from './meetingComp/MainOverlayVideoElement';
 import { getTileId } from './utils';
 import { AppState } from './App';
 import OverlayVideoElement from './meetingComp/OverlayVideoElement';
-import { getSendingStatus } from './WebsocketApps/FileTransfer';
 
 
 
