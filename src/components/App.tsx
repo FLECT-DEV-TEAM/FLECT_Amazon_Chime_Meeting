@@ -146,7 +146,7 @@ export interface JoinedMeeting{
     messagingSocket: WebsocketApps,
     meetingSessionConfiguration: MeetingSessionConfiguration,
     meetingSession: MeetingSession,
-
+    outputAudioElement: HTMLAudioElement | null,
 }
 
 
@@ -159,9 +159,8 @@ export interface AppState {
     focusedMeeting : string,
 
     stamps: { [key: string]: HTMLImageElement },
-    outputAudioElement: HTMLAudioElement | null,
     shareVideoElement: HTMLVideoElement,
-    
+
     currentSettings: CurrentSettings,
     localVideoEffectors: LocalVideoEffectors,
 }
@@ -175,7 +174,6 @@ class App extends React.Component {
         joinedMeetings: {},
         focusedMeeting: NO_FOCUSED,
         stamps: {},
-        outputAudioElement: document.createElement("audio"),
 
         shareVideoElement: document.createElement("video"),
 
@@ -237,7 +235,6 @@ class App extends React.Component {
     changeAttendeeStatus = (meetingId:string, attendeeId: string, volume: number | null, muted: boolean | null, signalStrength: number | null) => {
         // console.log("changeAttendeeStatus", attendeeId)
         const props = this.props as any
-        const gs = this.props as GlobalState
         if(this.state.joinedMeetings[meetingId] !== undefined){
             const joinedMeetings = this.state.joinedMeetings
             const roster = joinedMeetings[meetingId].roster
@@ -322,11 +319,11 @@ class App extends React.Component {
         currentSettings.mute = mute
 
         if(mute){
-            Object.keys(this.state.joinedMeetings).map((x:string)=>{
+            Object.keys(this.state.joinedMeetings).forEach((x:string)=>{
                 this.state.joinedMeetings[x].meetingSession.audioVideo.realtimeMuteLocalAudio();
             })
         }else{
-            Object.keys(this.state.joinedMeetings).map((x:string)=>{
+            Object.keys(this.state.joinedMeetings).forEach((x:string)=>{
                 this.state.joinedMeetings[x].meetingSession.audioVideo.realtimeUnmuteLocalAudio();
             })
         }
@@ -337,7 +334,7 @@ class App extends React.Component {
         const currentSettings = this.state.currentSettings
         currentSettings.selectedInputAudioDevice = deviceId
 
-        Object.keys(this.state.joinedMeetings).map((x:string)=>{
+        Object.keys(this.state.joinedMeetings).forEach((x:string)=>{
             this.state.joinedMeetings[x].meetingSession.audioVideo.chooseAudioInputDevice(deviceId);
         })
         this.setState({ currentSettings: currentSettings })
@@ -354,7 +351,7 @@ class App extends React.Component {
         if (videoEnable && currentSettings.selectedInputVideoDevice !== NO_DEVICE_SELECTED) {
             this.selectInputVideoDevice(currentSettings.selectedInputVideoDevice)
         } else {
-            Object.keys(this.state.joinedMeetings).map((x:string)=>{
+            Object.keys(this.state.joinedMeetings).forEach((x:string)=>{
                 this.state.joinedMeetings[x].meetingSession.audioVideo.chooseVideoInputDevice(null)
                 this.state.joinedMeetings[x].meetingSession.audioVideo.stopLocalVideoTile()
             })
@@ -365,7 +362,7 @@ class App extends React.Component {
     selectInputVideoDevice = (deviceId: string) => {
         console.log("SELECT INPUTDEVICE", deviceId)
         const inputPromises = []
-        Object.keys(this.state.joinedMeetings).map((x:string)=>{
+        Object.keys(this.state.joinedMeetings).forEach((x:string)=>{
             inputPromises.push(this.state.joinedMeetings[x].meetingSession.audioVideo.chooseVideoInputDevice(null))
         })
         const localVideoEffectorsPromise = this.state.localVideoEffectors.selectInputVideoDevice(deviceId)
@@ -373,7 +370,7 @@ class App extends React.Component {
 
         Promise.all(inputPromises).then(()=>{
             const mediaStream = this.state.localVideoEffectors.getMediaStream()
-            Object.keys(this.state.joinedMeetings).map((x:string)=>{
+            Object.keys(this.state.joinedMeetings).forEach((x:string)=>{
                 this.state.joinedMeetings[x].meetingSession.audioVideo.chooseVideoInputDevice(mediaStream).then(()=>{
                     this.state.joinedMeetings[x].meetingSession.audioVideo.startLocalVideoTile()
                 })
@@ -394,7 +391,7 @@ class App extends React.Component {
     dummyVideoElement = document.createElement("video")
     setSelectedVideo = (e:any) =>{
         const videoPromises = []
-        Object.keys(this.state.joinedMeetings).map((x:string)=>{
+        Object.keys(this.state.joinedMeetings).forEach((x:string)=>{
             videoPromises.push(this.state.joinedMeetings[x].meetingSession.audioVideo.chooseVideoInputDevice(null))
         })
 
@@ -416,7 +413,7 @@ class App extends React.Component {
 
         Promise.all(videoPromises).then(()=>{
             const mediaStream = this.state.localVideoEffectors.getMediaStream()
-            Object.keys(this.state.joinedMeetings).map((x:string)=>{
+            Object.keys(this.state.joinedMeetings).forEach((x:string)=>{
                 videoPromises.push(this.state.joinedMeetings[x].meetingSession.audioVideo.chooseVideoInputDevice(null))
                 this.state.joinedMeetings[x].meetingSession?.audioVideo.chooseVideoInputDevice(mediaStream).then(()=>{
                     this.state.joinedMeetings[x].meetingSession!.audioVideo.startLocalVideoTile()
@@ -432,11 +429,11 @@ class App extends React.Component {
 
         const speakerEnable = !this.state.currentSettings.speakerEnable
         if (speakerEnable) {
-            Object.keys(this.state.joinedMeetings).map((x:string)=>{
-                this.state.joinedMeetings[x].meetingSession!.audioVideo.bindAudioElement(this.state.outputAudioElement!)
+            Object.keys(this.state.joinedMeetings).forEach((x:string)=>{
+                this.state.joinedMeetings[x].meetingSession!.audioVideo.bindAudioElement(this.state.joinedMeetings[x].outputAudioElement!)
             })
         } else {
-            Object.keys(this.state.joinedMeetings).map((x:string)=>{
+            Object.keys(this.state.joinedMeetings).forEach((x:string)=>{
                 this.state.joinedMeetings[x].meetingSession!.audioVideo.unbindAudioElement();
             })
         }
@@ -447,7 +444,7 @@ class App extends React.Component {
     }
 
     selectOutputAudioDevice = (deviceId: string) => {
-        Object.keys(this.state.joinedMeetings).map((x:string)=>{
+        Object.keys(this.state.joinedMeetings).forEach((x:string)=>{
             this.state.joinedMeetings[x].meetingSession!.audioVideo.chooseAudioOutputDevice(deviceId)
         })        
         const currentSettings = this.state.currentSettings
@@ -460,7 +457,7 @@ class App extends React.Component {
         const path = URL.createObjectURL(e.target.files[0]);
 
         try {
-            Object.keys(this.state.joinedMeetings).map((x:string)=>{
+            Object.keys(this.state.joinedMeetings).forEach((x:string)=>{
                 this.state.joinedMeetings[x].meetingSession!.audioVideo.stopContentShare()
             })        
             this.state.shareVideoElement.pause()
@@ -494,7 +491,7 @@ class App extends React.Component {
         this.state.shareVideoElement.pause()
     }
     stopSharedVideo = () => {
-        Object.keys(this.state.joinedMeetings).map((x:string)=>{
+        Object.keys(this.state.joinedMeetings).forEach((x:string)=>{
             this.state.joinedMeetings[x].meetingSession!.audioVideo.stopContentShare()
         })      
     }
@@ -508,13 +505,13 @@ class App extends React.Component {
         }
         // @ts-ignore https://github.com/microsoft/TypeScript/issues/31821
         navigator.mediaDevices.getDisplayMedia(streamConstraints).then(media => {
-            Object.keys(this.state.joinedMeetings).map((x:string)=>{
+            Object.keys(this.state.joinedMeetings).forEach((x:string)=>{
                 this.state.joinedMeetings[x].meetingSession!.audioVideo.startContentShare(media)
             })      
         })
     }
     stopSharedDisplay = () => {
-        Object.keys(this.state.joinedMeetings).map((x:string)=>{
+        Object.keys(this.state.joinedMeetings).forEach((x:string)=>{
             this.state.joinedMeetings[x].meetingSession!.audioVideo.stopContentShare()
         })      
     }
@@ -536,7 +533,7 @@ class App extends React.Component {
 
         const videoConfig = LocalVideoConfigs[value]
         //console.log(videoConfig)
-        Object.keys(this.state.joinedMeetings).map((x:string)=>{
+        Object.keys(this.state.joinedMeetings).forEach((x:string)=>{
             this.state.joinedMeetings[x].meetingSession!.audioVideo.chooseVideoInputQuality(videoConfig.width, videoConfig.height, videoConfig.frameRate, videoConfig.maxBandwidthKbps);
         })      
         const currentSettings = this.state.currentSettings
@@ -551,7 +548,6 @@ class App extends React.Component {
 
     // For TileView Control
     setFocusedAttendee = (meetingId:string, attendeeId: string) => {
-        const gs = this.props as GlobalState
         console.log("focus:", this.state.joinedMeetings[meetingId].focusAttendeeId)
         // if(attendeeId === gs.joinInfo?.Attendee.AttendeeId && this.state.currentSettings.videoEnable === false){
         //     console.log("local video is off")
@@ -597,7 +593,7 @@ class App extends React.Component {
     }
 
     sendStampBySignal = (meetingId:string, targetId: string, imgPath: string) => {
-        Object.keys(this.state.joinedMeetings).map((x:string)=>{
+        Object.keys(this.state.joinedMeetings).forEach((x:string)=>{
             sendStampBySignal(this.state.joinedMeetings[x].meetingSession!.audioVideo, targetId, imgPath, false)
         })
     }
@@ -607,7 +603,7 @@ class App extends React.Component {
     }
 
     sendDrawingBySignal = (meetingId:string, targetId: string, mode:string, startXR:number, startYR:number, endXR:number, endYR:number, stroke:string, lineWidth:number)=>{
-        Object.keys(this.state.joinedMeetings).map((x:string)=>{
+        Object.keys(this.state.joinedMeetings).forEach((x:string)=>{
             sendDrawingBySignal(this.state.joinedMeetings[x].meetingSession!.audioVideo, targetId, mode, startXR, startYR, endXR, endYR, stroke, lineWidth, false)
         })
     }
@@ -841,10 +837,12 @@ class App extends React.Component {
                 }else{
                     videoInputPromise  = defaultMeetingSession.audioVideo.chooseVideoInputDevice(null)
                 }
+                const outputAudioElement = document.createElement("audio")
+
 
                 Promise.all([auidoInputPromise, auidooutputPromise, videoInputPromise, messagingSocketPromise]).then(() => {
                     // Initializing for meeting
-                    defaultMeetingSession.audioVideo.bindAudioElement(this.state.outputAudioElement!)
+                    defaultMeetingSession.audioVideo.bindAudioElement(outputAudioElement!)
                     defaultMeetingSession.audioVideo.start()
                     if (this.state.currentSettings.mute) {
                         defaultMeetingSession.audioVideo.realtimeMuteLocalAudio();
@@ -852,7 +850,7 @@ class App extends React.Component {
                         defaultMeetingSession.audioVideo.realtimeUnmuteLocalAudio();
                     }
                     if (this.state.currentSettings.speakerEnable) {
-                        defaultMeetingSession.audioVideo.bindAudioElement(this.state.outputAudioElement!)
+                        defaultMeetingSession.audioVideo.bindAudioElement(outputAudioElement!)
                     } else {
                         defaultMeetingSession.audioVideo.unbindAudioElement();
                     }
@@ -895,6 +893,7 @@ class App extends React.Component {
                         messagingSocket: messagingSocket,
                         meetingSessionConfiguration: meetingSessionConf,
                         meetingSession: defaultMeetingSession,
+                        outputAudioElement: outputAudioElement,
 
                     }
                     this.setState({joinedMeetings:joinedMeetings})
@@ -904,8 +903,8 @@ class App extends React.Component {
             }
 
             if (gs.meetingStatus !== AppMeetingStatus.WILL_PREPARE){
-                Object.keys(this.state.joinedMeetings).map((meetingId:string)=>{
-                    Object.keys(this.state.joinedMeetings[meetingId].roster).map((attendeeId:string)=>{
+                Object.keys(this.state.joinedMeetings).forEach((meetingId:string)=>{
+                    Object.keys(this.state.joinedMeetings[meetingId].roster).forEach((attendeeId:string)=>{
                         if(gs.storeRosters[meetingId] !== undefined &&attendeeId in gs.storeRosters[meetingId]){
                             const attendee = this.state.joinedMeetings[meetingId].roster[attendeeId]
                             attendee.name = gs.storeRosters[meetingId][attendeeId].name
