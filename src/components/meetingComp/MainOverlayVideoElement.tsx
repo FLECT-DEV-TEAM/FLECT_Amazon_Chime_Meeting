@@ -87,7 +87,7 @@ class MainOverlayVideoElement extends React.Component{
     clearDrawingCanvas = () =>{
         const props = this.props as any
         this.clearDrawing()
-        props.sendDrawingBySignal("", DrawingType.Clear, 0, 0, 0, 0, this.state.drawingStroke, this.state.drawingLineWidth )
+        props.sendDrawingBySignal("", "", DrawingType.Clear, 0, 0, 0, 0, this.state.drawingStroke, this.state.drawingLineWidth )
     }
     clearDrawing = () =>{
         const ctx = this.drawingCanvas.getContext("2d")!

@@ -38,7 +38,22 @@ export enum AppMeetingStatus{
     WILL_CLEAR,
 }
 
-
+export enum ForegroundSize{
+    Full,
+    Large,
+    Small,
+  }
+  export enum ForegroundPosition{
+    BottomLeft,
+    BottomRight,
+  }
+  export enum VirtualForegroundType{
+    None,
+    Canny,
+    Ascii,
+  }
+  
+  
 
 export interface LobbyMainColumnConfigInf{
     left  : number

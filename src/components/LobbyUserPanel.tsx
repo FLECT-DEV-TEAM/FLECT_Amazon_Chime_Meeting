@@ -14,6 +14,7 @@ import SecondaryCameraAccordion from './meetingComp/SecondaryCameraAccordion';
 import StampAccordionBySignal from './meetingComp/StampAccordionBySignal';
 import FileShareControl from './meetingComp/FileShare';
 import VideoResolutionControl from './meetingComp/VideoResolutionControl';
+import { LocalVideoConfigs } from '../const';
 
 
 interface PanelState{
@@ -22,7 +23,6 @@ interface PanelState{
 
 class PreviewPanel extends React.Component {
     previewCanvasRef = React.createRef<HTMLCanvasElement>()
-
     state: PanelState = {
         open             : true,
     }
@@ -40,21 +40,39 @@ class PreviewPanel extends React.Component {
 
         if(this.previewCanvasRef.current !== null){
             if(appState.localVideoEffectors.outputWidth !== 0 && appState.localVideoEffectors.outputHeight !== 0){
-                this.previewCanvasRef.current!.width  = this.previewCanvasRef.current!.scrollWidth
-                this.previewCanvasRef.current!.height = (this.previewCanvasRef.current!.width/appState.localVideoEffectors.outputWidth) * appState.localVideoEffectors.outputHeight
+
+                const videoWidth  = LocalVideoConfigs[appState.currentSettings.selectedInputVideoResolution].width
+                const videoHeight = LocalVideoConfigs[appState.currentSettings.selectedInputVideoResolution].height
+                this.previewCanvasRef.current!.width  = videoWidth
+                this.previewCanvasRef.current!.height = videoHeight        
+
                 const ctx = this.previewCanvasRef.current!.getContext("2d")!
                 ctx.drawImage(appState.localVideoEffectors.outputCanvas, 0, 0, this.previewCanvasRef.current!.width, this.previewCanvasRef.current!.height)
+                // this.previewCanvasRef.current!.style.setProperty('width', ''+320);
+                // this.previewCanvasRef.current!.style.setProperty('height', ''+240);
+
+
+
             }
         }
         requestAnimationFrame(() => this.drawPreviewCanvas())
     }
     render(){
         const gs = this.props as GlobalState
+        const props = this.props as any
+        const appState = props.appState as AppState
         return(
             <div>
+                {/* {appState.isSafari ?
+                        // <video ref={appState.localVideoElementRef} style={{ display: "block", width: "720px", margin: "auto" }} playsInline />
+                        appState.localVideoElement
+                        :
+                        <div/>
+                } */}
                 {this.state.open ?
                     (
                         <div>
+
                         <Card width="100%">
                             <Button basic size="tiny"  compact onClick={()=>{this.handleClick()}} >
                                 {/* <Header as='h5'> */}
@@ -96,7 +114,6 @@ class PreviewPanel extends React.Component {
 }
 
 class ConfigPanel extends React.Component {
-    previewCanvasRef = React.createRef<HTMLCanvasElement>()
 
     state: PanelState = {
         open             : true,
@@ -164,8 +181,6 @@ class ConfigPanel extends React.Component {
 
 
 class ActionsPanel extends React.Component {
-    previewCanvasRef = React.createRef<HTMLCanvasElement>()
-
     state: PanelState = {
         open             : true,
     }

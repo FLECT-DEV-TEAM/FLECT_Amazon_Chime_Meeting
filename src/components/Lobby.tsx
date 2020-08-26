@@ -2,6 +2,7 @@ import * as React from 'react';
 import { Grid, Menu, Dropdown } from 'semantic-ui-react'
 import LobbyMain from './LobbyMain';
 import { GlobalState } from '../reducers';
+import { AppState } from './App';
 
 
 class LobbyHeader extends React.Component {
@@ -55,6 +56,13 @@ class LobbyHeader extends React.Component {
 class Lobby extends React.Component {
     render() {
         const props = this.props as any
+        const appState = props.appState as AppState
+
+        if(appState.isSafari){
+            const localVideo = document.getElementById("localVideo");
+            appState.localVideoElement.setAttribute('playsinline', 'playsinline')
+            localVideo!!.appendChild(appState.localVideoElement)
+        }
         return (
 
             <Grid>

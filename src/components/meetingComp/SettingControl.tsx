@@ -17,7 +17,7 @@ interface SettingControlState {
 }
 
 class SettingControl extends React.Component {
-    
+
     state: SettingControlState ={
         open: false,
     }
@@ -57,7 +57,22 @@ class SettingControl extends React.Component {
             const imgPath = RS_VBG[i]
             images.push(
             <Grid.Column width={4}>
-                <div onClick={() => { props.setVirtualBackground(imgPath) }} style={
+                <div onClick={() => { 
+                    if(imgPath.indexOf("share_screen.jpg")>=0){
+                        const streamConstraints = {
+                            // frameRate: {
+                            //     max: 15,
+                            // },
+                        }
+                        // @ts-ignore https://github.com/microsoft/TypeScript/issues/31821
+                        navigator.mediaDevices.getDisplayMedia().then(media => {
+                            props.setScreenShareAsVirtualBackground(media)
+                        })
+                        this.settingClose()
+                    }else{
+                        props.setVirtualBackground(imgPath) 
+                    }
+                }} style={
                 (() => {
                     return appState.localVideoEffectors.virtualBackgroundImagePath === imgPath ?
                     { color: "red", border: "2px solid #ff0000", width: "100%", height: "100%" } :
@@ -65,6 +80,7 @@ class SettingControl extends React.Component {
                 })()
                 }>
                 <img src={imgPath} width="100%" height="100%" alt="" />
+
                 </div>
             </Grid.Column>
             )
