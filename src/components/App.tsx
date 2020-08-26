@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { GlobalState } from '../reducers';
-import { AppStatus, LOGGER_BATCH_SIZE, LOGGER_INTERVAL_MS, AppEntranceStatus, AppMeetingStatus, AppLobbyStatus, NO_DEVICE_SELECTED, LocalVideoConfigs, NO_FOCUSED } from '../const';
+import { AppStatus, LOGGER_BATCH_SIZE, LOGGER_INTERVAL_MS, AppEntranceStatus, AppMeetingStatus, AppLobbyStatus, NO_DEVICE_SELECTED, LocalVideoConfigs, NO_FOCUSED, ForegroundPosition, ForegroundSize, VirtualForegroundType } from '../const';
 
 import {
     ConsoleLogger,
@@ -31,7 +31,7 @@ import { WSText } from './WebsocketApps/Text';
 import { sendStampBySignal } from './WebsocketApps/StampBySignal';
 import { sendDrawingBySignal, DrawingType, WSDrawing } from './WebsocketApps/DrawingBySignal'
 import { WebsocketApps } from './WebsocketApps/WebsocketApps'
-import { LocalVideoEffectors } from 'local-video-effector'
+import { LocalVideoEffectors, ForegroundType } from 'local-video-effector'
 
 
 /**
@@ -163,6 +163,15 @@ export interface AppState {
 
     currentSettings: CurrentSettings,
     localVideoEffectors: LocalVideoEffectors,
+
+    foregroundPosition: ForegroundPosition,
+    foregroundSize    : ForegroundSize,
+    virtualForegroundType: VirtualForegroundType,
+
+    // for safari hack!!!
+    isSafari             : boolean,
+    localVideoElement : HTMLVideoElement,
+
 }
 
 /**
@@ -187,10 +196,18 @@ class App extends React.Component {
 //            selectedInputVideoResolution: "vc720p",
             selectedInputVideoResolution: "vc180p3",
             selectedOutputAudioDevice: NO_DEVICE_SELECTED,
-
             selectedInputVideoDevice2: NO_DEVICE_SELECTED,
+
+
         },
-        localVideoEffectors : new LocalVideoEffectors(null)
+        localVideoEffectors : new LocalVideoEffectors(null),
+
+        foregroundPosition: ForegroundPosition.BottomRight,
+        foregroundSize:     ForegroundSize.Full,
+        virtualForegroundType: VirtualForegroundType.None,
+        isSafari: false,
+//        localVideoElementRef : React.createRef<HTMLVideoElement>()
+        localVideoElement: document.createElement("video"),
     }
 
 
@@ -359,23 +376,65 @@ class App extends React.Component {
         }
     }
 
+    selectInputVideoDeviceInternalForSafari = (deviceId: string) =>{
+        navigator.mediaDevices.getUserMedia({              
+            audio: false,
+            video: { 
+                deviceId: deviceId,
+                width: { ideal: 640 },
+                height: { ideal: 360 }              
+            }
+        }).then(stream => {
+            if (stream !== null) {
+
+                this.state.localVideoElement.srcObject = stream
+                this.state.localVideoElement.play()
+                this.state.localVideoEffectors!.setVideoElement(this.state.localVideoElement)
+
+
+                // Retrieve MediaStream From LocalVideoEffector and set it to meeting rooms.
+                const mediaStream = this.state.localVideoEffectors.getMediaStream()
+                Object.keys(this.state.joinedMeetings).forEach((x:string)=>{
+                    this.state.joinedMeetings[x].meetingSession.audioVideo.chooseVideoInputDevice(mediaStream).then(()=>{
+                        this.state.joinedMeetings[x].meetingSession.audioVideo.startLocalVideoTile()
+                    })
+                })
+
+                return new Promise((resolve, reject) => {
+                    this.state.localVideoElement.onloadedmetadata = () => {
+                        resolve();
+                    };
+                });
+            }
+        })
+        
+    }
+
+
     selectInputVideoDevice = (deviceId: string) => {
         console.log("SELECT INPUTDEVICE", deviceId)
         const inputPromises = []
         Object.keys(this.state.joinedMeetings).forEach((x:string)=>{
             inputPromises.push(this.state.joinedMeetings[x].meetingSession.audioVideo.chooseVideoInputDevice(null))
         })
-        const localVideoEffectorsPromise = this.state.localVideoEffectors.selectInputVideoDevice(deviceId)
-        inputPromises.push(localVideoEffectorsPromise)
 
-        Promise.all(inputPromises).then(()=>{
-            const mediaStream = this.state.localVideoEffectors.getMediaStream()
-            Object.keys(this.state.joinedMeetings).forEach((x:string)=>{
-                this.state.joinedMeetings[x].meetingSession.audioVideo.chooseVideoInputDevice(mediaStream).then(()=>{
-                    this.state.joinedMeetings[x].meetingSession.audioVideo.startLocalVideoTile()
+        if(this.state.isSafari){
+            console.log("safari!")
+            this.selectInputVideoDeviceInternalForSafari(deviceId)
+        }else{
+            console.log("not safari!")
+            const localVideoEffectorsPromise = this.state.localVideoEffectors.selectInputVideoDevice(deviceId)
+            inputPromises.push(localVideoEffectorsPromise)
+    
+            Promise.all(inputPromises).then(()=>{
+                const mediaStream = this.state.localVideoEffectors.getMediaStream()
+                Object.keys(this.state.joinedMeetings).forEach((x:string)=>{
+                    this.state.joinedMeetings[x].meetingSession.audioVideo.chooseVideoInputDevice(mediaStream).then(()=>{
+                        this.state.joinedMeetings[x].meetingSession.audioVideo.startLocalVideoTile()
+                    })
                 })
             })
-        })
+        }
         const currentSettings = this.state.currentSettings
         currentSettings.selectedInputVideoDevice = deviceId
         this.setState({ currentSettings: currentSettings })
@@ -423,6 +482,7 @@ class App extends React.Component {
         const currentSettings = this.state.currentSettings
         this.setState({ currentSettings: currentSettings })
     }
+
 
     // For Speaker
     toggleSpeaker = () => {
@@ -484,6 +544,7 @@ class App extends React.Component {
             , 5000); // I don't know but we need some seconds to restart video share....
     }
 
+
     playSharedVideo = () => {
         this.state.shareVideoElement.play()
     }
@@ -528,6 +589,67 @@ class App extends React.Component {
         }
         this.setState({ localVideoEffectors:localVideoEffectors })
     }
+
+    setScreenShareAsVirtualBackground = (stream:MediaStream) =>{
+        const localVideoEffectors = this.state.localVideoEffectors
+        localVideoEffectors.virtualBackgroundEnabled   = true
+        localVideoEffectors.virtualBackgroundStream = stream
+        this.setState({ localVideoEffectors:localVideoEffectors })
+    }
+
+    setForegroundPosition = (pos:ForegroundPosition) => {
+        const currentSize = this.state.foregroundSize
+        this.setForegroundPositionAndSize(pos, currentSize)
+
+    }
+    setForegroundSize = (size:ForegroundSize) => {
+        const currentPos = this.state.foregroundPosition
+        this.setForegroundPositionAndSize(currentPos, size)
+    }    
+    setForegroundPositionAndSize = (position: ForegroundPosition, size: ForegroundSize) => {
+        const localVideoEffectors = this.state.localVideoEffectors
+        if(size === ForegroundSize.Full){
+            localVideoEffectors.setForegroundPosition(0.0, 0.0, 1, 1)
+        }else if(size === ForegroundSize.Large){
+            if(position === ForegroundPosition.BottomLeft){
+                localVideoEffectors.setForegroundPosition(0.0, 0.4, 0.6, 0.6)
+            }else{
+                localVideoEffectors.setForegroundPosition(0.4, 0.4, 0.6, 0.6)
+            }
+        }else if (size === ForegroundSize.Small){
+            if(position === ForegroundPosition.BottomLeft){
+                localVideoEffectors.setForegroundPosition(0.0, 0.7, 0.3, 0.3)
+            }else{
+                localVideoEffectors.setForegroundPosition(0.7, 0.7, 0.3, 0.3)
+            }
+        }
+        this.setState({
+            localVideoEffectors:localVideoEffectors,
+            foregroundPosition: position,
+            foregroundSize    : size,
+        })
+    }
+    setVirtualForeground = (type: VirtualForegroundType) =>{
+        const localVideoEffectors = this.state.localVideoEffectors
+        switch(type){
+            case VirtualForegroundType.None:
+                localVideoEffectors.foregroundType = ForegroundType.NONE
+                break
+            case VirtualForegroundType.Canny:
+                localVideoEffectors.foregroundType = ForegroundType.Canny
+                break
+            case VirtualForegroundType.Ascii:
+                localVideoEffectors.foregroundType = ForegroundType.Ascii
+                localVideoEffectors.asciiFontSize = 6
+                break
+        }
+
+        this.setState({
+            localVideoEffectors:localVideoEffectors,
+            VirtualForegroundType: type,
+        })
+    }
+
 
     selectInputVideoResolution = (value: string) =>{
 
@@ -663,6 +785,10 @@ class App extends React.Component {
         sharedDisplaySelected: this.sharedDisplaySelected,
         stopSharedDisplay: this.stopSharedDisplay,
         setVirtualBackground: this.setVirtualBackground,
+        setScreenShareAsVirtualBackground: this.setScreenShareAsVirtualBackground,
+        setForegroundPosition: this.setForegroundPosition,
+        setForegroundSize: this.setForegroundSize,
+        setVirtualForeground: this.setVirtualForeground,
         setFocusedAttendee: this.setFocusedAttendee,
         pauseVideoTile: this.pauseVideoTile,
         unpauseVideoTile: this.unpauseVideoTile,
@@ -677,19 +803,26 @@ class App extends React.Component {
         
         _joinMeeting:  this.joinMeeting,
         _leaveMeeting: this.leaveMeeting,
-
     }
 
 
     componentDidMount() {
+        if(window.navigator.userAgent.toLowerCase().indexOf('chrome') < 0) {
+            this.setState({isSafari:true})
+        }else{
+        }
         requestAnimationFrame(() => this.drawVideoCanvas())
     }
 
 
     drawVideoCanvas = () => {
         this.state.localVideoEffectors.doEffect(
+            // LocalVideoConfigs[this.state.currentSettings.selectedInputVideoResolution].width,
+            // LocalVideoConfigs[this.state.currentSettings.selectedInputVideoResolution].height,
+            320,180,
             LocalVideoConfigs[this.state.currentSettings.selectedInputVideoResolution].width,
-            LocalVideoConfigs[this.state.currentSettings.selectedInputVideoResolution].height)
+            LocalVideoConfigs[this.state.currentSettings.selectedInputVideoResolution].height,
+            )
         requestAnimationFrame(() => this.drawVideoCanvas())
     }
 
@@ -782,7 +915,11 @@ class App extends React.Component {
 
                         this.setState({currentSettings:currentSettings})
                         try{
-                            this.state.localVideoEffectors.selectInputVideoDevice(currentSettings.selectedInputVideoDevice)
+                            if(this.state.isSafari){
+                                this.selectInputVideoDeviceInternalForSafari(currentSettings.selectedInputVideoDevice)
+                            }else{
+                                this.state.localVideoEffectors.selectInputVideoDevice(currentSettings.selectedInputVideoDevice)
+                            }
                         }catch(e){
                             console.log("error: ", e)
                         }
@@ -795,6 +932,9 @@ class App extends React.Component {
                     <div />
                 )
             } else {
+                // const localVideo = document.getElementById("localVideo");
+                // localVideo?.appendChild(this.state.localVideoElement)
+
                 return (
                     <div>
                         <Lobby  {...props} appState={this.state} />
@@ -914,6 +1054,25 @@ class App extends React.Component {
                 return (
                     <div>
                         <Lobby  {...props} appState={this.state} />
+                        <input type="button" value="start" onClick={(e)=>{
+                            this.state.localVideoElement.play()
+                            this.state.localVideoElement.style.display="block"
+                        }}
+                        />
+
+                        <input type="button" value="hide" onClick={(e)=>{
+                            this.state.localVideoElement.style.display="none"
+                        }}
+                        />
+
+<br/>
+<br/>
+<br/>
+<br/>
+<br/>
+<br/>
+<br/>
+
                     </div>
                 )
     

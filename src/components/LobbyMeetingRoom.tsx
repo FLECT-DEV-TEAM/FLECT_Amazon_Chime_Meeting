@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Grid, Menu, Icon, Label } from 'semantic-ui-react'
 import { GlobalState } from '../reducers';
-import { AppStatus} from '../const'
+import { AppStatus, ForegroundPosition, ForegroundSize, VirtualForegroundType} from '../const'
 import MainOverlayVideoElement from './meetingComp/MainOverlayVideoElement';
 import { getTileId } from './utils';
 import { AppState } from './App';
@@ -72,7 +72,14 @@ class MainScreen extends React.Component{
 
         const focusedTileId = getTileId(thisAttendeeId, appState.joinedMeetings[thisMeetingId].videoTileStates)
         if(focusedTileId > 0 && this.mainOverlayVideoRef.current !== null){
-            appState.joinedMeetings[thisMeetingId].meetingSession.audioVideo.bindVideoElement(focusedTileId, this.mainOverlayVideoRef.current.getVideoRef().current!)
+            if(appState.joinedMeetings[thisMeetingId].videoTileStates[focusedTileId].localTile){
+                const videoElement = this.mainOverlayVideoRef.current.getVideoRef().current!
+                appState.joinedMeetings[thisMeetingId].meetingSession?.audioVideo.bindVideoElement(focusedTileId, videoElement)
+                videoElement.style.setProperty('-webkit-transform', 'scaleX(1)');
+                videoElement.style.setProperty('transform', 'scaleX(1)');
+            }else{
+                appState.joinedMeetings[thisMeetingId].meetingSession?.audioVideo.bindVideoElement(focusedTileId, this.mainOverlayVideoRef.current.getVideoRef().current!)
+            }
         }else{
             console.log("not focusedid", focusedTileId, this.mainOverlayVideoRef.current)
         }
@@ -89,7 +96,8 @@ class MainScreen extends React.Component{
                             {muted}
                             {attendeeName} @ {meetingName}
                         </span>
-                        <span style={{paddingLeft:"30px"}}>
+
+                        <span style={{paddingLeft:"10px"}}>
                             <Icon name="pencil" color={this.state.enableDrawing? "red":"grey"}
                                 link onClick ={
                                     ()=>{
@@ -115,9 +123,52 @@ class MainScreen extends React.Component{
                                 } 
                             />
                             <Icon name="file outline" link onClick={()=>{this.mainOverlayVideoRef.current!.clearDrawingCanvas()}} />
-                                
-
                         </span>
+
+
+                        <span style={{paddingLeft:"10px"}}>
+                            <Icon basic link name="long arrow alternate left"  size="large"
+                                onClick={() => {
+                                    props.setForegroundPosition(ForegroundPosition.BottomLeft)
+                                }}
+                            />
+                            <Icon basic link name="long arrow alternate right"  size="large"
+                                onClick={() => {
+                                    props.setForegroundPosition(ForegroundPosition.BottomRight)
+                                }}
+                            />
+                            <Icon basic link name="square outline"  size="large"
+                                onClick={() => {
+                                    props.setForegroundSize(ForegroundSize.Full)
+                                }}
+                            />
+                            <Icon basic link name="expand"  size="large"
+                                onClick={() => {
+                                    props.setForegroundSize(ForegroundSize.Large)
+                                }}
+                            />
+                            <Icon basic link name="compress"  size="large"
+                                onClick={() => {
+                                    props.setForegroundSize(ForegroundSize.Small)
+                                }}
+                            />
+                        </span>
+                        
+                        <span style={{paddingLeft:"10px"}}>
+                            <Label as="a" onClick={() => { props.setVirtualForeground(VirtualForegroundType.None) }} >
+                                <Icon name="square outline" size="large"/>
+                                None
+                            </Label> 
+                            <Label as="a" onClick={() => { props.setVirtualForeground(VirtualForegroundType.Canny) }} >
+                                <Icon name="chess board" size="large"/>
+                                canny
+                            </Label> 
+                            <Label as="a" onClick={() => { props.setVirtualForeground(VirtualForegroundType.Ascii) }} >
+                                <Icon name="font" size="large"/>
+                                ascii
+                            </Label> 
+                        </span>
+
                     </Grid.Column>
                 </Grid.Row>
             </Grid>
@@ -165,7 +216,14 @@ class TileScreenTile extends React.Component{
 
         const thisTileId = getTileId(thisAttendeeId, appState.joinedMeetings[thisMeetingId].videoTileStates)
         if(thisTileId > 0 && this.tileOverlayVideoRef.current !== null){
-            appState.joinedMeetings[thisMeetingId].meetingSession?.audioVideo.bindVideoElement(thisTileId, this.tileOverlayVideoRef.current.getVideoRef().current!)
+            if(appState.joinedMeetings[thisMeetingId].videoTileStates[thisTileId].localTile){
+                const videoElement = this.tileOverlayVideoRef.current.getVideoRef().current!
+                appState.joinedMeetings[thisMeetingId].meetingSession?.audioVideo.bindVideoElement(thisTileId, videoElement)
+                videoElement.style.setProperty('-webkit-transform', 'scaleX(1)');
+                videoElement.style.setProperty('transform', 'scaleX(1)');
+            }else{
+                appState.joinedMeetings[thisMeetingId].meetingSession?.audioVideo.bindVideoElement(thisTileId, this.tileOverlayVideoRef.current.getVideoRef().current!)
+            }
         }
 
         return(
