@@ -1,5 +1,13 @@
 # FLECT Amazon Chime Meeting
 
+
+**This repository is depricated.**
+
+*New repositry is [here](https://github.com/w-okada/flect-chime-sdk-demo)*
+
+
+---
+---
 Video Conference with Amazon Chime.
 
 Inspired by https://github.com/aws/amazon-chime-sdk-js/tree/master/demos/browser

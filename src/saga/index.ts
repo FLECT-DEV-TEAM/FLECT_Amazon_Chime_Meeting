@@ -122,6 +122,7 @@ function* handleRefreshRoomList() {
             let data = yield call((url:string) =>{
                 return fetch(url, {
                     method: 'GET',
+                    mode: "cors"
                 })
                 .then(res => res.json())
                 .catch(error => {throw error})
